@@ -22,6 +22,7 @@ namespace ControlUnitTests
         TEST_METHOD(PaneAddressRoundTrips);
         TEST_METHOD(PaneAddressRejectsGarbage);
         TEST_METHOD(ParsesEveryOp);
+        TEST_METHOD(SessionIdParsesBothForms);
         TEST_METHOD(RejectsBadRequests);
         TEST_METHOD(KeepsTextVerbatim);
         TEST_METHOD(IgnoresUnknownMembers);
@@ -100,6 +101,56 @@ namespace ControlUnitTests
             VERIFY_IS_TRUE(request.has_value());
             VERIFY_IS_TRUE(request->text.empty());
         }
+        {
+            const auto request = ControlPipe::ParseRequest(R"({"op":"focus-pane","session":"{6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8}"})");
+            VERIFY_IS_TRUE(request.has_value());
+            VERIFY_IS_TRUE(request->op == ControlPipe::Op::FocusPane);
+            VERIFY_IS_TRUE(request->session.has_value());
+            VERIFY_IS_FALSE(request->pane.has_value());
+        }
+        {
+            const auto request = ControlPipe::ParseRequest(R"({"op":"focus-pane","pane":"1.2.3"})");
+            VERIFY_IS_TRUE(request.has_value());
+            VERIFY_IS_TRUE(request->op == ControlPipe::Op::FocusPane);
+            VERIFY_IS_TRUE(request->pane.has_value());
+            VERIFY_IS_FALSE(request->session.has_value());
+        }
+        {
+            // Every other op ignores `session` like any unknown member, even a malformed one.
+            const auto request = ControlPipe::ParseRequest(R"({"op":"ping","session":5})");
+            VERIFY_IS_TRUE(request.has_value());
+            VERIFY_IS_FALSE(request->session.has_value());
+        }
+    }
+
+    void ControlPipeProtocolTests::SessionIdParsesBothForms()
+    {
+        const auto braced = ControlPipe::ParseSessionId("{6F1A2B3C-4D5E-6F70-8192-A3B4C5D6E7F8}");
+        const auto bare = ControlPipe::ParseSessionId("6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8");
+        VERIFY_IS_TRUE(braced.has_value());
+        VERIFY_IS_TRUE(bare.has_value());
+        VERIFY_IS_TRUE(*braced == *bare);
+
+        // Field order matters: the first group is Data1, not the first four bytes in memory order.
+        VERIFY_ARE_EQUAL(0x6f1a2b3cu, static_cast<unsigned>(bare->Data1));
+        VERIFY_ARE_EQUAL(0x4d5eu, static_cast<unsigned>(bare->Data2));
+        VERIFY_ARE_EQUAL(0x6f70u, static_cast<unsigned>(bare->Data3));
+        VERIFY_ARE_EQUAL(0x81u, static_cast<unsigned>(bare->Data4[0]));
+        VERIFY_ARE_EQUAL(0x92u, static_cast<unsigned>(bare->Data4[1]));
+        VERIFY_ARE_EQUAL(0xf8u, static_cast<unsigned>(bare->Data4[7]));
+
+        for (const auto& text : { "",
+                                  "{}",
+                                  "6f1a2b3c4d5e6f708192a3b4c5d6e7f8",
+                                  "{6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8",
+                                  "6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8}",
+                                  "6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7fg",
+                                  "6f1a2b3c_4d5e-6f70-8192-a3b4c5d6e7f8",
+                                  " 6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f",
+                                  "{6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8}x" })
+        {
+            VERIFY_IS_FALSE(ControlPipe::ParseSessionId(text).has_value(), NoThrowString().Format(L"parsing %hs", text));
+        }
     }
 
     void ControlPipeProtocolTests::RejectsBadRequests()
@@ -123,6 +174,12 @@ namespace ControlUnitTests
             R"({"op":"list-panes","containing":true})",
             R"({"op":"capture-pane","pane":"1.0.0","lines":"80"})",
             R"({"op":"capture-pane","pane":"1.0.0","lines":true})",
+            // focus-pane names its pane exactly one way, and names it validly.
+            R"({"op":"focus-pane"})",
+            R"({"op":"focus-pane","session":"{6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8}","pane":"1.0.0"})",
+            R"({"op":"focus-pane","session":"not-a-guid"})",
+            R"({"op":"focus-pane","session":5})",
+            R"({"op":"focus-pane","pane":"nonsense"})",
             // Two objects on one line is not one request.
             R"({"op":"ping"}{"op":"ping"})",
         };
@@ -181,6 +238,7 @@ namespace ControlUnitTests
         };
 
         VERIFY_ARE_EQUAL(std::string{ R"({"ok":true})" }, ControlPipe::OkResponse());
+        VERIFY_ARE_EQUAL(std::string{ R"({"id":"1.0.3","ok":true})" }, ControlPipe::FocusPaneResponse({ 1, 0, 3 }));
         VERIFY_ARE_EQUAL(std::string{ R"({"error":"needle-gone","ok":false})" }, ControlPipe::ErrorResponse(ControlPipe::Error::NeedleGone));
         VERIFY_ARE_EQUAL(std::string{ "no-such-pane" }, std::string{ ControlPipe::ErrorCode(ControlPipe::Error::NoSuchPane) });
         VERIFY_ARE_EQUAL(std::string{ "disconnected" }, std::string{ ControlPipe::ErrorCode(ControlPipe::Error::Disconnected) });

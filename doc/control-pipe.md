@@ -1,12 +1,13 @@
 # The control pipe
 
 A local, addressable, byte-exact control channel into a running Windows Terminal. It exists so that
-another process on the same machine can do three things that every other major terminal already
+another process on the same machine can do the things that every other major terminal already
 allows, and that Windows Terminal had no way to do at all:
 
 - **enumerate** the panes of every window in the process,
 - **read** what is on a pane's screen,
-- **write** text into a specific pane's connection.
+- **write** text into a specific pane's connection,
+- **focus** a specific pane: select its tab, focus it, and bring its window forward.
 
 This is a fork-only feature. Upstream has refused `wt send-input` twice (microsoft/terminal#9368,
 PR #20106) over the injection risk, and the automation surface they *are* building
@@ -71,7 +72,7 @@ Every response carries `"ok"`. On failure:
 | Code | Meaning |
 |---|---|
 | `bad-request` | Not JSON, not an object, unknown `op`, a malformed pane id, a field of the wrong type, or an over-long line. |
-| `no-such-pane` | The window/tab/pane triple doesn't name a live terminal pane. |
+| `no-such-pane` | The window/tab/pane triple (or, for `focus-pane`, the session id) doesn't name a live terminal pane in this process. |
 | `needle-gone` | `requireContains` was not on the pane's screen. **Nothing was written.** |
 | `disconnected` | The pane's connection has already closed. **Nothing was written.** |
 
@@ -99,7 +100,7 @@ Unknown members in a request are ignored, so adding a field later doesn't break 
 ]}
 ```
 
-- `id` is `"<window>.<tabIndex>.<paneId>"` and is what the other two ops take. `window` is the
+- `id` is `"<window>.<tabIndex>.<paneId>"` and is what the other ops take. `window` is the
   Terminal window id (the one `wt -w` uses), `tab` is a positional index, `pane` is the pane's id
   within its tab.
 - `containing` filters to panes whose current screen contains that literal string. The match happens
@@ -113,7 +114,8 @@ Unknown members in a request are ignored, so adding a field later doesn't break 
   an empty `process`. It is the same test `send-input` applies, so a client that filters on this and
   one that writes blindly and reads back `disconnected` can never disagree about a pane.
 - `session` is the connection's session id, the same GUID the shell sees in `WT_SESSION`. It is an
-  addition to the original contract, and a client is free to ignore it.
+  addition to the original contract, and a client is free to ignore it. `focus-pane` accepts it as
+  the pane's address.
 
 ### capture-pane
 
@@ -163,13 +165,36 @@ To submit a command, send **two** calls: the text, then `"\r"` on its own. They 
 buffered or coalesced. A single write containing both is read by some TUIs (Claude Code among them)
 as a bulk paste, and never submits.
 
+### focus-pane
+
+```json
+{"op":"focus-pane","session":"{6f1a2b3c-....}"}
+{"op":"focus-pane","pane":"1.0.3"}
+{"ok":true,"id":"1.0.3"}
+```
+
+Selects the pane's tab, focuses the pane within it, and summons its window to the front — restoring
+it if minimised, on the monitor it is already on, the same summon a toast click performs. Name the
+pane **exactly one** way: `session` (the `WT_SESSION` GUID, braced or bare, any case) or `pane`.
+Both, or neither, is `bad-request`. A tab zoomed onto a different pane is unzoomed first; a tab zoomed
+onto the target keeps its zoom.
+
+The success response carries `id`, the address the pane resolved to, so a client that asked by
+session learns it without a second `list-panes`.
+
+`no-such-pane` means **this process** has no pane with that session. Every Terminal process has its
+own pipe, so a client looking for a session asks each `wt-control-*` pipe in turn and stops at the
+first `ok`.
+
 ## Guarantees
 
 - **No key synthesis.** Nothing goes through `SendInput`, `keybd_event`, `SendKeys` or the message
   queue. Text goes to the connection.
-- **No focus involvement.** No `SetForegroundWindow`, no window activation, no tab switching, no
-  `Focus()`. It works with the target window minimised, on another virtual desktop, and with the
-  pane in a background tab, and the user's focus is exactly where it was before the call.
+- **No focus involvement, except in `focus-pane`.** `list-panes`, `capture-pane` and `send-input`
+  never call `SetForegroundWindow`, activate a window, switch a tab or call `Focus()`. They work with
+  the target window minimised, on another virtual desktop, and with the pane in a background tab,
+  and the user's focus is exactly where it was before the call. `focus-pane` is the one op whose
+  whole job is to move focus, and it moves it only when asked.
 - **No UI-thread blocking.** Accept, read, parse, serialise and process-name lookups all happen on
   the pipe threads. Only the pane touch is marshalled to the UI thread, and a stuck or dead client
   blocks nothing but its own thread.
@@ -184,8 +209,12 @@ The pipe can type into the user's shells, so:
 
 - The DACL is the whole story: current user SID only, no `PIPE_ACCESS_*` defaults, not Everyone, not
   Authenticated Users, no remote clients.
-- The op set is exactly the four above. There is no "run this", no file access, no settings
+- The op set is exactly the five above. There is no "run this", no file access, no settings
   mutation, no way to spawn a pane or a process, no way to close one.
+- `focus-pane` widens nothing an attacker could use. Focus is not input: it types nothing, and a
+  caller who can reach the pipe can already write into any pane directly with `send-input`, which is
+  strictly more powerful. What it can do is pull a window to the front, which is the same thing a
+  notification toast's click already does, and it is behind the same current-user DACL.
 - Connections are traced at measure level; **the text being written is never logged**, because
   session titles and command lines would end up in traces.
 - `controlPipe: false` removes the endpoint entirely.
@@ -197,7 +226,7 @@ The pipe can type into the user's shells, so:
 | Wire format: parsing, formatting, pane ids | `src/cascadia/WindowsTerminal/ControlPipeProtocol.h` |
 | The pipe itself: threads, DACL, framing, I/O | `src/cascadia/WindowsTerminal/ControlPipeServer.cpp` |
 | Marshalling onto the UI thread (`WM_CONTROL_PIPE_REQUEST`), window enumeration | `src/cascadia/WindowsTerminal/WindowEmperor.cpp` |
-| Pane enumeration, capture and input, per window | `src/cascadia/TerminalApp/TerminalPage.ControlPipe.cpp` |
+| Pane enumeration, capture, input and focus, per window | `src/cascadia/TerminalApp/TerminalPage.ControlPipe.cpp` |
 | Viewport read and match | `ControlCore::ReadViewportText`, `ControlCore::ViewportContains` |
 | Tests for the wire format | `src/cascadia/UnitTests_Control/ControlPipeProtocolTests.cpp` |
 
@@ -236,7 +265,7 @@ The command runs in that pane, and the window stays minimised and unfocused thro
 | Pane addressing | `window.tab.pane` | connection `SessionId` GUID |
 | Read | viewport-bounded | `ReadEntireBuffer()`, then split |
 | Write into a pane | yes, with an atomic guard | **no, by design** |
-| Mutating ops (new-tab, split, kill, focus) | none | yes |
+| Mutating ops (new-tab, split, kill, focus) | focus only | yes |
 
 The overlap is real but the shapes don't compose: upstream's surface omits the one operation this
 exists for, and its transport can't be reached from where the client lives. If `wtcli` lands, the

@@ -166,5 +166,6 @@ namespace TerminalApp
         Windows.Foundation.Collections.IVector<ControlPipePaneInfo> ControlPipeListPanes(String containing);
         ControlPipeCaptureResult ControlPipeCapturePane(UInt32 tabIndex, UInt32 paneId, Int32 lines);
         ControlPipeStatus ControlPipeSendInput(UInt32 tabIndex, UInt32 paneId, String text, String requireContains);
+        ControlPipeStatus ControlPipeFocusPane(UInt32 tabIndex, UInt32 paneId);
     }
 }

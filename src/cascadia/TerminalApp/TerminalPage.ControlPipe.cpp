@@ -9,9 +9,10 @@
 //
 // Two rules this file exists to keep:
 //
-// * Nothing here focuses, activates, summons or switches anything. A control
-//   client has to be able to read and write a pane in a background tab of a
-//   minimised window without the user's focus moving a pixel.
+// * Only focus-pane moves focus, because moving it is its whole job. Listing,
+//   capturing and writing never focus, activate, summon or switch anything: a
+//   control client has to be able to read and write a pane in a background tab
+//   of a minimised window without the user's focus moving a pixel.
 // * Input goes to the connection, never through the keyboard. We call the same
 //   TermControl::SendInput the sendInput action uses.
 
@@ -189,6 +190,30 @@ namespace winrt::TerminalApp::implementation
         // and sends the Enter as its own call - a lot of TUIs treat one write
         // containing both text and \r as a bulk paste and never submit it.
         control.SendInput(text);
+        return TerminalApp::ControlPipeStatus::Ok;
+    }
+
+    // Selects the pane's tab and focuses the pane within it. Raising the window
+    // is WindowEmperor's half, since only it can summon an AppHost.
+    TerminalApp::ControlPipeStatus TerminalPage::ControlPipeFocusPane(uint32_t tabIndex, uint32_t paneId)
+    {
+        const auto pane = _controlPipeFindPane(tabIndex, paneId);
+        if (!pane || !pane->GetTerminalControl())
+        {
+            return TerminalApp::ControlPipeStatus::NoSuchPane;
+        }
+
+        // _controlPipeFindPane already proved the tab and its root exist.
+        const auto tabImpl = _GetTabImpl(_tabs.GetAt(tabIndex));
+        _SelectTab(tabIndex);
+
+        // A zoomed tab shows only its active pane. Unzoom only when the target
+        // is some other pane, so focusing the zoomed pane itself keeps the zoom.
+        if (tabImpl->IsZoomed() && tabImpl->GetActivePane() != pane)
+        {
+            _UnZoomIfNeeded();
+        }
+        tabImpl->FocusPane(paneId);
         return TerminalApp::ControlPipeStatus::Ok;
     }
 }

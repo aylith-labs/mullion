@@ -1424,6 +1424,15 @@ namespace winrt::TerminalApp::implementation
         return _root->ControlPipeSendInput(tabIndex, paneId, std::move(text), std::move(requireContains));
     }
 
+    winrt::TerminalApp::ControlPipeStatus TerminalWindow::ControlPipeFocusPane(uint32_t tabIndex, uint32_t paneId)
+    {
+        if (!_root)
+        {
+            return winrt::TerminalApp::ControlPipeStatus::NoSuchPane;
+        }
+        return _root->ControlPipeFocusPane(tabIndex, paneId);
+    }
+
     bool TerminalWindow::ShouldImmediatelyHandoffToElevated()
     {
         return _root != nullptr ? _root->ShouldImmediatelyHandoffToElevated(_settings) : false;

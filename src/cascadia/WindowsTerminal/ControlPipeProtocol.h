@@ -36,6 +36,7 @@ namespace ControlPipe
         ListPanes,
         CapturePane,
         SendInput,
+        FocusPane,
     };
 
     enum class Error
@@ -99,6 +100,23 @@ namespace ControlPipe
                 return std::nullopt;
             }
             return value;
+        }
+
+        inline int HexDigit(char ch) noexcept
+        {
+            if (ch >= '0' && ch <= '9')
+            {
+                return ch - '0';
+            }
+            if (ch >= 'a' && ch <= 'f')
+            {
+                return ch - 'a' + 10;
+            }
+            if (ch >= 'A' && ch <= 'F')
+            {
+                return ch - 'A' + 10;
+            }
+            return -1;
         }
 
         inline std::optional<std::wstring> Widen(std::string_view utf8)
@@ -190,11 +208,63 @@ namespace ControlPipe
         return std::to_string(address.window) + '.' + std::to_string(address.tab) + '.' + std::to_string(address.pane);
     }
 
+    // A connection session id, the GUID a shell sees in WT_SESSION. Braced (the
+    // form list-panes reports) or bare, either case. Anything else is rejected
+    // whole rather than half-parsed.
+    inline std::optional<GUID> ParseSessionId(std::string_view text) noexcept
+    {
+        if (text.size() == 38 && text.front() == '{' && text.back() == '}')
+        {
+            text = text.substr(1, 36);
+        }
+        if (text.size() != 36)
+        {
+            return std::nullopt;
+        }
+
+        uint8_t bytes[16]{};
+        size_t count = 0;
+        for (size_t i = 0; i < text.size();)
+        {
+            if (i == 8 || i == 13 || i == 18 || i == 23)
+            {
+                if (text[i] != '-')
+                {
+                    return std::nullopt;
+                }
+                i++;
+                continue;
+            }
+
+            const auto high = details::HexDigit(text[i]);
+            const auto low = details::HexDigit(text[i + 1]);
+            if (high < 0 || low < 0)
+            {
+                return std::nullopt;
+            }
+            bytes[count++] = static_cast<uint8_t>((high << 4) | low);
+            i += 2;
+        }
+
+        GUID guid{};
+        guid.Data1 = (uint32_t{ bytes[0] } << 24) | (uint32_t{ bytes[1] } << 16) | (uint32_t{ bytes[2] } << 8) | uint32_t{ bytes[3] };
+        guid.Data2 = static_cast<uint16_t>((bytes[4] << 8) | bytes[5]);
+        guid.Data3 = static_cast<uint16_t>((bytes[6] << 8) | bytes[7]);
+        for (size_t i = 0; i < 8; i++)
+        {
+            guid.Data4[i] = bytes[8 + i];
+        }
+        return guid;
+    }
+
     struct Request
     {
         Op op{ Op::Ping };
-        // Set for capture-pane and send-input.
+        // Set for capture-pane and send-input, and for focus-pane when it
+        // names its pane by address.
         std::optional<PaneAddress> pane;
+        // focus-pane only: the pane's connection session id (WT_SESSION).
+        std::optional<GUID> session;
         // list-panes filter. Empty means "no filter", which is also what an
         // absent `containing` means.
         std::wstring containing;
@@ -259,6 +329,10 @@ namespace ControlPipe
         else if (op == "send-input")
         {
             request.op = Op::SendInput;
+        }
+        else if (op == "focus-pane")
+        {
+            request.op = Op::FocusPane;
         }
         else
         {
@@ -325,9 +399,30 @@ namespace ControlPipe
             request.lines = std::max(0, value.asInt());
         }
 
+        // `session` is read for focus-pane only; every other op ignores it
+        // like any unknown member.
+        if (request.op == Op::FocusPane && root.isMember("session"))
+        {
+            const auto& value = root["session"];
+            if (!value.isString())
+            {
+                return std::nullopt;
+            }
+            request.session = ParseSessionId(value.asString());
+            if (!request.session)
+            {
+                return std::nullopt;
+            }
+        }
+
         // A pane op without a pane, or a send-input without text, is a client
         // bug rather than a missing pane - say so.
         if ((request.op == Op::CapturePane || request.op == Op::SendInput) && !request.pane)
+        {
+            return std::nullopt;
+        }
+        // focus-pane names its pane exactly one way: both at once could disagree.
+        if (request.op == Op::FocusPane && request.pane.has_value() == request.session.has_value())
         {
             return std::nullopt;
         }
@@ -421,6 +516,16 @@ namespace ControlPipe
     {
         Json::Value root{ Json::objectValue };
         root["ok"] = true;
+        return details::Serialize(root);
+    }
+
+    // The pane focus-pane landed on, so a client that asked by session id
+    // learns its address without a second list-panes.
+    inline std::string FocusPaneResponse(const PaneAddress& address)
+    {
+        Json::Value root{ Json::objectValue };
+        root["ok"] = true;
+        root["id"] = FormatPaneAddress(address);
         return details::Serialize(root);
     }
 }

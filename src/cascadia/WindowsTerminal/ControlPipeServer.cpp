@@ -379,6 +379,9 @@ std::string ControlPipeServer::_dispatch(const ControlPipe::Request& request) co
     case ControlPipe::Op::CapturePane:
         return ControlPipe::CapturePaneResponse(exchange.text);
 
+    case ControlPipe::Op::FocusPane:
+        return ControlPipe::FocusPaneResponse(exchange.focused);
+
     case ControlPipe::Op::SendInput:
     default:
         return ControlPipe::OkResponse();

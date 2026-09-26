@@ -36,6 +36,8 @@ struct ControlPipeExchange
     std::vector<ControlPipe::PaneEntry> panes;
     // capture-pane
     std::wstring text;
+    // focus-pane: the pane that was focused.
+    ControlPipe::PaneAddress focused;
 };
 
 class ControlPipeServer

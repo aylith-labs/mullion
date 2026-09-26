@@ -532,6 +532,58 @@ void WindowEmperor::_handleControlPipeRequest(ControlPipeExchange& exchange) con
         }
     }
 
+    case ControlPipe::Op::FocusPane:
+    {
+        // Resolve to an address first. A session id is looked up by the same
+        // walk list-panes does, so the two ops can never disagree about which
+        // pane carries it; nothing yields between the lookup and the focus.
+        AppHost* target = nullptr;
+        ControlPipe::PaneAddress address{};
+        if (request.session)
+        {
+            const winrt::guid session{ *request.session };
+            for (const auto& host : _windows)
+            {
+                const auto logic = host->Logic();
+                for (const auto& pane : logic.ControlPipeListPanes({}))
+                {
+                    if (pane.SessionId == session)
+                    {
+                        target = host.get();
+                        address = { logic.WindowProperties().WindowId(), pane.TabIndex, pane.PaneId };
+                        break;
+                    }
+                }
+                if (target)
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            address = *request.pane;
+            target = GetWindowById(address.window);
+        }
+
+        if (!target || target->Logic().ControlPipeFocusPane(address.tab, address.pane) != winrt::TerminalApp::ControlPipeStatus::Ok)
+        {
+            exchange.error = ControlPipe::Error::NoSuchPane;
+            return;
+        }
+
+        // The same summon a toast click uses (FocusTabInAnyWindow).
+        winrt::TerminalApp::SummonWindowBehavior summonArgs;
+        summonArgs.MoveToCurrentDesktop(false);
+        summonArgs.DropdownDuration(0);
+        summonArgs.ToMonitor(winrt::TerminalApp::MonitorBehavior::InPlace);
+        summonArgs.ToggleVisibility(false);
+        target->HandleSummon(std::move(summonArgs));
+
+        exchange.focused = address;
+        return;
+    }
+
     default:
         exchange.error = ControlPipe::Error::BadRequest;
         return;
