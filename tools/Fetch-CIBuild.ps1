@@ -14,6 +14,9 @@
 #
 # Safe to run on a timer: the common case is "nothing newer", which costs one API
 # call and no download. See Install-CIBuildPoller.ps1.
+#
+# pwsh 7 only: under Windows PowerShell 5.1 it dies with a bare null-method error.
+#requires -Version 7.0
 [CmdletBinding()]
 Param(
     [string]$Repo = 'steven-pribilinskiy/terminal',
