@@ -255,8 +255,15 @@
                                 of the setting, and collapsed unless the row is ours
                                 AND the mark is switched on in Appearance.
                             -->
-                            <StackPanel Orientation="Horizontal"
-                                        Spacing="6">
+                            <!--
+                                No Spacing on this panel, deliberately. A UWP StackPanel
+                                still inserts its Spacing around Collapsed children, and
+                                most rows collapse every mark after the header, so the
+                                description badge ended up four gaps from its label
+                                instead of one. Each mark carries its own left Margin
+                                instead: a collapsed element contributes no margin.
+                            -->
+                            <StackPanel Orientation="Horizontal">
                                 <ContentPresenter x:Name="PART_HeaderPresenter"
                                                   HorizontalAlignment="Left"
                                                   Content="{TemplateBinding Header}"
@@ -272,6 +279,7 @@
                                     SettingsCard.cpp::_UpdateTrait.
                                 -->
                                 <Border x:Name="PART_Trait"
+                                        Margin="6,0,0,0"
                                         Padding="6,1"
                                         VerticalAlignment="Center"
                                         Background="{ThemeResource ControlFillColorSecondaryBrush}"
@@ -285,6 +293,7 @@
                                                Text="{TemplateBinding Trait}" />
                                 </Border>
                                 <TextBlock x:Name="PART_AylithImprint"
+                                           Margin="6,0,0,0"
                                            VerticalAlignment="Center"
                                            AutomationProperties.AccessibilityView="Raw"
                                            FontSize="10"
@@ -301,6 +310,7 @@
                                     the two claims.
                                 -->
                                 <TextBlock x:Name="PART_JsonOnlyImprint"
+                                           Margin="6,0,0,0"
                                            VerticalAlignment="Center"
                                            AutomationProperties.AccessibilityView="Raw"
                                            FontSize="10"
@@ -328,6 +338,7 @@
                                     are.
                                 -->
                                 <Border x:Name="PART_DescriptionHelp"
+                                        Margin="6,0,0,0"
                                         Width="16"
                                         Height="16"
                                         VerticalAlignment="Center"
