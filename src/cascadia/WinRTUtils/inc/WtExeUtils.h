@@ -4,9 +4,9 @@
 #pragma once
 
 constexpr std::wstring_view WtExe{ L"wt.exe" };
-constexpr std::wstring_view WtdExe{ L"wtd.exe" };
-constexpr std::wstring_view WttExe{ L"wtt.exe" };
-constexpr std::wstring_view WindowsTerminalExe{ L"WindowsTerminal.exe" };
+constexpr std::wstring_view WtdExe{ L"muld.exe" };
+constexpr std::wstring_view WttExe{ L"mult.exe" };
+constexpr std::wstring_view WindowsTerminalExe{ L"mullion.exe" };
 constexpr std::wstring_view LocalAppDataAppsPath{ L"%LOCALAPPDATA%\\Microsoft\\WindowsApps\\" };
 constexpr std::wstring_view ElevateShimExe{ L"elevate-shim.exe" };
 
@@ -59,7 +59,7 @@ _TIL_INLINEPREFIX bool IsDevBuild()
 
 // Function Description:
 // - The same question for the local Test slot, which is packaged as
-//   WindowsTerminalTest and aliased wtt.exe. It runs the very same binaries as
+//   WindowsTerminalTest and aliased mult.exe. It runs the very same binaries as
 //   the Dev slot on purpose, so this cannot be answered from a #define - only
 //   from package identity.
 // Return Value:

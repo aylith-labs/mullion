@@ -1,13 +1,13 @@
 # Register the Test slot from the newest build Fetch-CIBuild.ps1 has staged.
 #
-# The Test-slot counterpart to Promote-DevSlot.ps1, and much simpler: wtt is the
+# The Test-slot counterpart to Promote-DevSlot.ps1, and much simpler: mult is the
 # one slot CLAUDE.md says may be registered, launched, restarted or replaced with
 # no confirmation needed, so there is no idle check, no waiting for a window to
-# close on its own, no "ask first". If wtt is open, this closes it -- Windows will
+# close on its own, no "ask first". If mult is open, this closes it -- Windows will
 # not re-register a package identity from a different folder while it is running,
 # and there is nothing here to ask permission for.
 #
-# Deliberately not run by the CI poller: swapping wtt's binaries out from under an
+# Deliberately not run by the CI poller: swapping mult's binaries out from under an
 # actively open test window on a timer would be its own kind of surprise. Run this
 # by hand, right before verification is actually needed.
 [CmdletBinding()]
@@ -40,9 +40,9 @@ if ($markerInfo) {
     Say "Registering $($markerInfo.commit)$(if ($markerInfo.dirty) { '+dirty' }) ($($markerInfo.branch)), built $($markerInfo.timestampUtc)" ([ConsoleColor]::Cyan)
 }
 
-# wtt is disposable -- close it outright rather than waiting or asking. Windows
+# mult is disposable -- close it outright rather than waiting or asking. Windows
 # will not remove a package identity that is still running.
-$running = Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+$running = Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -like "$TestStage\*" }
 if ($running) {
     Say "Closing $($running.Count) running Test slot process(es)" ([ConsoleColor]::DarkGray)
@@ -106,17 +106,17 @@ if ($savedSettings -or $savedState) {
 }
 
 if ($NoLaunch) {
-    Say 'Start it yourself with: wtt' ([ConsoleColor]::DarkGray)
+    Say 'Start it yourself with: mult' ([ConsoleColor]::DarkGray)
     return
 }
 
-Say 'Starting wtt to confirm it reaches a window...' ([ConsoleColor]::DarkGray)
-Start-Process 'wtt.exe' -ErrorAction Stop
+Say 'Starting mult to confirm it reaches a window...' ([ConsoleColor]::DarkGray)
+Start-Process 'mult.exe' -ErrorAction Stop
 $deadline = (Get-Date).AddSeconds(30)
 $winner = $null
 while ((Get-Date) -lt $deadline -and -not $winner) {
     Start-Sleep -Milliseconds 250
-    $winner = Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+    $winner = Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
         Where-Object { $_.Path -like "$TestStage\*" -and $_.MainWindowHandle -ne 0 } |
         Select-Object -First 1
 }
@@ -126,7 +126,7 @@ if ($winner) {
 }
 else {
     Say 'Did not reach a window within 30s -- check Get-WinEvent -LogName Application (event ID 1000/1001).' ([ConsoleColor]::Red)
-    Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+    Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
         Where-Object { $_.Path -like "$TestStage\*" } |
         ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
     exit 1

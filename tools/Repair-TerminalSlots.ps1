@@ -1,11 +1,11 @@
-# Finds -- and optionally clears -- "zombie" Terminal processes: a WindowsTerminal.exe
+# Finds -- and optionally clears -- "zombie" Terminal processes: a mullion.exe
 # that is alive and holding a slot's single-instance identity while owning no window
 # at all.
 #
 # Why this is worth a script of its own: the emperor owns the single-instance identity
 # for its package (the window class and mutex mix in the package family name, see
 # WindowEmperor::HandleCommandlineArgs). A process sitting there with zero windows
-# still answers for the whole app -- every later wtd/wtt launch finds it, hands its
+# still answers for the whole app -- every later muld/mult launch finds it, hands its
 # commandline over via WM_COPYDATA and exits. The visible symptom is the worst kind:
 # the Terminal simply stops opening. No window, no error, no crash, no event log
 # entry, and Get-Process still shows a healthy process. It stays that way until
@@ -83,8 +83,8 @@ function Get-SlotProcess {
 
     # Identify by executable path, never by process name: every Terminal built from
     # this repo -- test, dev, and whatever is hosting your session -- is called
-    # WindowsTerminal.exe.
-    @(Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+    # mullion.exe (or WindowsTerminal.exe, from before the rename).
+    @(Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
         Where-Object { $_.Path -and $_.Path -like "$PayloadDir\*" })
 }
 

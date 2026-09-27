@@ -209,7 +209,7 @@
                 <com:ExeServer DisplayName="OpenConsole" Executable="OpenConsole.exe">
                     <com:Class Id="2EACA947-7F5F-4CFA-BA87-8F7FBEEFBE69"/>
                 </com:ExeServer>
-                <com:ExeServer DisplayName="WindowsTerminal" Executable="WindowsTerminal.exe">
+                <com:ExeServer DisplayName="WindowsTerminal" Executable="mullion.exe">
                     <com:Class Id="E12CFF52-A866-4C77-9A90-F570A7AA2C6B"/>
                 </com:ExeServer>
                 <com:SurrogateServer DisplayName="WindowsTerminalShellExt">

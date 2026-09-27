@@ -5,7 +5,7 @@
 #
 # It produces exactly what a local deploy stages -- the unpacked Dev payload and
 # its marker -- so tools\Fetch-CIBuild.ps1 can drop the result into a slot and the
-# UPDATE button in wtd treats it like any other staged build.
+# UPDATE button in muld treats it like any other staged build.
 name: Build
 
 on:
@@ -180,7 +180,7 @@ jobs:
       #
       # The Test payload ships too. -StageOnly unpacks it either way (it lands in
       # test-staged before the registration branch it skips), and without it in
-      # the artifact there is no way to refresh wtt on a machine that does not
+      # the artifact there is no way to refresh mult on a machine that does not
       # compile -- which means no way to verify UI behaviour at all.
       - uses: actions/upload-artifact@v7
         with:
@@ -197,7 +197,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      # An .msix layout carries no PDBs, so a crash in wtt decodes to
+      # An .msix layout carries no PDBs, so a crash in mult decodes to
       # "TerminalApp!DllGetActivationFactory+0x4c9a4" and names nothing of ours.
       # That is not a theoretical loss: on 2026-09-08 a live cdb capture of the
       # tabPosition "left" fail-fast produced a complete XAML stack -- NWDrawTree,
@@ -214,7 +214,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $want = @(
             'TerminalApp.pdb'
-            'WindowsTerminal.pdb'
+            'mullion.pdb'
             'Microsoft.Terminal.Control.pdb'
             'Microsoft.Terminal.Settings.Model.pdb'
             'Microsoft.Terminal.Settings.Editor.pdb'

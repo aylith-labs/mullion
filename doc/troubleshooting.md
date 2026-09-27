@@ -6,12 +6,12 @@ slot doctrine itself; this file is only about diagnosing things that break.
 
 ## A slot starts and vanishes without ever showing a window
 
-What you see: `wtt` or `wtd` "launches", no window appears, and the process is
+What you see: `mult` or `muld` "launches", no window appears, and the process is
 gone in a couple of seconds. `Get-WinEvent -LogName Application` (event ID 1000)
 reports something like:
 
 ```
-Faulting application path: C:\TerminalSlots\dev\WindowsTerminal.exe
+Faulting application path: C:\TerminalSlots\dev\mullion.exe
 Faulting module name:      ucrtbase.dll
 Exception code:            0xc0000409
 Exception Data (P10):      0000000000000007
@@ -46,14 +46,14 @@ the rule rather than a story about one DLL:
 `tools\Deploy-TerminalSlots.ps1` now enforces the second half: it starts the
 registered Test slot and waits for a window before writing `dev-pending.json`,
 so a build that cannot start can no longer be staged for promotion into the slot
-that hosts live sessions. If it fails, Test stays registered so `wtt` reproduces
+that hosts live sessions. If it fails, Test stays registered so `mult` reproduces
 it for you.
 
 ## Neither slot opens, and the process is *still running*
 
-What you see: `wtd` and/or `wtt` "launch" and nothing appears — no window, no
+What you see: `muld` and/or `mult` "launch" and nothing appears — no window, no
 error, no crash dialog, and nothing in the event log. Unlike the case above, the
-process does **not** exit: `Get-Process` shows a healthy `WindowsTerminal.exe`
+process does **not** exit: `Get-Process` shows a healthy `mullion.exe`
 that has been up for hours, responding, idling, using no CPU.
 
 Confirm it in one command. The tell is a process that owns no window at all:
@@ -109,7 +109,7 @@ What you see: you change something on a settings page, carry on, and every windo
 disappears a few seconds later. No dialog, no error. The event log has:
 
 ```
-Faulting application name: WindowsTerminal.exe
+Faulting application name: mullion.exe
 Faulting module name:      Windows.UI.Xaml.dll
 Exception code:            0xc000041d
 ```
@@ -158,7 +158,7 @@ elevation is needed to debug your own process:
 ```powershell
 $cdb = "C:\Program Files\WindowsApps\Microsoft.WinDbg_*_x64__8wekyb3d8bbwemd64\cdb.exe"
 # script.txt:  .symfix / .reload / sxe -c "kb 120; .logclose; qd" c00000fd / g
-& $cdb -p <pid-of-wtt> -cf script.txt -logo out.log
+& $cdb -p <pid-of-mult> -cf script.txt -logo out.log
 ```
 
 Then reproduce. The stack names the loop directly -- a repeating cycle of
@@ -235,7 +235,7 @@ WinDbg package ships `cdb.exe`, which needs no elevation:
 
 ```powershell
 & "$env:ProgramFiles\WindowsApps\Microsoft.WinDbg_*_x64__8wekyb3d8bbwe\amd64\cdb.exe" `
-    -z "$env:LOCALAPPDATA\CrashDumps\WindowsTerminal.exe.<pid>.dmp" `
+    -z "$env:LOCALAPPDATA\CrashDumps\mullion.exe.<pid>.dmp" `
     -y 'srv*C:\symbols*https://msdl.microsoft.com/download/symbols' -c ".ecxr; k 30; q"
 ```
 
@@ -260,7 +260,7 @@ this hunt nor the one above needed the Test slot, a rebuild, or the keyboard.
 
 ## The Dev slot went *backwards* after pressing promote
 
-What you see: you promote, `wtd` relaunches, and the tab row or About dialog now
+What you see: you promote, `muld` relaunches, and the tab row or About dialog now
 names an older commit than the one you were running.
 
 `C:\TerminalSlots\promote-dev.log` is the record and it names the payload, so
@@ -405,11 +405,11 @@ incomplete — they are found in completely different ways.
 
 Every one of these produced a confident, wrong conclusion.
 
-**Launching a slot payload exe directly.** `C:\TerminalSlots\test\WindowsTerminal.exe`
+**Launching a slot payload exe directly.** `C:\TerminalSlots\test\mullion.exe`
 started from PowerShell gets **no package identity**, so activating the
 `TerminalApp.App` WinRT class fails with `0x80040154 REGDB_E_CLASSNOTREG` and
 the process aborts — *for a perfectly healthy build*. Launch through the alias
-(`wtt`) or the AUMID (`shell:AppsFolder\WindowsTerminalTest_8wekyb3d8bbwe!App`).
+(`mult`) or the AUMID (`shell:AppsFolder\WindowsTerminalTest_8wekyb3d8bbwe!App`).
 The alias is a stub that exits immediately, so find the real process by payload
 path, not by the PID you started. A run with no identity is visible after the
 fact: event 1000 shows an empty `Faulting package full name`.

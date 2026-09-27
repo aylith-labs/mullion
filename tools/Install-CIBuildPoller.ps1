@@ -1,4 +1,4 @@
-# Register a Scheduled Task that keeps the newest CI build staged for wtd.
+# Register a Scheduled Task that keeps the newest CI build staged for muld.
 #
 # For the notebook, where builds happen in CI rather than locally. Without it the
 # UPDATE button only appears after remembering to run Fetch-CIBuild.ps1 by hand,

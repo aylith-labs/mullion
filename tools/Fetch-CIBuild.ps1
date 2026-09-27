@@ -8,7 +8,7 @@
 # whichever is newer. Neither producer has to know about the other.
 #
 # It never touches a live payload. Registering either slot is a deliberate next
-# step, not a side effect of staging: Promote-DevSlot.ps1 (Dev, from inside wtd)
+# step, not a side effect of staging: Promote-DevSlot.ps1 (Dev, from inside muld)
 # or Refresh-TestSlot.ps1 (Test, on demand) -- this just puts a candidate where
 # each of those can find it.
 #
@@ -43,7 +43,7 @@ Param(
     # Off by default because they are an order of magnitude larger than the
     # payload and only matter while something is being debugged -- and because the
     # poller runs this on a timer. Pass it when you are about to read a stack:
-    # without symbols a crash in wtt decodes to TerminalApp+0x<offset> and names
+    # without symbols a crash in mult decodes to TerminalApp+0x<offset> and names
     # nothing of ours, which is what made the tabPosition "left" fail-fast
     # unreadable on 2026-09-08.
     #
@@ -316,9 +316,9 @@ try {
     if ($WithSymbols) { Get-CISymbols -RunDatabaseId $run.databaseId -Sha $run.headSha }
 
     Say "Staged $($info.commit) ($($info.branch)) built $($info.timestampUtc)" ([ConsoleColor]::Green)
-    Say 'wtd will offer it as an update.'
+    Say 'muld will offer it as an update.'
     if (Test-Path $TestStageDir) {
-        Say 'wtt: run Refresh-TestSlot.ps1 to pick it up.' ([ConsoleColor]::Green)
+        Say 'mult: run Refresh-TestSlot.ps1 to pick it up.' ([ConsoleColor]::Green)
     }
 }
 finally {

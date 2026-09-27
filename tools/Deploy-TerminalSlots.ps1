@@ -1,8 +1,8 @@
 # Builds and deploys the two local Terminal slots.
 #
-#   Test slot (wtt.exe) -- disposable. Registered immediately; replace and
+#   Test slot (mult.exe) -- disposable. Registered immediately; replace and
 #                          restart it as often as you like.
-#   Dev slot  (wtd.exe) -- where real work happens. NOT touched here. Its
+#   Dev slot  (muld.exe) -- where real work happens. NOT touched here. Its
 #                          payload is staged so the running Dev instance can
 #                          offer to promote it when you have no active
 #                          sessions, which is the only moment it is safe to
@@ -10,8 +10,8 @@
 #
 # Both packages are produced from the SAME compiled binaries: Branding.targets
 # maps an unrecognised branding to WT_BRANDING_DEV, so a Test build differs from
-# a Dev build only in its manifest. What you verify in wtt is byte-for-byte the
-# code that gets promoted into wtd.
+# a Dev build only in its manifest. What you verify in mult is byte-for-byte the
+# code that gets promoted into muld.
 #
 # That is a property this repo has to actively maintain, not one it gets for
 # free. The two packaging passes below pass WindowsTerminalBranding on the
@@ -24,8 +24,8 @@
 # 'Test' and the staged exes differed by 2,560 bytes. The check below is cheap;
 # run it if you touch anything branding-conditional.
 #
-#   (Get-FileHash C:\TerminalSlots\dev-staged\WindowsTerminal.exe).Hash -eq
-#   (Get-FileHash C:\TerminalSlots\test\WindowsTerminal.exe).Hash
+#   (Get-FileHash C:\TerminalSlots\dev-staged\mullion.exe).Hash -eq
+#   (Get-FileHash C:\TerminalSlots\test\mullion.exe).Hash
 [CmdletBinding()]
 Param(
     # Skip the solution build and just repackage/deploy what is already built.
@@ -120,7 +120,7 @@ $wapproj = "$Root\src\cascadia\CascadiaPackage\CascadiaPackage.wapproj"
 # The packaging project caches its generated AppxManifest in obj\. Building two
 # brandings back to back can otherwise reuse the previous branding's manifest
 # against the current branding's alias stub, and MakeAppx rejects the mismatch
-# ("the file name wtt.exe ... doesn't exist in the package"). Clearing the
+# ("the file name mult.exe ... doesn't exist in the package"). Clearing the
 # packaging intermediates is cheap; the C++ underneath does get revisited, but
 # with the branding conditions kept in sync it compiles to the same bytes and
 # so mostly comes back from the up-to-date check.
@@ -185,8 +185,8 @@ $devMsix  = Expand-Slot -MsixDir "$pkgBase\CascadiaPackage_0.0.1.0_${Platform}_T
 # deploy noticed nothing -- it reported success and staged the corpse for
 # promotion. A build that has never been started is not a build that works.
 #
-# It MUST launch through the wtt alias, not the payload exe. Running
-# <payload>\WindowsTerminal.exe directly gives the process no package identity,
+# It MUST launch through the mult alias, not the payload exe. Running
+# <payload>\mullion.exe directly gives the process no package identity,
 # so activating the TerminalApp.App WinRT class fails with 0x80040154
 # REGDB_E_CLASSNOTREG -- for a perfectly healthy build. Probing the exe path
 # directly reports every build as broken.
@@ -201,10 +201,10 @@ function Test-SlotBoot {
     # Only a process under THIS payload can take our handoff. The packaged
     # window class mixes in the package family name (WindowEmperor.cpp), so a
     # running Dev slot has a different single-instance identity and ignores us.
-    # Guarding on "any WindowsTerminal" would skip the check whenever a Dev
+    # Guarding on "any mullion" would skip the check whenever a Dev
     # window is open -- which is nearly always, and would quietly make this
     # verification never run at all.
-    $mine = @(Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+    $mine = @(Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
               Where-Object { $_.Path -like "$PayloadDir\*" })
     if ($mine) {
         # "A process exists" is not the same as "a window exists". A windowless
@@ -214,25 +214,25 @@ function Test-SlotBoot {
         # then decide whether anything real is still up.
         & "$PSScriptRoot\Repair-TerminalSlots.ps1" -Slot Test -TestPayload $PayloadDir -GraceSeconds 20 -Force | Out-Host
 
-        $mine = @(Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+        $mine = @(Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
                   Where-Object { $_.Path -like "$PayloadDir\*" })
     }
     if ($mine) {
         Write-Host '   skipping boot check: a Test slot process is already running' -ForegroundColor DarkYellow
-        Write-Host "   (wtt would hand off to pid $($mine[0].Id) instead of starting)" -ForegroundColor DarkYellow
+        Write-Host "   (mult would hand off to pid $($mine[0].Id) instead of starting)" -ForegroundColor DarkYellow
         return $null
     }
 
-    Write-Host '   starting wtt to confirm it reaches a window...' -ForegroundColor DarkGray
+    Write-Host '   starting mult to confirm it reaches a window...' -ForegroundColor DarkGray
     # The alias is a stub that exits immediately; the real process is separate,
     # so find it by payload path rather than by the PID we started.
-    Start-Process 'wtt.exe' -ErrorAction Stop
+    Start-Process 'mult.exe' -ErrorAction Stop
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $winner = $null
     while ((Get-Date) -lt $deadline -and -not $winner) {
         Start-Sleep -Milliseconds 250
-        $winner = Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+        $winner = Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
             Where-Object { $_.Path -like "$PayloadDir\*" -and $_.MainWindowHandle -ne 0 } |
             Select-Object -First 1
     }
@@ -245,7 +245,7 @@ function Test-SlotBoot {
     # Nothing else was running when we started, so this is the build's own
     # failure: it either aborted or hung before creating a window. Check
     # Get-WinEvent -LogName Application (event ID 1000/1001) for the fault.
-    Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+    Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
         Where-Object { $_.Path -like "$PayloadDir\*" } |
         ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
     return $false
@@ -359,14 +359,14 @@ if (-not $StageOnly) {
     Write-Host '== verifying it boots ==' -ForegroundColor Cyan
     $script:bootOk = Test-SlotBoot -PayloadDir $TestStage
     if ($bootOk -eq $false) {
-        # Test stays registered on purpose -- 'wtt' now reproduces the crash for
+        # Test stays registered on purpose -- 'mult' now reproduces the crash for
         # you. What does NOT happen is dev-pending.json getting written or
-        # updated below, so this build is never offered for promotion into wtd:
+        # updated below, so this build is never offered for promotion into muld:
         # whatever was staged from an earlier, working deploy (if anything)
         # stays the promotion candidate instead.
         throw @'
 Test slot registered, but it crashed or hung before creating a window -- NOT
-staging it for Dev promotion. Reproduce with wtt; check Get-WinEvent -LogName
+staging it for Dev promotion. Reproduce with mult; check Get-WinEvent -LogName
 Application (event ID 1000/1001) for the fault.
 
 If the fault is an abort (0xC0000409) inside AppHost::Initialize, suspect stale
@@ -385,7 +385,7 @@ else {
 $info | ConvertTo-Json | Set-Content -Path $infoPath -Encoding UTF8
 
 # The promote button in a running Dev window shells out to this, and Refresh-
-# TestSlot.ps1 is its Test-slot counterpart for refreshing wtt from a CI fetch.
+# TestSlot.ps1 is its Test-slot counterpart for refreshing mult from a CI fetch.
 # Both live beside the payloads rather than in the repo so the app -- and a
 # machine that only ever fetches CI builds -- has exactly one fixed path to know,
 # and so this still works from a checkout that has moved.
@@ -405,11 +405,11 @@ Copy-Item "$PSScriptRoot\Fetch-CIBuild.ps1" (Join-Path $SlotRoot 'Fetch-CIBuild.
 Copy-Item "$PSScriptRoot\Invoke-Hidden.vbs" (Join-Path $SlotRoot 'Invoke-Hidden.vbs') -Force
 
 Write-Host ''
-Write-Host "Test slot  : registered from $TestStage (run: wtt)" -ForegroundColor Green
+Write-Host "Test slot  : registered from $TestStage (run: mult)" -ForegroundColor Green
 Write-Host "Dev slot   : staged at $DevStage -- NOT installed" -ForegroundColor Yellow
 Write-Host "             still running from $DevLive until you promote" -ForegroundColor Yellow
 Write-Host "Pending    : $infoPath$(if (-not $bootOk) { ' (boot unverified)' })" -ForegroundColor Yellow
 Write-Host "Build      : $($info.commit) on $($info.branch), built $($info.timestampUtc)"
 Write-Host ''
 Write-Host 'The Dev slot is intentionally left alone. Promote it from the About' -ForegroundColor DarkGray
-Write-Host 'dialog in wtd when you have no active sessions.' -ForegroundColor DarkGray
+Write-Host 'dialog in muld when you have no active sessions.' -ForegroundColor DarkGray

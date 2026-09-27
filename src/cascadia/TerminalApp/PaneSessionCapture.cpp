@@ -23,7 +23,7 @@ namespace TerminalApp::SessionResume
         // work. A pane whose deepest descendant is one of these is running
         // nothing worth bringing back.
         constexpr std::wstring_view ShellNames[]{
-            L"cmd", L"powershell", L"pwsh", L"wsl", L"wslhost", L"bash", L"sh", L"zsh", L"fish", L"conhost", L"windowsterminal", L"openconsole"
+            L"cmd", L"powershell", L"pwsh", L"wsl", L"wslhost", L"bash", L"sh", L"zsh", L"fish", L"conhost", L"windowsterminal", L"mullion", L"openconsole"
         };
 
         // Interpreters that front for the program we actually care about:

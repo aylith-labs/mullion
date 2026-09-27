@@ -49,11 +49,11 @@ function Get-ProcessTree {
     return $result
 }
 
-$devWindows = @(Get-CimInstance Win32_Process -Filter "Name='WindowsTerminal.exe'" |
+$devWindows = @(Get-CimInstance Win32_Process -Filter "Name='mullion.exe' OR Name='WindowsTerminal.exe'" |
     Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($DevPayload, [StringComparison]::OrdinalIgnoreCase) })
 
 if ($devWindows.Count -eq 0) {
-    Write-Output 'SAFE: no WindowsTerminal.exe running under the Dev payload'
+    Write-Output 'SAFE: no mullion.exe running under the Dev payload'
     exit 0
 }
 

@@ -37,7 +37,7 @@ does the whole thing.
     -Setting tabPosition -From top -To left
 ```
 
-It launches `wtt` in the `-From` state, attaches cdb, flips the setting in
+It launches `mult` in the `-From` state, attaches cdb, flips the setting in
 `settings.json` (which hot-reloads: `AppLogic::_RegisterSettingsChange` watches
 the folder), and logs every first-chance throw with a stack.
 
@@ -265,7 +265,7 @@ cr=$(tr -cd '\r' < "$f" | wc -c); lf=$(tr -cd '\n' < "$f" | wc -c)   # cr==lf me
 
 ## Slot rules that apply while debugging
 
-`wtt` is the only slot to launch, attach to, or kill. Identify by executable
+`mult` is the only slot to launch, attach to, or kill. Identify by executable
 path (`C:\TerminalSlots\test\...`) - every Terminal built from this repo shares
 the process name, including the one the session is running in. See the repo
 `CLAUDE.md`; nothing here overrides it.

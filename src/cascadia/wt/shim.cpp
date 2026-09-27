@@ -16,7 +16,7 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR pCmdLine, int)
     std::wstring ourFilename{ module.filename() };
 
     // Swap wt[d].exe for WindowsTerminal.exe
-    module.replace_filename(L"WindowsTerminal.exe");
+    module.replace_filename(L"mullion.exe");
 
     // Append the rest of the commandline to the saved name
     std::wstring cmdline;

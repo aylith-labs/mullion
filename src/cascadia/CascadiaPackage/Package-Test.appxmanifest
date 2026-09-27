@@ -83,9 +83,9 @@
       </uap:VisualElements>
 
       <Extensions>
-        <uap3:Extension Category="windows.appExecutionAlias" Executable="wtt.exe" EntryPoint="Windows.FullTrustApplication">
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="mult.exe" EntryPoint="Windows.FullTrustApplication">
           <uap3:AppExecutionAlias>
-            <desktop:ExecutionAlias Alias="wtt.exe" />
+            <desktop:ExecutionAlias Alias="mult.exe" />
           </uap3:AppExecutionAlias>
         </uap3:Extension>
         <uap3:Extension Category="windows.appExtensionHost">

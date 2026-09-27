@@ -64,22 +64,22 @@ function Set-Setting([string]$value) {
 function Get-Wtt {
     # By path, always: every Terminal built from this repo shares the process
     # name, including the one this session may be running in.
-    Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+    Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
         Where-Object { $_.Path -and $_.Path -like "$testPath\*" -and $_.MainWindowHandle -ne 0 } |
         Select-Object -First 1
 }
 
-Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -like "$testPath\*" } |
     ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 3
 
 Set-Setting $From
-Start-Process 'wtt.exe'
+Start-Process 'mult.exe'
 $w = $null
 for ($i = 0; $i -lt 40 -and -not $w; $i++) { Start-Sleep -Milliseconds 750; $w = Get-Wtt }
-if (-not $w) { throw 'wtt never reached a window' }
-Write-Host "wtt pid $($w.Id), starting state $Setting=$From"
+if (-not $w) { throw 'mult never reached a window' }
+Write-Host "mult pid $($w.Id), starting state $Setting=$From"
 Start-Sleep -Seconds 5
 
 # Three traps, and the order they matter in:
@@ -145,7 +145,7 @@ Write-Host "wrote $Setting=$To"
 Start-Sleep -Seconds $SettleSeconds
 
 $alive = $null -ne (Get-Process -Id $w.Id -ErrorAction SilentlyContinue)
-Write-Host "wtt alive after the change: $alive"
+Write-Host "mult alive after the change: $alive"
 if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 Set-Setting $From
 

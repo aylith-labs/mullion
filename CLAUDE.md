@@ -2,9 +2,12 @@
 
 **Mullion** is this fork’s name (the upright bar between window panes). It lives at
 `aylith-labs/mullion`, a standalone repo, not a GitHub fork, so nothing defaults a PR
-towards Microsoft. The name is **display-only**: package identities `WindowsTerminalDev` /
-`WindowsTerminalTest`, the `wtd`/`wtt` aliases, and the window class stay as they are, because
-renaming them would orphan both slots’ `settings.json` folders and the promote machinery keyed on them.
+towards Microsoft. The process is `mullion.exe` and the slot aliases are `muld` (Dev) and `mult`
+(Test). Builds from before the rename ran as `WindowsTerminal.exe` behind `wtd`/`wtt`, so the
+slot scripts match both process names. Package identities `WindowsTerminalDev` /
+`WindowsTerminalTest`, the window class, and the `WindowsTerminal/Integrations/` credential keys keep
+their old names on purpose: renaming them would orphan both slots’ `settings.json` folders, the
+promote machinery keyed on them, and every saved integration token.
 The old `steven-pribilinskiy/terminal` repo is archived.
 
 This checkout is **my fork, and it evolves on its own terms.** It is not a staging area for
@@ -24,7 +27,7 @@ restart is needed.
 
 Report such work as **"built and installed, not yet verified — needs a Terminal restart"**, and
 say which behaviour the restart would let us confirm. If verification genuinely requires a running
-UI, use **the test build (`wtt`) in its own window** — never the dev build, and never my session's
+UI, use **the test build (`mult`) in its own window** — never the dev build, and never my session's
 window. See "The two slots" below; that distinction is the single most important rule in this file.
 
 ### What actually needs a restart
@@ -173,21 +176,21 @@ would just teach everyone to stop reading the colour), packages both slots, and 
 `dev-payload` artifact: `dev-staged`, `test-staged`, and `dev-pending.json`.
 
 `tools\Fetch-CIBuild.ps1` downloads the newest successful run and stages both halves —
-`dev-staged-ci` for `wtd`, `test-staged-ci` for `wtt` — plus `dev-pending-ci.json` /
+`dev-staged-ci` for `muld`, `test-staged-ci` for `mult` — plus `dev-pending-ci.json` /
 `test-pending-ci.json` describing each. `tools\Install-CIBuildPoller.ps1` registers a Scheduled
 Task (`Terminal CI build poller`) that runs it on a timer — default 15 minutes, configurable from
 Settings → Compatibility → CI build poll interval — so staging happens without remembering to
 fetch anything.
 
 Staging is automatic; registering either slot is a deliberate step, never a side effect of
-fetching. `wtd` reads `dev-pending-ci.json` on its own and offers to promote (see "The two slots"
-for how, and the narrow exception to it). `wtt` is refreshed by running
+fetching. `muld` reads `dev-pending-ci.json` on its own and offers to promote (see "The two slots"
+for how, and the narrow exception to it). `mult` is refreshed by running
 `tools\Refresh-TestSlot.ps1` — on demand, not on the poller's timer, since silently swapping an
 actively open test window's binaries out from under it would defeat the point of it staying put
 while it's being used.
 
 CI green means the build compiles, packages, and passes its two test suites — report exactly
-that, and name the UI behaviour a `wtt` run would still need to confirm, rather than implying more
+that, and name the UI behaviour a `mult` run would still need to confirm, rather than implying more
 than CI itself proved.
 
 **Two agents pushing to `main` at once will starve each other of CI results.** `build.yml` sets
@@ -258,30 +261,30 @@ Stale generated interfaces across DLLs msbuild thinks are up to date abort insid
 `AppHost::Initialize` before any window appears. Build the whole solution, or verify it starts.
 
 **"A slot stopped opening entirely" is usually a windowless process, not a bad build.** A
-`WindowsTerminal.exe` with no window still owns its package's single-instance identity, so every
+`mullion.exe` with no window still owns its package's single-instance identity, so every
 later launch hands off to it and exits silently — nothing opens, and nothing says why. Run
 `tools\Repair-TerminalSlots.ps1` *first*, before suspecting the payload or the settings. Never
 judge this by `MainWindowHandle`: it misses hidden windows and calls a tray-minimised Terminal a
 zombie. Any script that launches a Terminal must confirm it reached a window and clean up if it
 did not — a launch left unverified is how one of these is created.
 
-## The two slots: `wtt` is yours to break, `wtd` is production
+## The two slots: `mult` is yours to break, `muld` is production
 
 I run two Terminals built from this repo side by side. **They are not two equivalent scratch
 installs.**
 
 | Slot | Alias | Payload | What it is |
 |---|---|---|---|
-| **Test** | `wtt.exe` | `C:\TerminalSlots\test` | **The only slot you may register, launch, restart or replace.** Disposable, no confirmation needed. `tools\Refresh-TestSlot.ps1` registers it from whatever `Fetch-CIBuild.ps1` last staged in `test-staged-ci` — run on demand, not on a timer, so it never swaps out from under an active verification session. |
-| **Dev** | `wtd.exe` | `C:\TerminalSlots\dev` (staged) | **Production. It hosts my live agent sessions, including Claude Code sessions.** You never build into it, never register it, never launch it, never restart it, and never write to any directory it is registered from. |
+| **Test** | `mult.exe` | `C:\TerminalSlots\test` | **The only slot you may register, launch, restart or replace.** Disposable, no confirmation needed. `tools\Refresh-TestSlot.ps1` registers it from whatever `Fetch-CIBuild.ps1` last staged in `test-staged-ci` — run on demand, not on a timer, so it never swaps out from under an active verification session. |
+| **Dev** | `muld.exe` | `C:\TerminalSlots\dev` (staged) | **Production. It hosts my live agent sessions, including Claude Code sessions.** You never build into it, never register it, never launch it, never restart it, and never write to any directory it is registered from. |
 
-The Dev slot changes exactly one way: **I press promote**, in `wtd` itself. Promotion is my gesture.
+The Dev slot changes exactly one way: **I press promote**, in `muld` itself. Promotion is my gesture.
 It is never a side effect of your build, and there is no situation in which you perform it for me.
 
 **Exception:** you may run the promote helper (`tools\Promote-DevSlot.ps1`, deployed alongside the
 payload at `C:\TerminalSlots\Promote-DevSlot.ps1`) yourself, without asking first, when you've
 verified via process-tree inspection — not by assuming an empty slot is a safe slot — that either
-**(a)** no `WindowsTerminal.exe` is currently running under the Dev payload at all, or **(b)**
+**(a)** no `mullion.exe` is currently running under the Dev payload at all, or **(b)**
 exactly one is running, with exactly one tab/pane, whose foreground process resolves to a session
 multiplexer (`shefrd`, `herdr`, `tmux`, `screen`, `zellij`) rather than a raw shell — because in that
 case the real work lives in the multiplexer's own persistent server, not the window, and closing it
@@ -294,9 +297,9 @@ just staging the build and letting me promote it myself is simpler than any of t
 
 ### Single-instance identity
 
-`wtt` and `wtd` have distinct single-instance identities (window class and mutex mix in the package
-family name — `WindowEmperor::HandleCommandlineArgs`), so `wtt` can be started and verified while
-`wtd` is running. A boot check only has to decline when a process is already running under *its
+`mult` and `muld` have distinct single-instance identities (window class and mutex mix in the package
+family name — `WindowEmperor::HandleCommandlineArgs`), so `mult` can be started and verified while
+`muld` is running. A boot check only has to decline when a process is already running under *its
 own* payload, not "any `WindowsTerminal` process" — guarding on that would skip verification
 whenever a Dev window is open, which is nearly always. The two packaging passes produce
 byte-identical binaries; re-check with the one-liner in `Deploy-TerminalSlots.ps1`'s header
@@ -316,7 +319,7 @@ same second.
 
 The Dev slot is production whether or not a window is open at that instant. An empty slot is not a
 free slot — it is the case where overwriting it does the *most* damage: nothing fails, no DLL is
-locked, nothing warns you, and the next `wtd.exe` I launch silently runs whatever was written
+locked, nothing warns you, and the next `muld.exe` I launch silently runs whatever was written
 there, unverified.
 
 If you catch yourself reasoning "nothing is running there, so it's safe" — that is precisely the
@@ -327,9 +330,9 @@ inverted conclusion this section exists to prevent.
 - Unpack, copy or `robocopy` into **any** directory `WindowsTerminalDev` is registered from —
   today that is `…\src\cascadia\CascadiaPackage\AppPackages\loose`.
 - `Add-AppxPackage -Register` anything whose identity is `WindowsTerminalDev`.
-- `Start-Process wtd.exe` / `wtd.exe <args>` — launching it is my gesture too, and with the handoff
+- `Start-Process muld.exe` / `muld.exe <args>` — launching it is my gesture too, and with the handoff
   above a launch can land inside a process I am working in.
-- Kill a `WindowsTerminal.exe` whose path is under a Dev payload — except under the narrow, verified
+- Kill a `mullion.exe` whose path is under a Dev payload — except under the narrow, verified
   exception above.
 - Run `tools\Register-DevSlot.ps1`.
 
@@ -353,7 +356,7 @@ before checking anything. A mandated check that errors is a check that gets skip
 Each slot has its own package identity, so each has its own settings:
 `%LOCALAPPDATA%\Packages\WindowsTerminal{Dev,Test}_8wekyb3d8bbwe\LocalState\settings.json`.
 
-**"Run the test build" means launch `wtt.exe`. It does not mean build anything.** If I want a
+**"Run the test build" means launch `mult.exe`. It does not mean build anything.** If I want a
 rebuild first I will say so.
 
 ## How a build reaches the Dev slot
@@ -393,9 +396,9 @@ against Microsoft from a fork whose whole policy is that nothing goes upstream.
 
 `tools\Fetch-CIBuild.ps1` stages the Test half of the same CI artifact into `C:\TerminalSlots\test-staged-ci`
 plus `test-pending-ci.json`, on the same run that stages the Dev half — no separate fetch needed.
-Run `tools\Refresh-TestSlot.ps1` to actually pick it up: it closes any running `wtt` (no confirmation
+Run `tools\Refresh-TestSlot.ps1` to actually pick it up: it closes any running `mult` (no confirmation
 needed — see "The two slots"), backs up and restores `settings.json`/`state.json` across the
-re-registration, registers from `test-staged-ci`, and launches `wtt` to confirm it reaches a window.
+re-registration, registers from `test-staged-ci`, and launches `mult` to confirm it reaches a window.
 
 `tools\Deploy-TerminalSlots.ps1` remains the only thing that ever *produces* a payload; CI simply
 runs it now (`-StageOnly`, which skips the local script's own registration/launch/boot-check steps
@@ -403,7 +406,7 @@ runs it now (`-StageOnly`, which skips the local script's own registration/launc
 doctrine is worth knowing because CI inherits all of it: build the solution once → package the Test
 branding → package the Dev branding → unpack Test into `C:\TerminalSlots\test` and Dev into
 `C:\TerminalSlots\dev-staged` → register only Test, preserving its `settings.json` across the
-re-registration and asserting the resulting `InstallLocation` → start `wtt` and wait for a window →
+re-registration and asserting the resulting `InstallLocation` → start `mult` and wait for a window →
 only then write `dev-pending.json`.
 
 If `Deploy-TerminalSlots.ps1` ever runs here again: **`pwsh`, not `powershell`.** `OpenConsole.psm1`
@@ -413,7 +416,7 @@ hides it further: the pipeline reports `tail`'s exit code, so a deploy that neve
 success. See [`doc/troubleshooting.md`](doc/troubleshooting.md).
 
 The Dev payload is *staged and left alone*. `dev-pending.json` (commit, branch, dirty, timestamp,
-payload path) is how the running `wtd` learns a newer build is waiting, so it can offer me the
+payload path) is how the running `muld` learns a newer build is waiting, so it can offer me the
 promotion when I have no sessions I mind losing.
 
 The mechanics underneath — for understanding, **not** for you to run by hand — are `makeappx unpack`
@@ -429,7 +432,7 @@ nothing. Building the package from Visual Studio emits a loose layout directly (
 while any process is live under the Dev payload — re-registering an identity from a different folder
 requires removing the old registration first, and Windows will not remove a running package. It
 refuses rather than terminating my windows, which is the correct instinct and the one you should
-share. **You do not run it, full stop — no exception.** Either I press promote in `wtd`, or I run it
+share. **You do not run it, full stop — no exception.** Either I press promote in `muld`, or I run it
 myself.
 
 This is a different script from the one the exception above names. `tools\Register-DevSlot.ps1` is
@@ -440,12 +443,12 @@ window and simply waits (or gives up) when one is still open.
 
 ### Every Terminal built from this repo shares one process name
 
-**`Get-Process -Name 'WindowsTerminal'` matches the test build, the dev build, *and* the Terminal my
-session is running in.** Selecting `-First 1` and sending it input is how you type into my live
+**`Get-Process -Name 'mullion'` matches the test build, the dev build, *and* the Terminal my
+session is running in** (and a pre-rename build is `WindowsTerminal`, the same name as the Store app). Selecting `-First 1` and sending it input is how you type into my live
 session. Always identify by executable path, and only ever target the test payload:
 
 ```powershell
-Get-Process -Name 'WindowsTerminal' | Where-Object {
+Get-Process -Name 'mullion' | Where-Object {
     $_.Path -like 'C:\TerminalSlots\test\*' -and $_.MainWindowHandle -ne 0
 }
 ```

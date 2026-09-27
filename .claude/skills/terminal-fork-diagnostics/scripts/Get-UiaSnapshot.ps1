@@ -30,10 +30,10 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 
 $testPath = Join-Path $SlotRoot 'test'
-$w = Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+$w = Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
      Where-Object { $_.Path -and $_.Path -like "$testPath\*" -and $_.MainWindowHandle -ne 0 } |
      Select-Object -First 1
-if (-not $w) { throw 'no wtt window - launch the Test slot first' }
+if (-not $w) { throw 'no mult window - launch the Test slot first' }
 
 $root = [System.Windows.Automation.AutomationElement]::FromHandle($w.MainWindowHandle)
 $wr = $root.Current.BoundingRectangle

@@ -35,8 +35,8 @@ if (-not $haveStaged -and -not (Test-Path $Manifest)) {
 }
 
 # Refuse while it is open. Match on path, not process name: the installed Terminal and
-# every other slot share the name WindowsTerminal.exe.
-$running = @(Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue | Where-Object {
+# every other slot share the name mullion.exe (WindowsTerminal.exe before the rename).
+$running = @(Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue | Where-Object {
     $p = $null; try { $p = $_.Path } catch {}
     $p -and (Get-AppxPackage $PackageName | ForEach-Object { $p.StartsWith($_.InstallLocation, [StringComparison]::OrdinalIgnoreCase) }) -contains $true
 })
@@ -95,5 +95,5 @@ if ($backup -and -not (Test-Path $Settings)) {
 }
 
 Write-Host ''
-Write-Host "Dev slot : $($now.InstallLocation) (run: wtd)"
-Write-Host "Binaries : $((Get-Item (Join-Path $Payload 'WindowsTerminal.exe')).LastWriteTime)"
+Write-Host "Dev slot : $($now.InstallLocation) (run: muld)"
+Write-Host "Binaries : $((Get-Item (Join-Path $Payload 'mullion.exe')).LastWriteTime)"

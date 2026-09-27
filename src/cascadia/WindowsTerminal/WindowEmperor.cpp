@@ -725,7 +725,7 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
     // BuildInfo.h - so nothing compiled in can tell them apart, and the exe-path
     // hash above is skipped because both are packaged. Left alone, the Test slot
     // computes the Dev slot's window class name; since that string is also the
-    // mutex name below, `wtt.exe` hands its command line to the running `wtd`
+    // mutex name below, `mult.exe` hands its command line to the running `muld`
     // and terminates, and you get a "Test" window that is really a Dev window
     // running Dev code. Package identity is the one thing that does differ, so
     // mix it in.

@@ -76,8 +76,8 @@
   -->
   <!--
     'Test' must be listed alongside 'Dev' here. The Test slot is packaged from the
-    same compile as the Dev slot so that what gets verified in wtt is what gets
-    promoted into wtd, but CascadiaPackage.wapproj passes WindowsTerminalBranding
+    same compile as the Dev slot so that what gets verified in mult is what gets
+    promoted into muld, but CascadiaPackage.wapproj passes WindowsTerminalBranding
     as a global property, which reaches every referenced C++ project. Omitting
     'Test' therefore does not just skip a manifest - it recompiles the whole tree
     without hardening, into the same output directory.

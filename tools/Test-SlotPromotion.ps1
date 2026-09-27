@@ -19,7 +19,7 @@ if ($Worker) {
     }
     function Start-Process {
         param($FilePath)
-        if ($FilePath -ne 'wtd.exe') { throw 'Unexpected launch' }
+        if ($FilePath -ne 'muld.exe') { throw 'Unexpected launch' }
         Set-Content -LiteralPath (Join-Path $global:promotionTestFixture 'relaunched') -Value 'yes'
     }
     function Remove-Item {

@@ -135,7 +135,7 @@ try
     // WindowsTerminal.exe,-101 will be the first icon group in WT
     // We're using WindowsTerminal here explicitly, and not wt (from GetWtExePath), because
     // WindowsTerminal is the only one built with the right icons.
-    modulePath.replace_filename(L"WindowsTerminal.exe,-101");
+    modulePath.replace_filename(L"mullion.exe,-101");
     return SHStrDupW(modulePath.c_str(), ppszIcon);
 }
 CATCH_RETURN();

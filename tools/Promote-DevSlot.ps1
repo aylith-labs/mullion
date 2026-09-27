@@ -161,7 +161,7 @@ try {
     if (-not $pkg) { throw "$PackageName is not registered" }
 
     # Match on PATH, not process name: every slot and the real install all run
-    # an executable called WindowsTerminal.exe.
+    # an executable called mullion.exe (WindowsTerminal.exe before the rename).
     $installRoot = $pkg.InstallLocation
 
     # "Apply on next launch" is the app spawning us against its own pid without
@@ -192,7 +192,7 @@ try {
     try { $rewrites = -not [Console]::IsOutputRedirected } catch { $rewrites = $false }
     $lastHeartbeat = [DateTime]::MinValue
     while ($true) {
-        $live = @(Get-Process -Name 'WindowsTerminal' -ErrorAction SilentlyContinue |
+        $live = @(Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
                   Where-Object { $_.Path -and $_.Path.StartsWith($installRoot, [StringComparison]::OrdinalIgnoreCase) })
         if ($live.Count -eq 0) { break }
 
@@ -247,7 +247,7 @@ try {
     $localState = Join-Path $env:LOCALAPPDATA "Packages\$FamilyName\LocalState\settings.json"
     $backup = $null
     if (Test-Path $localState) {
-        $backup = Join-Path $env:TEMP "wtd-settings-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmss')).json"
+        $backup = Join-Path $env:TEMP "muld-settings-$([DateTime]::UtcNow.ToString('yyyyMMddHHmmss')).json"
         Copy-Item $localState $backup -Force
         Say ("Backed up the Dev slot's settings.json to {0}" -f $backup)
     }
@@ -364,11 +364,11 @@ try {
     if (Test-Path $markerPath) { Remove-Item $markerPath -Force }
 
     if ($Relaunch) {
-        Say 'Relaunching the Dev slot (wtd.exe)'
-        Start-Process 'wtd.exe'
+        Say 'Relaunching the Dev slot (muld.exe)'
+        Start-Process 'muld.exe'
     }
     else {
-        Say 'Start it yourself with: wtd' ([ConsoleColor]::DarkGray) -NoLog
+        Say 'Start it yourself with: muld' ([ConsoleColor]::DarkGray) -NoLog
     }
 
     Write-Host ''
@@ -393,7 +393,12 @@ catch {
     # the slot is in, a registered package still starts something.
     if ($Relaunch) {
         Write-Log 'relaunching after a failed promotion so the user is not left without a terminal'
-        try { Start-Process 'wtd.exe' } catch { Write-Log "relaunch after failure also failed: $($_.Exception.Message)" }
+        # A failure can leave the pre-rename registration in place, whose
+        # alias is still wtd.exe, so fall back to it.
+        try { Start-Process 'muld.exe' }
+        catch {
+            try { Start-Process 'wtd.exe' } catch { Write-Log "relaunch after failure also failed: $($_.Exception.Message)" }
+        }
     }
 
     exit 1

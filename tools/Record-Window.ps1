@@ -93,7 +93,7 @@ for ($i = 0; $i -lt $total; $i++) {
 
     # Resolved every frame: the window this is following may be a Terminal that
     # is in the middle of restarting, so its process id is not stable.
-    $proc = Get-Process WindowsTerminal -ErrorAction SilentlyContinue |
+    $proc = Get-Process -Name 'mullion', 'WindowsTerminal' -ErrorAction SilentlyContinue |
         Where-Object { $_.Path -and $_.Path.StartsWith($MatchPath, [StringComparison]::OrdinalIgnoreCase) } |
         Select-Object -First 1
 
