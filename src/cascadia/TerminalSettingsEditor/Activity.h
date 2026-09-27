@@ -29,7 +29,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         ActivityEntryViewModel() = default;
 
         winrt::hstring Timestamp() const noexcept { return _timestamp; }
+        winrt::hstring TimestampDisplay() const noexcept { return _timestampDisplay; }
+        winrt::hstring TimestampTooltip() const noexcept { return _timestampTooltip; }
         winrt::hstring Kind() const noexcept { return _kind; }
+        winrt::hstring EventLabel() const noexcept { return _eventLabel; }
+        winrt::hstring EventTooltip() const noexcept { return _eventTooltip; }
         winrt::hstring Exe() const noexcept { return _exe; }
         winrt::hstring ExeName() const noexcept { return _exeName; }
         winrt::hstring CommandLine() const noexcept { return _commandLine; }
@@ -41,11 +45,15 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         bool HasWorkingDirectory() const noexcept { return !_cwd.empty(); }
         bool HasParent() const noexcept { return !_parentExe.empty(); }
 
-        static winrt::com_ptr<ActivityEntryViewModel> From(const ::Microsoft::Terminal::ActivityLog::ReadEntry& read);
+        static winrt::com_ptr<ActivityEntryViewModel> From(const ::Microsoft::Terminal::ActivityLog::ReadEntry& read, bool useAbsoluteTime);
 
     private:
         winrt::hstring _timestamp;
+        winrt::hstring _timestampDisplay;
+        winrt::hstring _timestampTooltip;
         winrt::hstring _kind;
+        winrt::hstring _eventLabel;
+        winrt::hstring _eventTooltip;
         winrt::hstring _exe;
         winrt::hstring _exeName;
         winrt::hstring _commandLine;
@@ -70,6 +78,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::hstring Filter() const noexcept { return _filter; }
         void Filter(const winrt::hstring& value);
 
+        winrt::hstring KindFilter() const noexcept { return _kindFilter; }
+        void KindFilter(const winrt::hstring& value);
+
+        bool UseAbsoluteTime() const noexcept { return _useAbsoluteTime; }
+        void UseAbsoluteTime(bool value);
+
         winrt::hstring StatusText() const noexcept { return _statusText; }
         winrt::hstring LogPath() const noexcept { return _logPath; }
         bool HasEntries() const noexcept { return _entries.Size() != 0; }
@@ -81,6 +95,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::Windows::Foundation::Collections::IObservableVector<Editor::ActivityEntryViewModel> _entries;
         std::vector<::Microsoft::Terminal::ActivityLog::ReadEntry> _all;
         winrt::hstring _filter;
+        winrt::hstring _kindFilter;
+        bool _useAbsoluteTime{ false };
         winrt::hstring _statusText;
         winrt::hstring _logPath;
 

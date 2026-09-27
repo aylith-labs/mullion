@@ -29,39 +29,40 @@
             -->
             <DataTemplate x:Key="ActivityItemTemplate"
                           x:DataType="local:ActivityEntryViewModel">
-                <StackPanel Margin="0,6,0,10"
-                            Spacing="2">
-                    <StackPanel Orientation="Horizontal"
-                                Spacing="8">
+                <Grid Margin="0,8"
+                      ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="132" />
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="220" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               VerticalAlignment="Top"
+                               FontSize="11"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Text="{x:Bind TimestampDisplay}"
+                               ToolTipService.ToolTip="{x:Bind TimestampTooltip}" />
+
+                    <StackPanel Grid.Column="1"
+                                Spacing="4">
                         <TextBlock FontWeight="SemiBold"
                                    Style="{ThemeResource BodyTextBlockStyle}"
                                    Text="{x:Bind ExeName}" />
                         <Border Padding="6,1"
-                                VerticalAlignment="Center"
+                                HorizontalAlignment="Left"
                                 Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                CornerRadius="3">
+                                CornerRadius="3"
+                                ToolTipService.ToolTip="{x:Bind EventTooltip}">
                             <TextBlock FontSize="11"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       Text="{x:Bind Kind}" />
+                                       Text="{x:Bind EventLabel}" />
                         </Border>
-                        <TextBlock FontSize="11"
-                                   VerticalAlignment="Center"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   Text="{x:Bind Timestamp}" />
                     </StackPanel>
 
-                    <TextBlock FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               Text="{x:Bind Reason}"
-                               TextWrapping="WrapWholeWords" />
-
-                    <!--
-                        The command line, monospaced because that is what it is,
-                        and wrapped so the whole of it is visible at once. This
-                        is the field you actually came for, so it is never
-                        hidden behind a selection or an expander.
-                    -->
-                    <TextBlock Margin="0,2,0,0"
+                    <!-- The command is the evidence, so it remains selectable. -->
+                    <TextBlock Grid.Column="2"
                                FontFamily="Cascadia Mono, Consolas"
                                FontSize="12"
                                IsTextSelectionEnabled="True"
@@ -69,8 +70,8 @@
                                TextWrapping="Wrap"
                                Visibility="{x:Bind HasCommandLine}" />
 
-                    <StackPanel Orientation="Horizontal"
-                                Spacing="12">
+                    <StackPanel Grid.Column="3"
+                                Spacing="4">
                         <TextBlock FontSize="11"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    IsTextSelectionEnabled="True"
@@ -82,7 +83,7 @@
                                    Text="{x:Bind ParentExe}"
                                    Visibility="{x:Bind HasParent}" />
                     </StackPanel>
-                </StackPanel>
+                </Grid>
             </DataTemplate>
         </ResourceDictionary>
     </Page.Resources>
@@ -134,19 +135,34 @@
         <local:SettingsCard x:Name="ActivityFilter"
                             x:Uid="Activity_Filter"
                             IsForkFeature="True">
-            <StackPanel Orientation="Horizontal"
-                        Spacing="8">
-                <TextBox x:Name="FilterBox"
-                         x:Uid="Activity_FilterBox"
-                         MinWidth="220"
-                         Text="{x:Bind ViewModel.Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                <Button x:Name="RefreshButton"
-                        x:Uid="Activity_Refresh"
-                        Click="RefreshButton_Click">
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                              FontSize="12"
-                              Glyph="&#xE72C;" />
-                </Button>
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8">
+                    <TextBox x:Name="FilterBox"
+                             x:Uid="Activity_FilterBox"
+                             MinWidth="220"
+                             Text="{x:Bind ViewModel.Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ComboBox x:Uid="Activity_EventFilter"
+                              MinWidth="180"
+                              SelectedValue="{x:Bind ViewModel.KindFilter, Mode=TwoWay}"
+                              SelectedValuePath="Tag">
+                        <ComboBoxItem x:Uid="Activity_EventFilterAll"
+                                      Tag="" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterProfileLaunch"
+                                      Tag="profileLaunch" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterHandoff"
+                                      Tag="handoff" />
+                    </ComboBox>
+                    <Button x:Name="RefreshButton"
+                            x:Uid="Activity_Refresh"
+                            Click="RefreshButton_Click">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  Glyph="&#xE72C;" />
+                    </Button>
+                </StackPanel>
+                <ToggleSwitch x:Uid="Activity_AbsoluteTime"
+                              IsOn="{x:Bind ViewModel.UseAbsoluteTime, Mode=TwoWay}" />
             </StackPanel>
         </local:SettingsCard>
 
@@ -170,8 +186,33 @@
                 BorderThickness="1"
                 CornerRadius="{StaticResource OverlayCornerRadius}"
                 Visibility="{x:Bind ViewModel.HasEntries, Mode=OneWay}">
-            <ItemsControl ItemTemplate="{StaticResource ActivityItemTemplate}"
-                          ItemsSource="{x:Bind ViewModel.Entries, Mode=OneWay}" />
+            <StackPanel>
+                <Grid Margin="0,4,0,6"
+                      ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="132" />
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="220" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Uid="Activity_ColumnTime"
+                               Grid.Column="0"
+                               Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock x:Uid="Activity_ColumnEvent"
+                               Grid.Column="1"
+                               Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock x:Uid="Activity_ColumnCommand"
+                               Grid.Column="2"
+                               Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock x:Uid="Activity_ColumnContext"
+                               Grid.Column="3"
+                               Style="{ThemeResource CaptionTextBlockStyle}" />
+                </Grid>
+                <Border Height="1"
+                        Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <ItemsControl ItemTemplate="{StaticResource ActivityItemTemplate}"
+                              ItemsSource="{x:Bind ViewModel.Entries, Mode=OneWay}" />
+            </StackPanel>
         </Border>
     </StackPanel>
 </Page>

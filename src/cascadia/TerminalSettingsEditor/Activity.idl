@@ -10,7 +10,11 @@ namespace Microsoft.Terminal.Settings.Editor
     [default_interface] runtimeclass ActivityEntryViewModel
     {
         String Timestamp { get; };
+        String TimestampDisplay { get; };
+        String TimestampTooltip { get; };
         String Kind { get; };
+        String EventLabel { get; };
+        String EventTooltip { get; };
         String Exe { get; };
         String ExeName { get; };
         String CommandLine { get; };
@@ -33,6 +37,8 @@ namespace Microsoft.Terminal.Settings.Editor
         Windows.Foundation.Collections.IObservableVector<Microsoft.Terminal.Settings.Editor.ActivityEntryViewModel> Entries { get; };
 
         String Filter;
+        String KindFilter;
+        Boolean UseAbsoluteTime;
         String StatusText { get; };
         String LogPath { get; };
         Boolean HasEntries { get; };

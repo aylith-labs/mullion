@@ -913,6 +913,30 @@
     <value>Filter activity...</value>
     <comment>Placeholder text in the box that narrows the list of recorded events.</comment>
   </data>
+  <data name="Activity_EventFilter.Header" xml:space="preserve">
+    <value>Event type</value>
+    <comment>Name for the event-type filter beside the activity search box.</comment>
+  </data>
+  <data name="Activity_EventFilterAll.Content" xml:space="preserve">
+    <value>All events</value>
+    <comment>Event-type filter option that includes every recorded event.</comment>
+  </data>
+  <data name="Activity_EventFilterProfileLaunch.Content" xml:space="preserve">
+    <value>Profile launches</value>
+    <comment>Event-type filter option for programs started by a Terminal profile.</comment>
+  </data>
+  <data name="Activity_EventFilterHandoff.Content" xml:space="preserve">
+    <value>Console handoffs</value>
+    <comment>Event-type filter option for programs handed to Terminal by console delegation.</comment>
+  </data>
+  <data name="Activity_AbsoluteTime.Header" xml:space="preserve">
+    <value>Show absolute time</value>
+    <comment>Label for the switch between relative and local absolute activity timestamps.</comment>
+  </data>
+  <data name="Activity_AbsoluteTime.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Show each time in your local date and time format instead of as an age.</value>
+    <comment>Tooltip for the absolute-time switch.</comment>
+  </data>
   <data name="Activity_Refresh.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Reload the activity log</value>
     <comment>Name for a button that re-reads the activity log from disk.</comment>
@@ -924,6 +948,22 @@
   <data name="Activity_Count.Text" xml:space="preserve">
     <value>Showing {0} of {1} recorded events, newest first.</value>
     <comment>Status line above the list of recorded events. {0} is how many are shown after filtering, {1} is how many were read.</comment>
+  </data>
+  <data name="Activity_ColumnTime.Text" xml:space="preserve">
+    <value>Time</value>
+    <comment>Column heading for an activity event's time.</comment>
+  </data>
+  <data name="Activity_ColumnEvent.Text" xml:space="preserve">
+    <value>Event</value>
+    <comment>Column heading for the recorded program and event kind.</comment>
+  </data>
+  <data name="Activity_ColumnCommand.Text" xml:space="preserve">
+    <value>Command</value>
+    <comment>Column heading for a recorded command line.</comment>
+  </data>
+  <data name="Activity_ColumnContext.Text" xml:space="preserve">
+    <value>Context</value>
+    <comment>Column heading for a recorded working directory and parent process.</comment>
   </data>
   <data name="Activity_Empty.Text" xml:space="preserve">
     <value>Nothing recorded yet. Events appear here as the terminal starts programs.</value>
