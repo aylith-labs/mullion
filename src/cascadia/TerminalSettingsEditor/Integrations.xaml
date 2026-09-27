@@ -60,10 +60,11 @@
                                             Margin="0,2,0,0"
                                             AutomationProperties.Name="{x:Bind AccessibleName}"
                                             Click="IntegrationNavigator_Click"
-                                            Description="{x:Bind Source}"
+                                            Description="{x:Bind SourceDescription}"
                                             Header="{x:Bind Name}"
                                             IsClickEnabled="True"
-                                            Tag="{x:Bind}">
+                                            Tag="{x:Bind}"
+                                            Trait="{x:Bind Trait}">
                             <local:SettingsCard.HeaderIcon>
                                 <IconSourceElement IconSource="{x:Bind mtu:IconPathConverter.IconSourceWUX(Icon)}" />
                             </local:SettingsCard.HeaderIcon>

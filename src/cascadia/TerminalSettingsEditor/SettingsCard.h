@@ -35,6 +35,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         DEPENDENCY_PROPERTY(Windows::Foundation::IInspectable, Header);
         DEPENDENCY_PROPERTY(Windows::Foundation::IInspectable, Description);
+        DEPENDENCY_PROPERTY(hstring, Trait);
         DEPENDENCY_PROPERTY(Windows::UI::Xaml::Controls::IconElement, HeaderIcon);
         DEPENDENCY_PROPERTY(Windows::Foundation::IInspectable, ActionIcon);
         DEPENDENCY_PROPERTY(hstring, ActionIconToolTip);
@@ -80,6 +81,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         static void _InitializeProperties();
         static void _OnHeaderChanged(const Windows::UI::Xaml::DependencyObject& d, const Windows::UI::Xaml::DependencyPropertyChangedEventArgs& e);
         static void _OnDescriptionChanged(const Windows::UI::Xaml::DependencyObject& d, const Windows::UI::Xaml::DependencyPropertyChangedEventArgs& e);
+        static void _OnTraitChanged(const Windows::UI::Xaml::DependencyObject& d, const Windows::UI::Xaml::DependencyPropertyChangedEventArgs& e);
         static void _OnHeaderIconChanged(const Windows::UI::Xaml::DependencyObject& d, const Windows::UI::Xaml::DependencyPropertyChangedEventArgs& e);
         static void _OnIsClickEnabledChanged(const Windows::UI::Xaml::DependencyObject& d, const Windows::UI::Xaml::DependencyPropertyChangedEventArgs& e);
         static void _OnIsActionIconVisibleChanged(const Windows::UI::Xaml::DependencyObject& d, const Windows::UI::Xaml::DependencyPropertyChangedEventArgs& e);
@@ -112,6 +114,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _UpdateDescriptionVisibility();
         void _UpdateFullDescription();
         void _UpdateDescriptionHelp();
+        void _UpdateTrait();
         void _UpdateHeaderIconVisibility();
         void _UpdateContentVisibility();
         void _UpdateContentAlignmentState();

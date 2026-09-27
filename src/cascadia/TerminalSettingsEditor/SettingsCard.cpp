@@ -20,6 +20,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 {
     DependencyProperty SettingsCard::_HeaderProperty{ nullptr };
     DependencyProperty SettingsCard::_DescriptionProperty{ nullptr };
+    DependencyProperty SettingsCard::_TraitProperty{ nullptr };
     DependencyProperty SettingsCard::_HeaderIconProperty{ nullptr };
     DependencyProperty SettingsCard::_ActionIconProperty{ nullptr };
     DependencyProperty SettingsCard::_ActionIconToolTipProperty{ nullptr };
@@ -55,6 +56,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     static constexpr std::wstring_view AylithImprintPart{ L"PART_AylithImprint" };
     static constexpr std::wstring_view JsonOnlyImprintPart{ L"PART_JsonOnlyImprint" };
     static constexpr std::wstring_view DescriptionHelpPart{ L"PART_DescriptionHelp" };
+    static constexpr std::wstring_view TraitPart{ L"PART_Trait" };
 
     // Whether fork-only rows draw their mark, and every card built so far.
     //
@@ -204,6 +206,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 xaml_typename<Editor::SettingsCard>(),
                 PropertyMetadata{ nullptr, PropertyChangedCallback{ &SettingsCard::_OnDescriptionChanged } });
         }
+        if (!_TraitProperty)
+        {
+            _TraitProperty = DependencyProperty::Register(
+                L"Trait",
+                xaml_typename<hstring>(),
+                xaml_typename<Editor::SettingsCard>(),
+                PropertyMetadata{ box_value(hstring{}), PropertyChangedCallback{ &SettingsCard::_OnTraitChanged } });
+        }
         if (!_HeaderIconProperty)
         {
             _HeaderIconProperty = DependencyProperty::Register(
@@ -330,6 +340,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _UpdateActionIconVisibility();
         _UpdateHeaderVisibility();
         _UpdateDescriptionVisibility();
+        _UpdateTrait();
         _UpdateHeaderIconVisibility();
         _UpdateContentVisibility();
 
@@ -638,15 +649,18 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
     }
 
-    // The help glyph beside the header, and the popover hanging off it. Shown
-    // whenever the row has a description, whether or not the description line itself
-    // is drawn, so that a row always admits it has more to say.
+    // The help badge beside the header, and the popover hanging off it. Shown when
+    // the row has a description AND the description line itself is not drawn: with
+    // the line on screen the popover would only repeat it, and a badge that opens a
+    // copy of the text directly underneath it is noise rather than an affordance.
+    // That is why this follows g_descriptionsVisible, and why flipping the switch
+    // reaches cards already on screen (_RefreshLiveCards walks them).
     //
     // Only a string description gets one. Description is typed as an Object and a
     // page is free to hand it a TextBlock; a UIElement has exactly one parent, so
     // presenting the same one twice would tear it out of the description line. Every
     // description in this editor is a string today, and the failure mode for a future
-    // one that isn't is a missing glyph rather than a missing description.
+    // one that isn't is a missing badge rather than a missing description.
     void SettingsCard::_UpdateDescriptionHelp()
     {
         const auto child{ GetTemplateChild(hstring{ DescriptionHelpPart }) };
@@ -663,7 +677,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         const auto description = Description();
         const auto text = _isNullOrEmpty(description) ? hstring{} : unbox_value_or<hstring>(description, hstring{});
-        if (text.empty())
+        if (text.empty() || g_descriptionsVisible)
         {
             help.Visibility(Visibility::Collapsed);
             ToolTipService::SetToolTip(help, nullptr);
@@ -680,6 +694,19 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         ToolTipService::SetToolTip(help, tip);
 
         help.Visibility(Visibility::Visible);
+    }
+
+    // The trait tag beside the header. Its text is template bound, so all that is
+    // left here is whether the tag is drawn at all.
+    void SettingsCard::_UpdateTrait()
+    {
+        if (const auto child{ GetTemplateChild(hstring{ TraitPart }) })
+        {
+            if (const auto trait{ child.try_as<FrameworkElement>() })
+            {
+                trait.Visibility(Trait().empty() ? Visibility::Collapsed : Visibility::Visible);
+            }
+        }
     }
 
     void SettingsCard::_UpdateHeaderIconVisibility()
@@ -789,6 +816,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     {
         const auto obj{ d.try_as<Editor::SettingsCard>() };
         get_self<SettingsCard>(obj)->_UpdateDescriptionVisibility();
+    }
+
+    void SettingsCard::_OnTraitChanged(const DependencyObject& d, const DependencyPropertyChangedEventArgs& /*e*/)
+    {
+        const auto obj{ d.try_as<Editor::SettingsCard>() };
+        get_self<SettingsCard>(obj)->_UpdateTrait();
     }
 
     void SettingsCard::_OnHeaderIconChanged(const DependencyObject& d, const DependencyPropertyChangedEventArgs& /*e*/)

@@ -1914,10 +1914,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto firstNonSpace{ queryW.find_first_not_of(L' ') };
         if (firstNonSpace == std::wstring::npos)
         {
-            // only spaces
+            // Nothing to search for. Clear first, then let an emptied box fall back to
+            // what was chosen before, which is what focusing an empty box offers too. A
+            // box holding only spaces is not empty, so _ShowSearchHistory declines it and
+            // the clear above stands.
             const auto& searchBox = SettingsSearchBox();
             searchBox.ItemsSource(nullptr);
             searchBox.IsSuggestionListOpen(false);
+            _ShowSearchHistory();
             co_return;
         }
 
@@ -1968,6 +1972,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             const auto& navigationArg{ chosenResult->NavigationArg() };
             const auto& subpage{ indexEntry.Entry->SubPage };
             const hstring elementToFocus{ indexEntry.Entry->ElementName };
+
+            // Before navigating, not after: this is the only place that knows a result was
+            // actually chosen rather than merely arrowed past, and _Navigate rebuilds
+            // enough of the page that there is no reason to be holding anything across it.
+            _RecordSearchHistory(indexEntry);
+
             _Navigate(navigationArg, subpage, elementToFocus);
             SettingsSearchBox().Text(L"");
         }
@@ -1978,6 +1988,101 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // Don't navigate on arrow keys
         // Handle Enter/Click with QuerySubmitted() to instead
         // AutoSuggestBox will pass the chosen item to QuerySubmitted() via args.ChosenSuggestion()
+    }
+
+    void MainPage::SettingsSearchBox_GotFocus(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
+    {
+        _ShowSearchHistory();
+    }
+
+    void MainPage::SettingsSearchBox_Tapped(const IInspectable& /*sender*/, const Windows::UI::Xaml::Input::TappedRoutedEventArgs& /*args*/)
+    {
+        _ShowSearchHistory();
+    }
+
+    // Reads the remembered keys out of ApplicationState. Null is what an untouched
+    // state.json gives back, so it is a normal answer rather than a failure.
+    static std::vector<hstring> _readSearchHistory()
+    {
+        std::vector<hstring> history;
+        if (const auto stored = Model::ApplicationState::SharedInstance().SettingsSearchHistory())
+        {
+            history.reserve(stored.Size());
+            for (const auto& name : stored)
+            {
+                history.emplace_back(name);
+            }
+        }
+        return history;
+    }
+
+    // What the box offers while it is empty: the settings it has actually been used to
+    // reach, newest first. Typing replaces them with live results, and emptying the box
+    // brings them back (SettingsSearchBox_TextChanged).
+    void MainPage::_ShowSearchHistory()
+    {
+        const auto& searchBox = SettingsSearchBox();
+        if (!searchBox.Text().empty())
+        {
+            // Whatever is in the box is what the list should be about.
+            return;
+        }
+
+        if (searchBox.IsSuggestionListOpen())
+        {
+            // Already open over an empty box, which can only be this list: TextChanged
+            // closes it for anything else. Rebuilding the items here would reset the
+            // selection out from under whoever is arrowing through them, and GotFocus
+            // bubbles up out of the suggestions as well as out of the text box.
+            return;
+        }
+
+        const auto results = SearchIndex::Instance().Recall(_readSearchHistory());
+        if (results.Size() == 0)
+        {
+            // Nothing chosen yet, or the index has not finished loading. Either way, an
+            // empty dropdown would be worse than none.
+            searchBox.ItemsSource(nullptr);
+            searchBox.IsSuggestionListOpen(false);
+            return;
+        }
+
+        searchBox.ItemsSource(results);
+        searchBox.IsSuggestionListOpen(true);
+    }
+
+    // Remembers a chosen setting, most recent first and only once each. SearchIndex
+    // decides whether this result is one a stored key could rebuild and hands back the
+    // key, or an empty string when it is not, so the cases it declines (a particular
+    // profile, color scheme or New Tab Menu folder, whose navigation argument is a live
+    // view model) simply leave no trace instead of leaving a broken entry.
+    void MainPage::_RecordSearchHistory(const LocalizedIndexEntry& entry)
+    {
+        const auto key = SearchIndex::Instance().RecallKey(entry);
+        if (key.empty())
+        {
+            return;
+        }
+
+        // Rebuilt rather than mutated in place, which gets newest-first, the de-duplication
+        // and the cap in one pass: the chosen key leads, then everything else it was not.
+        const auto previous = _readSearchHistory();
+        std::vector<hstring> history;
+        history.reserve(MaxSearchHistoryEntries);
+        history.emplace_back(key);
+        for (const auto& name : previous)
+        {
+            if (history.size() >= MaxSearchHistoryEntries)
+            {
+                break;
+            }
+            if (name != key)
+            {
+                history.emplace_back(name);
+            }
+        }
+
+        Model::ApplicationState::SharedInstance().SettingsSearchHistory(single_threaded_vector<hstring>(std::move(history)));
     }
 
     safe_void_coroutine MainPage::_UpdateSearchIndex()

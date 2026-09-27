@@ -189,6 +189,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         hstring Icon() const;
         hstring Source() const { return _Manifest.Source(); }
         bool IsBuiltIn() const { return _Manifest.IsBuiltIn(); }
+        // Source split into the two things it actually is. "built-in" is a trait of
+        // the integration, so it belongs in the row's trait tag; a path is where the
+        // manifest came from, which is genuine per-row detail and stays in the
+        // description. Splitting it also keeps a built-in row from claiming it has a
+        // description, which is what puts the help badge on a card.
+        hstring Trait() const;
+        hstring SourceDescription() const;
         hstring AccessibleName() const;
 
         bool Enabled() const;

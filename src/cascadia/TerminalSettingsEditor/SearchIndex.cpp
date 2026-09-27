@@ -285,6 +285,61 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _index.store(std::make_shared<const IndexData>(std::move(indexData)));
     }
 
+    // See the declaration for why this only resolves build-time entries.
+    IObservableVector<Windows::Foundation::IInspectable> SearchIndex::Recall(const std::vector<hstring>& resourceNames) const
+    {
+        auto results = single_threaded_observable_vector<Windows::Foundation::IInspectable>();
+
+        // Same snapshot discipline as SearchAsync: hold the shared_ptr for as long as
+        // the LocalizedIndexEntry pointers handed to the results are alive.
+        const auto index = _index.load();
+        if (!index)
+        {
+            // The index is built off the UI thread when the editor opens, so this is
+            // reachable. Nothing to offer yet is the right answer, not an error.
+            return results;
+        }
+
+        for (const auto& name : resourceNames)
+        {
+            for (const auto& entry : index->mainIndex)
+            {
+                if (std::wstring_view{ entry.Entry->ResourceName } == std::wstring_view{ name })
+                {
+                    results.Append(winrt::make<FilteredSearchResult>(index, &entry, nullptr, std::nullopt, entry.SecondaryLabelLocalized));
+                    break;
+                }
+            }
+        }
+
+        return results;
+    }
+
+    winrt::hstring SearchIndex::RecallKey(const LocalizedIndexEntry& entry) const
+    {
+        const auto index = _index.load();
+        if (!index || !entry.Entry)
+        {
+            return {};
+        }
+
+        // Identity, not a guess from the entry's fields: Recall resolves out of mainIndex
+        // and nowhere else, so "can be remembered" means exactly "this entry is one of
+        // mainIndex's". The profile, color scheme and New Tab Menu indices are built from
+        // the same markup and share resource names with it, so matching on the name would
+        // quietly remember the wrong row; and only the SubPage splits them apart, so the
+        // NavigationArgTag is not a discriminator either. A pointer from a snapshot that
+        // Reset() has since replaced is simply not found, which is the right answer.
+        for (const auto& candidate : index->mainIndex)
+        {
+            if (&candidate == &entry)
+            {
+                return winrt::hstring{ entry.Entry->ResourceName };
+            }
+        }
+        return {};
+    }
+
     // Method Description:
     // - Gets the search results based on the given query string. Can be cancelled.
     // - Some results (i.e. profiles) are dynamically generated at runtime, so they need to be passed in here so that we can include them.

@@ -91,6 +91,10 @@ namespace Microsoft.Terminal.Settings.Editor
         String Icon { get; };
         String Source { get; };
         Boolean IsBuiltIn { get; };
+        // Source, split: the part of it that is a trait of the integration, and the
+        // part of it that is a description of where the manifest came from.
+        String Trait { get; };
+        String SourceDescription { get; };
         String AccessibleName { get; };
 
         Boolean Enabled;

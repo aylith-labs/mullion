@@ -73,6 +73,12 @@ namespace Microsoft.Terminal.Settings.Model
         Boolean SettingsShowDescriptions;
         Boolean SettingsAutoSave;
 
+        // The settings the Settings search box was last used to reach, newest first.
+        // Here for the same reason as the two above: it is a record of how the editor
+        // was used, not a setting, and it has to survive being written the moment a
+        // result is chosen.
+        Windows.Foundation.Collections.IVector<String> SettingsSearchHistory;
+
         String SettingsHash;
         Windows.Foundation.Collections.IVector<WindowLayout> PersistedWindowLayouts;
         Windows.Foundation.Collections.IVector<String> RecentCommands;

@@ -55,6 +55,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         safe_void_coroutine SettingsSearchBox_TextChanged(const Windows::UI::Xaml::Controls::AutoSuggestBox& sender, const Windows::UI::Xaml::Controls::AutoSuggestBoxTextChangedEventArgs& args);
         void SettingsSearchBox_QuerySubmitted(const Windows::UI::Xaml::Controls::AutoSuggestBox& sender, const Windows::UI::Xaml::Controls::AutoSuggestBoxQuerySubmittedEventArgs& args);
         void SettingsSearchBox_SuggestionChosen(const Windows::UI::Xaml::Controls::AutoSuggestBox& sender, const Windows::UI::Xaml::Controls::AutoSuggestBoxSuggestionChosenEventArgs& args);
+        void SettingsSearchBox_GotFocus(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
+        void SettingsSearchBox_Tapped(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::Input::TappedRoutedEventArgs& args);
 
         void SettingsNav_Loaded(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void SettingsNav_Unloaded(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
@@ -184,6 +186,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::Windows::UI::Xaml::DispatcherTimer _dirtyCheckTimer{ nullptr };
 
         safe_void_coroutine _UpdateSearchIndex();
+
+        // The settings search box remembers what it was used to reach, and offers those
+        // again while it is empty. Persisted in ApplicationState next to the other two
+        // pieces of editor chrome, for the reasons given there.
+        void _ShowSearchHistory();
+        void _RecordSearchHistory(const LocalizedIndexEntry& entry);
+
+        // How many chosen settings to keep. Enough to cover coming back to the same few
+        // rows over a session, short enough that the list stays a list and not a log.
+        static constexpr size_t MaxSearchHistoryEntries{ 10 };
 
         winrt::Microsoft::Terminal::Settings::Editor::ProfileViewModel _profileDefaultsVM{ nullptr };
         winrt::Microsoft::Terminal::Settings::Editor::ColorSchemesPageViewModel _colorSchemesPageVM{ nullptr };

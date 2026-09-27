@@ -49,6 +49,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     X(FileSource::Local, Windows::Foundation::Collections::IMap<hstring COMMA bool>, ExpandedSettingsGroups, "expandedSettingsGroups")                                    \
     X(FileSource::Local, bool, SettingsShowDescriptions, "settingsShowDescriptions", false)                                                                               \
     X(FileSource::Local, bool, SettingsAutoSave, "settingsAutoSave", false)                                                                                               \
+    X(FileSource::Local, Windows::Foundation::Collections::IVector<hstring>, SettingsSearchHistory, "settingsSearchHistory")                                              \
     X(FileSource::Shared, bool, SSHFolderGenerated, "sshFolderGenerated", false)
 
     struct WindowLayout : WindowLayoutT<WindowLayout>
