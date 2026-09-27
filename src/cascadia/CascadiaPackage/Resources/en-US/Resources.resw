@@ -122,23 +122,23 @@
     <comment>{Locked=qps-ploc,qps-ploca,qps-plocm}</comment>
   </data>
   <data name="AppNameTest" xml:space="preserve">
-    <value>Terminal Test</value>
+    <value>Mullion Test</value>
     <comment>{Locked} The test build will never be seen in multiple languages</comment>
   </data>
   <data name="AppStoreNameTest" xml:space="preserve">
-    <value>Windows Terminal Test</value>
+    <value>Mullion Test</value>
     <comment>{Locked} The test build will never be seen in multiple languages</comment>
   </data>
   <data name="AppShortNameTest" xml:space="preserve">
-    <value>Terminal Test</value>
+    <value>Mullion Test</value>
     <comment>{Locked} The test build will never be seen in multiple languages</comment>
   </data>
   <data name="AppDescriptionTest" xml:space="preserve">
-    <value>The Windows Terminal, disposable verification slot</value>
+    <value>Mullion, disposable verification slot</value>
     <comment>{Locked} The test build will never be seen in multiple languages</comment>
   </data>
   <data name="AppNameDev" xml:space="preserve">
-    <value>Terminal Dev</value>
+    <value>Mullion</value>
     <comment>{Locked} The dev build will never be seen in multiple languages</comment>
   </data>
   <data name="AppNameCan" xml:space="preserve">
@@ -154,7 +154,7 @@
     <comment>{Locked=qps-ploc,qps-ploca,qps-plocm}</comment>
   </data>
   <data name="AppStoreNameDev" xml:space="preserve">
-    <value>Windows Terminal Dev</value>
+    <value>Mullion</value>
     <comment>{Locked} The dev build will never be seen in multiple languages</comment>
   </data>
   <data name="AppStoreNameCan" xml:space="preserve">
@@ -170,7 +170,7 @@
     <comment>{Locked=qps-ploc,qps-ploca,qps-plocm}</comment>
   </data>
   <data name="AppShortNameDev" xml:space="preserve">
-    <value>Terminal Dev</value>
+    <value>Mullion</value>
     <comment>{Locked} The dev build will never be seen in multiple languages</comment>
   </data>
   <data name="AppShortNameCan" xml:space="preserve">
@@ -185,7 +185,7 @@
     <value>The New Windows Terminal</value>
   </data>
   <data name="AppDescriptionDev" xml:space="preserve">
-    <value>The Windows Terminal, but Unofficial</value>
+    <value>Mullion, a Windows Terminal fork</value>
     <comment>{Locked} The dev build will never be seen in multiple languages</comment>
   </data>
   <data name="AppDescriptionCan" xml:space="preserve">

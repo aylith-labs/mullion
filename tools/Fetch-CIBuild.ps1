@@ -19,7 +19,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 Param(
-    [string]$Repo = 'steven-pribilinskiy/terminal',
+    [string]$Repo = 'aylith-labs/mullion',
     [string]$Workflow = 'build.yml',
     [string]$Branch = 'main',
     [string]$SlotRoot = 'C:\TerminalSlots',

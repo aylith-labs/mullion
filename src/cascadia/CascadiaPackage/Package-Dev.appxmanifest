@@ -99,8 +99,8 @@
         <uap3:Extension Category="windows.appExtension">
             <uap3:AppExtension Name="com.microsoft.windows.terminal.host"
                 Id="Terminal-Dev"
-                DisplayName="Terminal Dev"
-                Description="Terminal host built from microsoft/terminal open source repository"
+                DisplayName="Mullion"
+                Description="Mullion terminal host"
                 PublicFolder="Public">
                 <uap3:Properties>
                     <Clsid>{051F34EE-C1FD-4B19-AF75-9BA54648434C}</Clsid>

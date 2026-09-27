@@ -1,4 +1,11 @@
-# Windows Terminal — steven-pribilinskiy/terminal
+# Mullion — aylith-labs/mullion
+
+**Mullion** is this fork’s name (the upright bar between window panes). It lives at
+`aylith-labs/mullion`, a standalone repo, not a GitHub fork, so nothing defaults a PR
+towards Microsoft. The name is **display-only**: package identities `WindowsTerminalDev` /
+`WindowsTerminalTest`, the `wtd`/`wtt` aliases, and the window class stay as they are, because
+renaming them would orphan both slots’ `settings.json` folders and the promote machinery keyed on them.
+The old `steven-pribilinskiy/terminal` repo is archived.
 
 This checkout is **my fork, and it evolves on its own terms.** It is not a staging area for
 upstream contributions. Features land here because I want them in *my* Terminal, whether or not
@@ -123,7 +130,7 @@ and never work around it.
 ### Remotes
 
 ```
-origin    https://github.com/steven-pribilinskiy/terminal.git   (fetch + push)
+origin    https://github.com/aylith-labs/mullion.git       (fetch + push)
 upstream  https://github.com/microsoft/terminal.git             (fetch only)
 ```
 
@@ -195,7 +202,7 @@ better here: one run over a stack of commits clears everyone's backlog at once, 
 push of a one-line fix costs the whole queue its answer. Check for a live run before pushing:
 
 ```powershell
-gh run list --repo steven-pribilinskiy/terminal --limit 3
+gh run list --repo aylith-labs/mullion --limit 3
 ```
 
 Note that `gh` resolves to `microsoft/terminal` in this checkout unless `--repo` is given, since
