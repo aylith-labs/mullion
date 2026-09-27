@@ -18,7 +18,8 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!--
-                One recorded event.
+                One row: either one recorded event, or a group of them collapsed
+                into one line with a count and the time it was first seen.
 
                 System brushes only in here, and that is not a style preference.
                 A custom key defined in a control's own ThemeDictionaries is not
@@ -26,6 +27,12 @@
                 process fail-fast (0xc000027b) whose stack blames measure rather
                 than the template. The activity pane cost two build round trips
                 learning that.
+
+                The command column is last and takes the remaining width, which
+                is why hiding it needs nothing but a collapsed TextBlock: the
+                empty space it leaves is at the right edge, where it reads as
+                margin. Every other column is a fixed width, because each row is
+                its own Grid and only a fixed width makes them line up.
             -->
             <DataTemplate x:Key="ActivityItemTemplate"
                           x:DataType="local:ActivityEntryViewModel">
@@ -33,56 +40,103 @@
                       ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="132" />
-                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="240" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="220" />
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0"
-                               VerticalAlignment="Top"
-                               FontSize="11"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               Text="{x:Bind TimestampDisplay}"
-                               ToolTipService.ToolTip="{x:Bind TimestampTooltip}" />
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Top">
+                        <TextBlock FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Text="{x:Bind TimestampDisplay}"
+                                   TextWrapping="Wrap"
+                                   ToolTipService.ToolTip="{x:Bind TimestampTooltip}" />
+                        <TextBlock FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                   Text="{x:Bind RangeText}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{x:Bind HasRange}" />
+                    </StackPanel>
 
                     <StackPanel Grid.Column="1"
                                 Spacing="4">
                         <TextBlock FontWeight="SemiBold"
                                    Style="{ThemeResource BodyTextBlockStyle}"
-                                   Text="{x:Bind ExeName}" />
-                        <Border Padding="6,1"
-                                HorizontalAlignment="Left"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                CornerRadius="3"
-                                ToolTipService.ToolTip="{x:Bind EventTooltip}">
-                            <TextBlock FontSize="11"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       Text="{x:Bind EventLabel}" />
-                        </Border>
+                                   Text="{x:Bind ExeName}"
+                                   TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="4">
+                            <Border Padding="6,1"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="3"
+                                    ToolTipService.ToolTip="{x:Bind EventTooltip}">
+                                <TextBlock FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Text="{x:Bind EventLabel}" />
+                            </Border>
+                            <Border Padding="6,1"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                    CornerRadius="3"
+                                    Visibility="{x:Bind IsGroup}">
+                                <TextBlock FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                           Text="{x:Bind CountText}" />
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
 
-                    <!-- The command is the evidence, so it remains selectable. -->
-                    <TextBlock Grid.Column="2"
-                               FontFamily="Cascadia Mono, Consolas"
-                               FontSize="12"
-                               IsTextSelectionEnabled="True"
-                               Text="{x:Bind CommandLine}"
-                               TextWrapping="Wrap"
-                               Visibility="{x:Bind HasCommandLine}" />
-
-                    <StackPanel Grid.Column="3"
+                    <StackPanel Grid.Column="2"
                                 Spacing="4">
                         <TextBlock FontSize="11"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    IsTextSelectionEnabled="True"
                                    Text="{x:Bind WorkingDirectory}"
+                                   TextWrapping="Wrap"
                                    Visibility="{x:Bind HasWorkingDirectory}" />
                         <TextBlock FontSize="11"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    IsTextSelectionEnabled="True"
                                    Text="{x:Bind ParentExe}"
+                                   TextWrapping="Wrap"
                                    Visibility="{x:Bind HasParent}" />
                     </StackPanel>
+
+                    <!--  The command is the evidence, so it remains selectable.  -->
+                    <TextBlock Grid.Column="3"
+                               FontFamily="Cascadia Mono, Consolas"
+                               FontSize="12"
+                               IsTextSelectionEnabled="True"
+                               Text="{x:Bind CommandLine}"
+                               TextWrapping="Wrap"
+                               Visibility="{x:Bind ShowCommandLineInline}" />
+
+                    <!--
+                        The row's popover. It carries the command line when the
+                        command column is hidden, which is the whole point of
+                        being able to hide it, and always carries the exact time
+                        and what kind of event this was, so it is never empty.
+
+                        A bare StackPanel rather than an explicit ToolTip, and
+                        last rather than first: this is the shape MainPage's
+                        search suggestions already prove works for x:Bind inside
+                        a tooltip inside a DataTemplate.
+                    -->
+                    <ToolTipService.ToolTip>
+                        <StackPanel MaxWidth="560"
+                                    Spacing="6">
+                            <TextBlock FontFamily="Cascadia Mono, Consolas"
+                                       FontSize="12"
+                                       Text="{x:Bind CommandLine}"
+                                       TextWrapping="Wrap"
+                                       Visibility="{x:Bind ShowCommandLineInTooltip}" />
+                            <TextBlock FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Text="{x:Bind HoverSummary}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </ToolTipService.ToolTip>
                 </Grid>
             </DataTemplate>
         </ResourceDictionary>
@@ -92,13 +146,13 @@
                 Style="{StaticResource SettingsStackStyle}">
 
         <!--
-            Recording, and the cap that bounds the file. A master switch plus the
-            one setting it gates is exactly the shape SettingsExpander exists
-            for. IsForkFeature goes on the expander only, which forwards the mark
-            to the card that draws its header. IsEnabled is repeated on the
-            nested card rather than set on the expander, because setting it there
-            would disable the header and make the toggle that gates it
-            unclickable.
+            Recording, the cap that bounds the file, and where the file is. A
+            master switch plus the settings it gates is exactly the shape
+            SettingsExpander exists for. IsForkFeature goes on the expander only,
+            which forwards the mark to the card that draws its header. IsEnabled
+            is repeated on the nested card rather than set on the expander,
+            because setting it there would disable the header and make the toggle
+            that gates it unclickable.
         -->
         <local:SettingsExpander x:Name="ActivityLog"
                                 x:Uid="Globals_ActivityLog"
@@ -118,13 +172,36 @@
                                     Style="{StaticResource NumberBoxSettingStyle}"
                                     Value="{x:Bind ViewModel.ActivityLogMaxKilobytes, Mode=TwoWay}" />
                 </local:SettingsCard>
+
+                <!--
+                    The path gets a row of its own rather than the card's
+                    right-hand content column, where a long path wrapped into a
+                    narrow ribbon and pushed the header into one word per line.
+
+                    HorizontalContentAlignment="Left" is required, not
+                    decorative: ContentAlignment="Vertical" only stretches the
+                    presenter across the row, and SettingsCard then propagates
+                    the card's own HorizontalContentAlignment to it, which the
+                    style defaults to Right.
+                -->
                 <local:SettingsCard x:Name="ActivityLogPath"
-                                    x:Uid="Globals_ActivityLogPath">
-                    <TextBlock FontSize="12"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               IsTextSelectionEnabled="True"
-                               Text="{x:Bind ViewModel.LogPath, Mode=OneWay}"
-                               TextWrapping="Wrap" />
+                                    x:Uid="Globals_ActivityLogPath"
+                                    ContentAlignment="Vertical"
+                                    HorizontalContentAlignment="Left">
+                    <StackPanel HorizontalAlignment="Left"
+                                Spacing="8">
+                        <TextBlock FontFamily="Cascadia Mono, Consolas"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   IsTextSelectionEnabled="True"
+                                   Text="{x:Bind ViewModel.LogPath, Mode=OneWay}"
+                                   TextWrapping="Wrap" />
+                        <Button x:Uid="Activity_Reveal"
+                                HorizontalAlignment="Left"
+                                Click="RevealButton_Click"
+                                IsEnabled="{x:Bind ViewModel.HasLogPath, Mode=OneWay}"
+                                Style="{StaticResource BrowseButtonStyle}" />
+                    </StackPanel>
                 </local:SettingsCard>
             </local:SettingsExpander.Items>
         </local:SettingsExpander>
@@ -132,39 +209,111 @@
         <TextBlock x:Uid="Activity_RecordedHeader"
                    Style="{StaticResource TextBlockSubHeaderStyle}" />
 
-        <local:SettingsCard x:Name="ActivityFilter"
-                            x:Uid="Activity_Filter"
-                            IsForkFeature="True">
-            <StackPanel Spacing="8">
+        <!--
+            How the list is narrowed and how it is summarised. One accordion
+            rather than a run of loose cards, because none of these mean anything
+            on their own, and expanded by default because arriving at a page
+            whose controls are hidden is worse than a tall page.
+
+            The search box and the reload button sit in the collapsed header row:
+            they are what gets used on every visit.
+        -->
+        <local:SettingsExpander x:Name="ActivityFilter"
+                                x:Uid="Activity_Filter"
+                                IsExpanded="True"
+                                IsForkFeature="True">
+            <local:SettingsExpander.Content>
                 <StackPanel Orientation="Horizontal"
                             Spacing="8">
                     <TextBox x:Name="FilterBox"
                              x:Uid="Activity_FilterBox"
                              MinWidth="220"
                              Text="{x:Bind ViewModel.Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <ComboBox x:Uid="Activity_EventFilter"
-                              MinWidth="180"
-                              SelectedValue="{x:Bind ViewModel.KindFilter, Mode=TwoWay}"
-                              SelectedValuePath="Tag">
-                        <ComboBoxItem x:Uid="Activity_EventFilterAll"
-                                      Tag="" />
-                        <ComboBoxItem x:Uid="Activity_EventFilterProfileLaunch"
-                                      Tag="profileLaunch" />
-                        <ComboBoxItem x:Uid="Activity_EventFilterHandoff"
-                                      Tag="handoff" />
-                    </ComboBox>
-                    <Button x:Name="RefreshButton"
-                            x:Uid="Activity_Refresh"
+                    <Button x:Uid="Activity_Refresh"
                             Click="RefreshButton_Click">
                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                   FontSize="12"
                                   Glyph="&#xE72C;" />
                     </Button>
                 </StackPanel>
-                <ToggleSwitch x:Uid="Activity_AbsoluteTime"
-                              IsOn="{x:Bind ViewModel.UseAbsoluteTime, Mode=TwoWay}" />
-            </StackPanel>
-        </local:SettingsCard>
+            </local:SettingsExpander.Content>
+            <local:SettingsExpander.Items>
+
+                <!--
+                    Grouping collapses rows; the three filters below narrow them.
+                    "Identical commands" is the one that earns its place: most of
+                    a real log is the same scheduled command repeating, and one
+                    row with a count answers at a glance what a hundred rows do
+                    not. The other three are the same summary by a different key.
+
+                    The order of the items here is the order KindOrder and
+                    GroupMode are written in Activity.cpp, and the binding is by
+                    index, so the two lists have to stay in step.
+                -->
+                <local:SettingsCard x:Name="ActivityGroupBy"
+                                    x:Uid="Activity_GroupBy">
+                    <ComboBox AutomationProperties.AccessibilityView="Content"
+                              SelectedIndex="{x:Bind ViewModel.GroupModeIndex, Mode=TwoWay}"
+                              Style="{StaticResource ComboBoxSettingStyle}">
+                        <ComboBoxItem x:Uid="Activity_GroupByNone" />
+                        <ComboBoxItem x:Uid="Activity_GroupByCommand" />
+                        <ComboBoxItem x:Uid="Activity_GroupByProgram" />
+                        <ComboBoxItem x:Uid="Activity_GroupByEvent" />
+                        <ComboBoxItem x:Uid="Activity_GroupByDay" />
+                    </ComboBox>
+                </local:SettingsCard>
+
+                <local:SettingsCard x:Name="ActivityEventFilter"
+                                    x:Uid="Activity_EventFilter">
+                    <ComboBox AutomationProperties.AccessibilityView="Content"
+                              SelectedIndex="{x:Bind ViewModel.KindChoiceIndex, Mode=TwoWay}"
+                              Style="{StaticResource ComboBoxSettingStyle}">
+                        <ComboBoxItem x:Uid="Activity_EventFilterAll" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterProfileLaunch" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterHandoff" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterHelper" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterProbe" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterShellVerb" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterElevate" />
+                    </ComboBox>
+                </local:SettingsCard>
+
+                <!--
+                    Programs and days are whatever the log holds, so these two
+                    lists are built from it rather than written out here. Each
+                    entry carries how many events it stands for, which makes the
+                    dropdown itself the answer to "what has this terminal been
+                    running".
+                -->
+                <local:SettingsCard x:Name="ActivityProgramFilter"
+                                    x:Uid="Activity_ProgramFilter">
+                    <ComboBox AutomationProperties.AccessibilityView="Content"
+                              ItemsSource="{x:Bind ViewModel.ProgramChoices, Mode=OneWay}"
+                              SelectedIndex="{x:Bind ViewModel.ProgramChoiceIndex, Mode=TwoWay}"
+                              Style="{StaticResource ComboBoxSettingStyle}" />
+                </local:SettingsCard>
+
+                <local:SettingsCard x:Name="ActivityDayFilter"
+                                    x:Uid="Activity_DayFilter">
+                    <ComboBox AutomationProperties.AccessibilityView="Content"
+                              ItemsSource="{x:Bind ViewModel.DayChoices, Mode=OneWay}"
+                              SelectedIndex="{x:Bind ViewModel.DayChoiceIndex, Mode=TwoWay}"
+                              Style="{StaticResource ComboBoxSettingStyle}" />
+                </local:SettingsCard>
+
+                <local:SettingsCard x:Name="ActivityShowCommandLines"
+                                    x:Uid="Activity_ShowCommandLines">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.ShowCommandLines, Mode=TwoWay}"
+                                  Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                </local:SettingsCard>
+
+                <local:SettingsCard x:Name="ActivityAbsoluteTime"
+                                    x:Uid="Activity_AbsoluteTime">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.UseAbsoluteTime, Mode=TwoWay}"
+                                  Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                </local:SettingsCard>
+            </local:SettingsExpander.Items>
+        </local:SettingsExpander>
 
         <TextBlock Margin="4,8,4,4"
                    FontSize="12"
@@ -177,7 +326,8 @@
             page already scrolls, and a list that scrolls inside a page that
             scrolls is both awkward to use and the shape that left the Shortcuts
             page blank. The view model caps what it hands over, so realizing
-            every row is bounded work.
+            every row is bounded work, and grouping is what lets a bounded number
+            of rows stand for an unbounded log.
         -->
         <Border Margin="0,4,0,0"
                 Padding="12,4,12,4"
@@ -191,9 +341,9 @@
                       ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="132" />
-                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="240" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="220" />
                     </Grid.ColumnDefinitions>
                     <TextBlock x:Uid="Activity_ColumnTime"
                                Grid.Column="0"
@@ -201,12 +351,13 @@
                     <TextBlock x:Uid="Activity_ColumnEvent"
                                Grid.Column="1"
                                Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock x:Uid="Activity_ColumnCommand"
+                    <TextBlock x:Uid="Activity_ColumnContext"
                                Grid.Column="2"
                                Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock x:Uid="Activity_ColumnContext"
+                    <TextBlock x:Uid="Activity_ColumnCommand"
                                Grid.Column="3"
-                               Style="{ThemeResource CaptionTextBlockStyle}" />
+                               Style="{ThemeResource CaptionTextBlockStyle}"
+                               Visibility="{x:Bind ViewModel.ShowCommandLines, Mode=OneWay}" />
                 </Grid>
                 <Border Height="1"
                         Background="{ThemeResource CardStrokeColorDefaultBrush}" />
