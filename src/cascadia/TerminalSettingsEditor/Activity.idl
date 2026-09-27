@@ -5,20 +5,27 @@
 
 namespace Microsoft.Terminal.Settings.Editor
 {
-    // One recorded event, as the page draws it. No constructor: the view model
-    // builds these, nothing activates one from outside, so it gets no factory.
+    // One row of the list, which is either one recorded event or a group of
+    // identical ones. No constructor: the view model builds these, nothing
+    // activates one from outside, so it gets no factory.
     [default_interface] runtimeclass ActivityEntryViewModel
     {
-        String Timestamp { get; };
-        String Kind { get; };
-        String Exe { get; };
+        String TimestampDisplay { get; };
+        String TimestampTooltip { get; };
+        String RangeText { get; };
+        String CountText { get; };
+        String EventLabel { get; };
+        String EventTooltip { get; };
         String ExeName { get; };
         String CommandLine { get; };
         String WorkingDirectory { get; };
         String ParentExe { get; };
-        String Reason { get; };
+        String HoverSummary { get; };
 
-        Boolean HasCommandLine { get; };
+        Boolean IsGroup { get; };
+        Boolean HasRange { get; };
+        Boolean ShowCommandLineInline { get; };
+        Boolean ShowCommandLineInTooltip { get; };
         Boolean HasWorkingDirectory { get; };
         Boolean HasParent { get; };
     }
@@ -33,8 +40,19 @@ namespace Microsoft.Terminal.Settings.Editor
         Windows.Foundation.Collections.IObservableVector<Microsoft.Terminal.Settings.Editor.ActivityEntryViewModel> Entries { get; };
 
         String Filter;
+        Int32 KindChoiceIndex;
+        Int32 GroupModeIndex;
+        Boolean UseAbsoluteTime;
+        Boolean ShowCommandLines;
+
+        Windows.Foundation.Collections.IObservableVector<String> ProgramChoices { get; };
+        Int32 ProgramChoiceIndex;
+        Windows.Foundation.Collections.IObservableVector<String> DayChoices { get; };
+        Int32 DayChoiceIndex;
+
         String StatusText { get; };
         String LogPath { get; };
+        Boolean HasLogPath { get; };
         Boolean HasEntries { get; };
 
         void Reload();

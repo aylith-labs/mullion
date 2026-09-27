@@ -898,12 +898,12 @@
     <comment>Header above the list of events read back from the activity log.</comment>
   </data>
   <data name="Activity_Filter.Header" xml:space="preserve">
-    <value>Filter</value>
-    <comment>Header for a text box that narrows the list of recorded events.</comment>
+    <value>Filter and group</value>
+    <comment>Header for the group of controls that narrow and summarize the list of recorded events.</comment>
   </data>
   <data name="Activity_Filter.Description" xml:space="preserve">
-    <value>Show only events whose program, command line, folder, reason or time contains this text.</value>
-    <comment>Additional description for the filter box. Presented near "Activity_Filter.Header".</comment>
+    <value>Type to show only events whose program, command line, folder, reason or time contains that text. The settings below narrow the list further, and can collapse repeated events into a single counted row.</value>
+    <comment>Additional description for the group of filtering and grouping controls. Presented near "Activity_Filter.Header".</comment>
   </data>
   <data name="Activity_FilterBox.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Filter recorded events</value>
@@ -912,6 +912,110 @@
   <data name="Activity_FilterBox.PlaceholderText" xml:space="preserve">
     <value>Filter activity...</value>
     <comment>Placeholder text in the box that narrows the list of recorded events.</comment>
+  </data>
+  <data name="Activity_EventFilter.Header" xml:space="preserve">
+    <value>Event type</value>
+    <comment>Header for the event-type filter.</comment>
+  </data>
+  <data name="Activity_EventFilter.Description" xml:space="preserve">
+    <value>Show only one kind of recorded event.</value>
+    <comment>Additional description for the event-type filter. Presented near "Activity_EventFilter.Header".</comment>
+  </data>
+  <data name="Activity_EventFilterAll.Content" xml:space="preserve">
+    <value>All events</value>
+    <comment>Event-type filter option that includes every recorded event.</comment>
+  </data>
+  <data name="Activity_EventFilterProfileLaunch.Content" xml:space="preserve">
+    <value>Profile launches</value>
+    <comment>Event-type filter option for programs started by a Terminal profile.</comment>
+  </data>
+  <data name="Activity_EventFilterHandoff.Content" xml:space="preserve">
+    <value>Console handoffs</value>
+    <comment>Event-type filter option for programs handed to Terminal by console delegation.</comment>
+  </data>
+  <data name="Activity_EventFilterHelper.Content" xml:space="preserve">
+    <value>Background helpers</value>
+    <comment>Event-type filter option for Terminal's own background helper processes.</comment>
+  </data>
+  <data name="Activity_EventFilterProbe.Content" xml:space="preserve">
+    <value>Probes</value>
+    <comment>Event-type filter option for short-lived programs Terminal runs to look something up.</comment>
+  </data>
+  <data name="Activity_EventFilterShellVerb.Content" xml:space="preserve">
+    <value>Explorer menu</value>
+    <comment>Event-type filter option for launches that came from Explorer's "Open in Windows Terminal" menu item.</comment>
+  </data>
+  <data name="Activity_EventFilterElevate.Content" xml:space="preserve">
+    <value>Elevation</value>
+    <comment>Event-type filter option for Terminal relaunching itself as administrator.</comment>
+  </data>
+  <data name="Activity_GroupBy.Header" xml:space="preserve">
+    <value>Group repeated events</value>
+    <comment>Header for a control that collapses several recorded events into one counted row.</comment>
+  </data>
+  <data name="Activity_GroupBy.Description" xml:space="preserve">
+    <value>Collapse events that share the chosen key into one row with a count and the time it was first seen. Most of a busy log is one command repeating, and grouping is what makes that visible at a glance.</value>
+    <comment>Additional description for the grouping control. Presented near "Activity_GroupBy.Header".</comment>
+  </data>
+  <data name="Activity_GroupByNone.Content" xml:space="preserve">
+    <value>Do not group</value>
+    <comment>Grouping option that lists every recorded event on its own row.</comment>
+  </data>
+  <data name="Activity_GroupByCommand.Content" xml:space="preserve">
+    <value>Identical commands</value>
+    <comment>Grouping option that collapses events recording the same program and command line.</comment>
+  </data>
+  <data name="Activity_GroupByProgram.Content" xml:space="preserve">
+    <value>Program</value>
+    <comment>Grouping option that collapses every event for one program into one row.</comment>
+  </data>
+  <data name="Activity_GroupByEvent.Content" xml:space="preserve">
+    <value>Event type</value>
+    <comment>Grouping option that collapses every event of one kind into one row.</comment>
+  </data>
+  <data name="Activity_GroupByDay.Content" xml:space="preserve">
+    <value>Day</value>
+    <comment>Grouping option that collapses every event recorded on one day into one row.</comment>
+  </data>
+  <data name="Activity_ProgramFilter.Header" xml:space="preserve">
+    <value>Program</value>
+    <comment>Header for a filter that shows only the events recorded for one program.</comment>
+  </data>
+  <data name="Activity_ProgramFilter.Description" xml:space="preserve">
+    <value>Only the programs the log actually holds are listed, each with how many events it accounts for.</value>
+    <comment>Additional description for the program filter. Presented near "Activity_ProgramFilter.Header".</comment>
+  </data>
+  <data name="Activity_DayFilter.Header" xml:space="preserve">
+    <value>Day</value>
+    <comment>Header for a filter that shows only the events recorded on one day.</comment>
+  </data>
+  <data name="Activity_DayFilter.Description" xml:space="preserve">
+    <value>Only the days the log actually covers are listed, newest first, each with how many events it holds.</value>
+    <comment>Additional description for the day filter. Presented near "Activity_DayFilter.Header".</comment>
+  </data>
+  <data name="Activity_Reveal.Content" xml:space="preserve">
+    <value>Show in Explorer</value>
+    <comment>Label on a button that opens File Explorer with the activity log file selected.</comment>
+  </data>
+  <data name="Activity_Reveal.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open the folder the log is written to, with the file selected. If nothing has been recorded yet, just the folder opens.</value>
+    <comment>Tooltip for a button that opens File Explorer with the activity log file selected.</comment>
+  </data>
+  <data name="Activity_AbsoluteTime.Header" xml:space="preserve">
+    <value>Show absolute time</value>
+    <comment>Header for the switch between relative and local absolute activity timestamps.</comment>
+  </data>
+  <data name="Activity_AbsoluteTime.Description" xml:space="preserve">
+    <value>Show each time in your local date and time format instead of as an age.</value>
+    <comment>Additional description for the absolute-time switch. Presented near "Activity_AbsoluteTime.Header".</comment>
+  </data>
+  <data name="Activity_ShowCommandLines.Header" xml:space="preserve">
+    <value>Show command lines</value>
+    <comment>Header for the switch that shows or hides the recorded command line on each row.</comment>
+  </data>
+  <data name="Activity_ShowCommandLines.Description" xml:space="preserve">
+    <value>Turn this off for short rows. The full command line is still there: hover a row to read it.</value>
+    <comment>Additional description for the switch that shows or hides command lines. Presented near "Activity_ShowCommandLines.Header".</comment>
   </data>
   <data name="Activity_Refresh.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Reload the activity log</value>
@@ -925,6 +1029,22 @@
     <value>Showing {0} of {1} recorded events, newest first.</value>
     <comment>Status line above the list of recorded events. {0} is how many are shown after filtering, {1} is how many were read.</comment>
   </data>
+  <data name="Activity_ColumnTime.Text" xml:space="preserve">
+    <value>Time</value>
+    <comment>Column heading for an activity event's time.</comment>
+  </data>
+  <data name="Activity_ColumnEvent.Text" xml:space="preserve">
+    <value>Event</value>
+    <comment>Column heading for the recorded program and event kind.</comment>
+  </data>
+  <data name="Activity_ColumnCommand.Text" xml:space="preserve">
+    <value>Command</value>
+    <comment>Column heading for a recorded command line.</comment>
+  </data>
+  <data name="Activity_ColumnContext.Text" xml:space="preserve">
+    <value>Context</value>
+    <comment>Column heading for a recorded working directory and parent process.</comment>
+  </data>
   <data name="Activity_Empty.Text" xml:space="preserve">
     <value>Nothing recorded yet. Events appear here as the terminal starts programs.</value>
     <comment>Status line shown when the activity log exists but is empty.</comment>
@@ -936,6 +1056,146 @@
   <data name="Activity_NoLocation.Text" xml:space="preserve">
     <value>The log location could not be determined.</value>
     <comment>Status line shown when the folder the activity log lives in cannot be found.</comment>
+  </data>
+  <data name="Activity_GroupCount.Text" xml:space="preserve">
+    <value>Showing {0} groups covering {1} of {2} recorded events, newest first.</value>
+    <comment>Status line above the list when events are grouped. {0} is how many groups are shown, {1} is how many events they account for, {2} is how many were read.</comment>
+  </data>
+  <data name="Activity_AllPrograms.Text" xml:space="preserve">
+    <value>All programs</value>
+    <comment>First option in the program filter, which includes every program in the log.</comment>
+  </data>
+  <data name="Activity_AnyDay.Text" xml:space="preserve">
+    <value>Any day</value>
+    <comment>First option in the day filter, which includes every day the log covers.</comment>
+  </data>
+  <data name="Activity_ChoiceWithCount.Text" xml:space="preserve">
+    <value>{0} ({1})</value>
+    <comment>One option in the program or day filter. {0} is the program name or the date, {1} is how many recorded events it accounts for.</comment>
+  </data>
+  <data name="Activity_Repeats.Text" xml:space="preserve">
+    <value>×{0}</value>
+    <comment>Badge on a grouped row saying how many events it stands for. {0} is the count. The leading character is a multiplication sign, as in "42 times".</comment>
+  </data>
+  <data name="Activity_FirstSeen.Text" xml:space="preserve">
+    <value>first {0}</value>
+    <comment>Second line of the time column on a grouped row, giving when the oldest event in the group was recorded. {0} is a time, either an age such as "3 hours ago" or a local date and time.</comment>
+  </data>
+  <data name="Activity_MixedEvents.Text" xml:space="preserve">
+    <value>several kinds</value>
+    <comment>Shown in place of an event kind on a grouped row whose members are not all the same kind of event.</comment>
+  </data>
+  <data name="Activity_MixedEventsTip.Text" xml:space="preserve">
+    <value>The events in this group were not all recorded for the same reason.</value>
+    <comment>Tooltip for a grouped row whose members are not all the same kind of event.</comment>
+  </data>
+  <data name="Activity_MixedPrograms.Text" xml:space="preserve">
+    <value>Several programs</value>
+    <comment>Shown in place of a program name on a grouped row whose members are not all the same program.</comment>
+  </data>
+  <data name="Activity_MixedCommands.Text" xml:space="preserve">
+    <value>Several different command lines</value>
+    <comment>Shown in place of a command line on a grouped row whose members do not all share one.</comment>
+  </data>
+  <data name="Activity_JustNow.Text" xml:space="preserve">
+    <value>just now</value>
+    <comment>Relative time for an event recorded less than a minute ago.</comment>
+  </data>
+  <data name="Activity_MinuteAgo.Text" xml:space="preserve">
+    <value>1 minute ago</value>
+    <comment>Relative time for an event recorded about one minute ago.</comment>
+  </data>
+  <data name="Activity_MinutesAgo.Text" xml:space="preserve">
+    <value>{0} minutes ago</value>
+    <comment>Relative time for an event recorded some minutes ago. {0} is a whole number of minutes, always two or more.</comment>
+  </data>
+  <data name="Activity_HourAgo.Text" xml:space="preserve">
+    <value>1 hour ago</value>
+    <comment>Relative time for an event recorded about one hour ago.</comment>
+  </data>
+  <data name="Activity_HoursAgo.Text" xml:space="preserve">
+    <value>{0} hours ago</value>
+    <comment>Relative time for an event recorded some hours ago. {0} is a whole number of hours, always two or more.</comment>
+  </data>
+  <data name="Activity_DayAgo.Text" xml:space="preserve">
+    <value>1 day ago</value>
+    <comment>Relative time for an event recorded about one day ago.</comment>
+  </data>
+  <data name="Activity_DaysAgo.Text" xml:space="preserve">
+    <value>{0} days ago</value>
+    <comment>Relative time for an event recorded some days ago. {0} is a whole number of days, always two or more.</comment>
+  </data>
+  <data name="Activity_KindProfileLaunch.Text" xml:space="preserve">
+    <value>profile launch</value>
+    <comment>Badge naming an event where Terminal started a program through one of its profiles.</comment>
+  </data>
+  <data name="Activity_KindProfileLaunchTip.Text" xml:space="preserve">
+    <value>Terminal started this command through one of its profiles, such as when opening a new tab, pane, or window.</value>
+    <comment>Tooltip explaining the "profile launch" event kind.</comment>
+  </data>
+  <data name="Activity_KindHandoff.Text" xml:space="preserve">
+    <value>console handoff</value>
+    <comment>Badge naming an event where Windows handed a console program to Terminal to host.</comment>
+  </data>
+  <data name="Activity_KindHandoffTip.Text" xml:space="preserve">
+    <value>Windows console delegation handed this console program to Terminal to host, instead of starting it in a separate legacy console window.</value>
+    <comment>Tooltip explaining the "console handoff" event kind.</comment>
+  </data>
+  <data name="Activity_KindHelper.Text" xml:space="preserve">
+    <value>background helper</value>
+    <comment>Badge naming an event where Terminal started one of its own background helper processes.</comment>
+  </data>
+  <data name="Activity_KindHelperTip.Text" xml:space="preserve">
+    <value>Terminal started one of its own background helpers, such as the one that installs a staged build or checks for a new one.</value>
+    <comment>Tooltip explaining the "background helper" event kind.</comment>
+  </data>
+  <data name="Activity_KindProbe.Text" xml:space="preserve">
+    <value>probe</value>
+    <comment>Badge naming an event where Terminal ran a short-lived program to look something up.</comment>
+  </data>
+  <data name="Activity_KindProbeTip.Text" xml:space="preserve">
+    <value>Terminal ran a short-lived program to look something up, such as listing your installed WSL distributions.</value>
+    <comment>Tooltip explaining the "probe" event kind.</comment>
+  </data>
+  <data name="Activity_KindShellVerb.Text" xml:space="preserve">
+    <value>Explorer menu</value>
+    <comment>Badge naming an event that came from Explorer's "Open in Windows Terminal" menu item.</comment>
+  </data>
+  <data name="Activity_KindShellVerbTip.Text" xml:space="preserve">
+    <value>This came from Explorer's "Open in Windows Terminal" menu item, which runs inside Explorer rather than in Terminal.</value>
+    <comment>Tooltip explaining the "Explorer menu" event kind.</comment>
+  </data>
+  <data name="Activity_KindElevate.Text" xml:space="preserve">
+    <value>elevation</value>
+    <comment>Badge naming an event where Terminal relaunched itself as administrator.</comment>
+  </data>
+  <data name="Activity_KindElevateTip.Text" xml:space="preserve">
+    <value>Terminal relaunched itself as administrator, which is how a profile that asks to run elevated is started.</value>
+    <comment>Tooltip explaining the "elevation" event kind.</comment>
+  </data>
+  <data name="Activity_KindUnknown.Text" xml:space="preserve">
+    <value>unknown event</value>
+    <comment>Badge shown for a recorded event that carries no kind at all.</comment>
+  </data>
+  <data name="Activity_KindUnknownTip.Text" xml:space="preserve">
+    <value>This build has no name for this kind of event. The log may have been written by a newer version of Terminal.</value>
+    <comment>Tooltip for a recorded event whose kind this build does not recognize.</comment>
+  </data>
+  <data name="Activity_HoverRange.Text" xml:space="preserve">
+    <value>{0} events, {1} to {2}</value>
+    <comment>First line of the hover popover on a grouped row. {0} is how many events the group holds, {1} is when the oldest was recorded and {2} the newest, both as a local date and time.</comment>
+  </data>
+  <data name="Activity_HoverFolder.Text" xml:space="preserve">
+    <value>Folder: {0}</value>
+    <comment>Line in the hover popover naming the folder a recorded program was started in. {0} is a path.</comment>
+  </data>
+  <data name="Activity_HoverParent.Text" xml:space="preserve">
+    <value>Started by: {0}</value>
+    <comment>Line in the hover popover naming the program that started the recorded one. {0} is a program name or path.</comment>
+  </data>
+  <data name="Activity_HoverReason.Text" xml:space="preserve">
+    <value>Reason: {0}</value>
+    <comment>Line in the hover popover giving what Terminal recorded about why this happened. {0} is a short phrase such as "split pane".</comment>
   </data>
   <data name="Globals_AlwaysOnTop.Description" xml:space="preserve">
     <value>Terminal will always be the topmost window on the desktop.</value>
