@@ -85,123 +85,146 @@
                 minimal - an icon you click to get a box back - and search should be a
                 box you can type in whatever the pane is doing.
 
-                Proportional columns, not a fixed width on the box: the breadcrumb gets
-                two thirds and the box one, capped by its own MaxWidth so it does not
-                sprawl on a wide window. On a very narrow one the box hits MinWidth and
-                the breadcrumb gives way, which is the right way round - the breadcrumb
-                trims to an ellipsis and says where you are, the box has to stay usable
-                to be worth having here at all.
+                Two nested grids, because the header has to line up with the column of
+                cards below it and that column is not the full width of the frame.
+                contentFrame pads 16 a side, and every page caps its stack at
+                StandardControlMaxWidth; XAML centres a Stretch element once a size
+                constraint bites, so the cards sit in a centred 1000px column. The outer
+                grid here repeats the 16 and the inner one repeats the cap, which makes
+                the inner grid's left and right edges exactly the cards' left and right
+                edges at every window width. Everything inside then only has to align
+                Left or Stretch.
+
+                Even columns, and the gutter is the breadcrumb's right margin rather
+                than ColumnSpacing, so the box is half the container's width on the nose
+                and its right edge lands on the cards' right edge. No MinWidth or
+                MaxWidth on the box: either one would win over the column at some window
+                size and break the alignment that is the point of all this.
+
+                The breadcrumb used to carry the 1000 cap itself, with a note that a
+                MaxWidth there makes the title drift as the window resizes
+                (microsoft/microsoft-ui-xaml#3842). It no longer has one: the cap is on
+                the grid around it and the breadcrumb only aligns Left, so there is
+                nothing for that bug to act on.
             -->
-            <Grid Padding="16,0"
-                  ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <Grid Padding="16,8,16,12">
+                <Grid MaxWidth="{StaticResource StandardControlMaxWidth}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <!--  Wrapping the BreadcrumbBar in a Grid to avoid the title to drift (and no longer being aligned with the content of the page) when resizing the window. It's weird, I know. I believe it has to do with https://github.com/microsoft/microsoft-ui-xaml/issues/3842 doing funky things when setting a MaxWidth  -->
-                <muxc:BreadcrumbBar x:Name="NavigationBreadcrumbBar"
-                                    MaxWidth="1000"
-                                    ItemClicked="BreadcrumbBar_ItemClicked"
-                                    ItemsSource="{x:Bind Breadcrumbs}">
-                    <muxc:BreadcrumbBar.ItemTemplate>
-                        <DataTemplate x:DataType="local:Breadcrumb">
-                            <TextBlock Text="{x:Bind Label}" />
-                        </DataTemplate>
-                    </muxc:BreadcrumbBar.ItemTemplate>
-                    <muxc:BreadcrumbBar.Resources>
-                        <ResourceDictionary>
-                            <x:Double x:Key="BreadcrumbBarItemThemeFontSize">20</x:Double>
-                            <Thickness x:Key="BreadcrumbBarChevronPadding">8,4,8,0</Thickness>
-                            <FontWeight x:Key="BreadcrumbBarItemFontWeight">SemiBold</FontWeight>
-                            <x:Double x:Key="BreadcrumbBarChevronFontSize">16</x:Double>
-                        </ResourceDictionary>
-                    </muxc:BreadcrumbBar.Resources>
-                </muxc:BreadcrumbBar>
+                    <muxc:BreadcrumbBar x:Name="NavigationBreadcrumbBar"
+                                        Margin="0,0,12,0"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        ItemClicked="BreadcrumbBar_ItemClicked"
+                                        ItemsSource="{x:Bind Breadcrumbs}">
+                        <muxc:BreadcrumbBar.ItemTemplate>
+                            <DataTemplate x:DataType="local:Breadcrumb">
+                                <TextBlock Text="{x:Bind Label}" />
+                            </DataTemplate>
+                        </muxc:BreadcrumbBar.ItemTemplate>
+                        <muxc:BreadcrumbBar.Resources>
+                            <ResourceDictionary>
+                                <x:Double x:Key="BreadcrumbBarItemThemeFontSize">20</x:Double>
+                                <Thickness x:Key="BreadcrumbBarChevronPadding">8,4,8,0</Thickness>
+                                <FontWeight x:Key="BreadcrumbBarItemFontWeight">SemiBold</FontWeight>
+                                <x:Double x:Key="BreadcrumbBarChevronFontSize">16</x:Double>
+                            </ResourceDictionary>
+                        </muxc:BreadcrumbBar.Resources>
+                    </muxc:BreadcrumbBar>
 
-                <!--
-                    TabIndex, because moving the box out of the pane moved it from the
-                    second tab stop to the last but one. NavigationView.Header lives in
-                    SplitView.Content (NavigationView.xaml: HeaderContent at 659, inside
-                    SplitView.Content from 633), while the items it used to sit above are
-                    in SplitView.Pane (475-631) - so tree order now walks the whole
-                    navigation list before reaching search, and the person most likely to
-                    want search is the one who opened Settings to search.
+                    <!--
+                        TabIndex, because moving the box out of the pane moved it from the
+                        second tab stop to the last but one. NavigationView.Header lives in
+                        SplitView.Content (NavigationView.xaml: HeaderContent at 659, inside
+                        SplitView.Content from 633), while the items it used to sit above are
+                        in SplitView.Pane (475-631) - so tree order now walks the whole
+                        navigation list before reaching search, and the person most likely to
+                        want search is the one who opened Settings to search.
 
-                    Two facts make one value enough, both from the platform's own source
-                    rather than from how it looks:
+                        Two facts make one value enough, both from the platform's own source
+                        rather than from how it looks:
 
-                    UIElement::TabIndex() returns XINT32_MAX when the property was never
-                    set (dxaml/xcp/core/inc/uielement.h) - so every other element here
-                    ties at MAXINT and falls back to tree order, and any lower value wins
-                    outright.
+                        UIElement::TabIndex() returns XINT32_MAX when the property was never
+                        set (dxaml/xcp/core/inc/uielement.h) - so every other element here
+                        ties at MAXINT and falls back to tree order, and any lower value wins
+                        outright.
 
-                    And TabIndex is compared across the whole subtree the traversal
-                    reaches, not merely among siblings: CFocusManager::
-                    GetNextTabStopInternal recurses through non-tab-stop children and
-                    compares every candidate with CompareTabIndex (dxaml/xcp/core/dll/
-                    focusmgr.cpp). Only TabNavigation Once and Cycle change that walk;
-                    the Local on MUX's MenuItemsScrollViewer does not wall its items off
-                    from a value set out here.
+                        And TabIndex is compared across the whole subtree the traversal
+                        reaches, not merely among siblings: CFocusManager::
+                        GetNextTabStopInternal recurses through non-tab-stop children and
+                        compares every candidate with CompareTabIndex (dxaml/xcp/core/dll/
+                        focusmgr.cpp). Only TabNavigation Once and Cycle change that walk;
+                        the Local on MUX's MenuItemsScrollViewer does not wall its items off
+                        from a value set out here.
 
-                    Consequence worth knowing: forward Tab from a MAXINT element never
-                    lands here, because the search is for the lowest index ABOVE the
-                    current one. The box is the first stop when focus enters, and the
-                    wrap point of the Cycle - not a station in the middle. That is what
-                    was wanted; the pane toggle becomes the second stop.
-                -->
-                <AutoSuggestBox x:Name="SettingsSearchBox"
-                                x:Uid="Nav_SearchBox"
-                                Grid.Column="1"
-                                MinWidth="140"
-                                MaxWidth="320"
-                                VerticalAlignment="Center"
-                                QueryIcon="Find"
-                                QuerySubmitted="SettingsSearchBox_QuerySubmitted"
-                                SuggestionChosen="SettingsSearchBox_SuggestionChosen"
-                                TabIndex="0"
-                                TextChanged="SettingsSearchBox_TextChanged">
-                    <AutoSuggestBox.ItemTemplate>
-                        <DataTemplate x:DataType="local:FilteredSearchResult">
-                            <Grid HorizontalAlignment="Stretch"
-                                  ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
+                        Consequence worth knowing: forward Tab from a MAXINT element never
+                        lands here, because the search is for the lowest index ABOVE the
+                        current one. The box is the first stop when focus enters, and the
+                        wrap point of the Cycle - not a station in the middle. That is what
+                        was wanted; the pane toggle becomes the second stop.
 
-                                <ContentPresenter Grid.Column="0"
-                                                  HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-                                                  Content="{x:Bind Icon}" />
-                                <StackPanel Grid.Column="1"
-                                            VerticalAlignment="Center">
-                                    <TextBlock FontSize="{ThemeResource BodyTextBlockFontSize}"
-                                               Foreground="{ThemeResource TextFillColorPrimary}"
-                                               Text="{x:Bind Label}"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock FontSize="{ThemeResource CaptionTextBlockFontSize}"
-                                               Foreground="{ThemeResource TextFillColorSecondary}"
-                                               Text="{x:Bind SecondaryLabel}"
-                                               TextTrimming="CharacterEllipsis"
-                                               Visibility="{x:Bind mtu:Converters.StringNotEmptyToVisibility(SecondaryLabel)}" />
-                                </StackPanel>
+                        GotFocus and Tapped both open the recently chosen results when the
+                        box is empty. GotFocus is the reliable one; Tapped covers a click on
+                        a box that already had focus, which raises no focus change. Both
+                        funnel into one handler that does nothing unless the box is empty.
+                    -->
+                    <AutoSuggestBox x:Name="SettingsSearchBox"
+                                    x:Uid="Nav_SearchBox"
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"
+                                    GotFocus="SettingsSearchBox_GotFocus"
+                                    QueryIcon="Find"
+                                    QuerySubmitted="SettingsSearchBox_QuerySubmitted"
+                                    SuggestionChosen="SettingsSearchBox_SuggestionChosen"
+                                    TabIndex="0"
+                                    Tapped="SettingsSearchBox_Tapped"
+                                    TextChanged="SettingsSearchBox_TextChanged">
+                        <AutoSuggestBox.ItemTemplate>
+                            <DataTemplate x:DataType="local:FilteredSearchResult">
+                                <Grid HorizontalAlignment="Stretch"
+                                      ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                                <ToolTipService.ToolTip>
-                                    <StackPanel>
-                                        <TextBlock FontSize="{ThemeResource CaptionTextBlockFontSize}"
+                                    <ContentPresenter Grid.Column="0"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Content="{x:Bind Icon}" />
+                                    <StackPanel Grid.Column="1"
+                                                VerticalAlignment="Center">
+                                        <TextBlock FontSize="{ThemeResource BodyTextBlockFontSize}"
                                                    Foreground="{ThemeResource TextFillColorPrimary}"
-                                                   Text="{x:Bind Label}" />
+                                                   Text="{x:Bind Label}"
+                                                   TextTrimming="CharacterEllipsis" />
                                         <TextBlock FontSize="{ThemeResource CaptionTextBlockFontSize}"
                                                    Foreground="{ThemeResource TextFillColorSecondary}"
                                                    Text="{x:Bind SecondaryLabel}"
+                                                   TextTrimming="CharacterEllipsis"
                                                    Visibility="{x:Bind mtu:Converters.StringNotEmptyToVisibility(SecondaryLabel)}" />
                                     </StackPanel>
-                                </ToolTipService.ToolTip>
-                            </Grid>
-                        </DataTemplate>
-                    </AutoSuggestBox.ItemTemplate>
-                </AutoSuggestBox>
+
+                                    <ToolTipService.ToolTip>
+                                        <StackPanel>
+                                            <TextBlock FontSize="{ThemeResource CaptionTextBlockFontSize}"
+                                                       Foreground="{ThemeResource TextFillColorPrimary}"
+                                                       Text="{x:Bind Label}" />
+                                            <TextBlock FontSize="{ThemeResource CaptionTextBlockFontSize}"
+                                                       Foreground="{ThemeResource TextFillColorSecondary}"
+                                                       Text="{x:Bind SecondaryLabel}"
+                                                       Visibility="{x:Bind mtu:Converters.StringNotEmptyToVisibility(SecondaryLabel)}" />
+                                        </StackPanel>
+                                    </ToolTipService.ToolTip>
+                                </Grid>
+                            </DataTemplate>
+                        </AutoSuggestBox.ItemTemplate>
+                    </AutoSuggestBox>
+                </Grid>
             </Grid>
         </muxc:NavigationView.Header>
 

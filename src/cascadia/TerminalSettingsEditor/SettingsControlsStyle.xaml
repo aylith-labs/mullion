@@ -262,6 +262,28 @@
                                                   Content="{TemplateBinding Header}"
                                                   HighContrastAdjustment="None"
                                                   TextWrapping="Wrap" />
+                                <!--
+                                    A trait the row carries: a fact about the thing the row
+                                    names rather than a sentence about it, like "Built in".
+                                    A tag so it cannot be read as the row's description, and
+                                    so the description slot stays free for actual prose. Set
+                                    per row in markup; the text is template bound and only
+                                    the visibility comes from
+                                    SettingsCard.cpp::_UpdateTrait.
+                                -->
+                                <Border x:Name="PART_Trait"
+                                        Padding="6,1"
+                                        VerticalAlignment="Center"
+                                        Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="9"
+                                        Visibility="Collapsed">
+                                    <TextBlock x:Name="PART_TraitText"
+                                               FontSize="11"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               Text="{TemplateBinding Trait}" />
+                                </Border>
                                 <TextBlock x:Name="PART_AylithImprint"
                                            VerticalAlignment="Center"
                                            AutomationProperties.AccessibilityView="Raw"
@@ -286,23 +308,37 @@
                                            Text="&#x25C7;"
                                            Visibility="Collapsed" />
                                 <!--
-                                    The row's description, one hover away. A Border
-                                    rather than the bare FontIcon so the hover target
-                                    is bigger than the glyph, and Raw to automation
-                                    because the description is already on the card as
-                                    AutomationProperties.FullDescription - a screen
+                                    The row's description, one hover away. Raw to
+                                    automation because the description is already on the
+                                    card as AutomationProperties.FullDescription; a screen
                                     reader announcing it twice would be worse than not
                                     reaching the popover at all. Visibility and the
                                     popover's content are set from
                                     SettingsCard.cpp::_UpdateDescriptionHelp.
+
+                                    A filled, stroked circle rather than a bare glyph, for
+                                    two reasons. It reads as a thing you can point at
+                                    instead of as punctuation that wandered in after the
+                                    title. And a Border with no Background is not
+                                    hit testable in XAML, so the pointer fell straight
+                                    through the old one and the ToolTip attached to it
+                                    could never open: the brush below is load bearing, not
+                                    decoration. Sized rather than padded so every row's
+                                    badge is the same circle whatever the glyph metrics
+                                    are.
                                 -->
                                 <Border x:Name="PART_DescriptionHelp"
-                                        Padding="2"
+                                        Width="16"
+                                        Height="16"
                                         VerticalAlignment="Center"
                                         AutomationProperties.AccessibilityView="Raw"
+                                        Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
                                         Visibility="Collapsed">
                                     <FontIcon FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                              FontSize="12"
+                                              FontSize="10"
                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                               Glyph="&#xE897;" />
                                 </Border>

@@ -663,6 +663,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return icon.empty() ? hstring{ DefaultIntegrationGlyph } : icon;
     }
 
+    hstring IntegrationViewModel::Trait() const
+    {
+        return IsBuiltIn() ? RS_(L"Integrations_BuiltInTrait") : hstring{};
+    }
+
+    hstring IntegrationViewModel::SourceDescription() const
+    {
+        return IsBuiltIn() ? hstring{} : Source();
+    }
+
     hstring IntegrationViewModel::AccessibleName() const
     {
         const auto source = Source();

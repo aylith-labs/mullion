@@ -4014,6 +4014,10 @@
     <value>Not set</value>
     <comment>Shown next to a credential that has not been saved yet.</comment>
   </data>
+  <data name="Integrations_BuiltInTrait" xml:space="preserve">
+    <value>Built in</value>
+    <comment>A short tag drawn beside an integration's name, marking it as one that ships with the Terminal rather than one loaded from a file.</comment>
+  </data>
   <data name="Integrations_FieldsHeader.Text" xml:space="preserve">
     <value>Show in tooltip</value>
     <comment>Header for the group of check boxes choosing which of an integration's fields appear on the link tooltip.</comment>

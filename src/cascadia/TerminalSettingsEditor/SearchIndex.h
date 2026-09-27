@@ -99,6 +99,23 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         SearchIndex& operator=(SearchIndex&&) = delete;
 
         void Reset();
+
+        // Rebuilds results for entries that were chosen earlier, in the order given, so
+        // the search box can offer them again. Entries the current index no longer has
+        // are dropped rather than reported, which is also how a setting that this build
+        // removed leaves the history.
+        //
+        // Build-time entries only. A runtime object result (a particular profile, color
+        // scheme or action) carries a live view model as its navigation argument, and no
+        // stored string brings one of those back, so those are never recorded in the
+        // first place. See MainPage::_RecordSearchHistory.
+        Windows::Foundation::Collections::IObservableVector<Windows::Foundation::IInspectable> Recall(const std::vector<winrt::hstring>& resourceNames) const;
+
+        // The key to remember a chosen result by, or an empty string when this result is
+        // not one Recall could rebuild. The caller stores whatever comes back and does
+        // not have to know which of the several indices the entry came out of.
+        winrt::hstring RecallKey(const LocalizedIndexEntry& entry) const;
+
         Windows::Foundation::IAsyncOperation<Windows::Foundation::Collections::IObservableVector<Windows::Foundation::IInspectable>> SearchAsync(const winrt::hstring& query,
                                                                                                                                                  const Windows::Foundation::Collections::IVectorView<Editor::ProfileViewModel> profileVMs,
                                                                                                                                                  const Windows::Foundation::Collections::IVectorView<Editor::FolderEntryViewModel> ntmFolderVMs,

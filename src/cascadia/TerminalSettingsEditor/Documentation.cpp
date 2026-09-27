@@ -271,7 +271,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                     return;
                 }
                 link.NavigateUri(nullptr);
-                WUX::Controls::ToolTipService::SetToolTip(link, box_value(topic));
+                // No ToolTipService::SetToolTip here, and that is load-bearing. This
+                // walk runs before the RichTextBlock is appended to the page, and a
+                // Hyperlink off the live tree has no owner for XAML to register the
+                // tooltip with: CHyperlink::UnregisterToolTip dereferenced null
+                // (read at 0x2a8) and took the whole Terminal down the moment any
+                // topic containing a link to another topic was opened. Captured
+                // under cdb, not inferred. The link text already names the topic.
                 link.Click([weakThis, topic](auto&&, auto&&) {
                     if (const auto self{ weakThis.get() })
                     {

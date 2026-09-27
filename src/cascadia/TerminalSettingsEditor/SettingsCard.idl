@@ -20,6 +20,12 @@ namespace Microsoft.Terminal.Settings.Editor
         Object Description;
         static Windows.UI.Xaml.DependencyProperty DescriptionProperty { get; };
 
+        // A short tag drawn beside the header: a trait of the thing the row names,
+        // like "Built in". Deliberately not part of Description, which is prose
+        // about the setting and drives the help badge; a trait is neither.
+        String Trait;
+        static Windows.UI.Xaml.DependencyProperty TraitProperty { get; };
+
         Windows.UI.Xaml.Controls.IconElement HeaderIcon;
         static Windows.UI.Xaml.DependencyProperty HeaderIconProperty { get; };
 
