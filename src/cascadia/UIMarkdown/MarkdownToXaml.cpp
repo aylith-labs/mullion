@@ -25,8 +25,38 @@ static constexpr std::wstring_view bullets[]{
 };
 static constexpr int WidthOfBulletPoint{ 9 };
 static constexpr int IndentWidth{ 3 * WidthOfBulletPoint };
-static constexpr int H1FontSize{ 36 };
-static constexpr int HeaderMinFontSize{ 16 };
+
+// The vertical rhythm, taken from GitHub's own markdown stylesheet and kept in
+// em so it scales with the body text. The model is GitHub's too: every block
+// owns only the space BELOW it, and nothing owns space above except a heading,
+// which asks for a little more than the block before it already left. That
+// matters here more than in HTML, because XAML block margins add where CSS
+// margins collapse - two blocks each claiming a gap on the side they share
+// produce double the space, which is how this renderer used to get both too
+// little air under a heading and odd extra air above one.
+namespace Rhythm
+{
+    // Line height of body text. The font's own default is roughly 1.2 and
+    // reads as a wall; 1.5 is GitHub's.
+    static constexpr double BodyLineHeight{ 1.5 };
+    // Headings are set tighter than body text, as they are on GitHub.
+    static constexpr double HeadingLineHeight{ 1.25 };
+    // Space under a paragraph, table, code block, callout, or a whole list.
+    static constexpr double BlockGap{ 1.0 };
+    // Space between the items of a tight list (".25em" on GitHub). A loose
+    // list - one with blank lines between items - gets a full BlockGap.
+    static constexpr double TightItemGap{ 0.25 };
+    // Total space above a heading. The block before it already left BlockGap,
+    // so the heading asks only for the difference.
+    static constexpr double HeadingTopGap{ 1.5 };
+    // Space between an h1/h2 and the rule GitHub draws under it.
+    static constexpr double HeadingRulePadding{ 0.3 };
+    // A thematic break (---) sits in 1.5em of space on both sides.
+    static constexpr double ThematicBreakGap{ 1.5 };
+}
+
+// Heading sizes relative to body text, h1 through h6 - GitHub's scale.
+static constexpr double HeadingScale[]{ 2.0, 1.5, 1.25, 1.0, 0.875, 0.85 };
 
 static constexpr std::wstring_view CodeFontFamily{ L"Cascadia Mono, Consolas" };
 
@@ -88,10 +118,15 @@ WUX::Controls::RichTextBlock MarkdownToXaml::Convert(std::string_view markdownTe
                     body.TextWrapping(WUX::TextWrapping::Wrap);
                     if (!row) body.FontWeight(winrt::Windows::UI::Text::FontWeights::SemiBold());
                     WUX::Controls::Border cell;
-                    cell.Padding(WUX::Thickness{ 8, 7, 8, 7 });
+                    // GitHub's cell padding, 6px by 13px: roomier across than
+                    // down, because columns need separating more than rows do.
+                    cell.Padding(WUX::Thickness{ 13, 6, 13, 6 });
                     cell.BorderThickness(WUX::Thickness{ 0.5, 0.5, 0.5, 0.5 });
                     cell.BorderBrush(WUX::Media::SolidColorBrush{ winrt::Windows::UI::Color{ 70, 128, 128, 128 } });
+                    // Header row shaded, then every second body row striped,
+                    // so an eye can follow a wide row across without a ruler.
                     if (!row) cell.Background(WUX::Media::SolidColorBrush{ winrt::Windows::UI::Color{ 35, 128, 128, 128 } });
+                    else if (row % 2 == 0) cell.Background(WUX::Media::SolidColorBrush{ winrt::Windows::UI::Color{ 14, 128, 128, 128 } });
                     cell.Child(body);
                     WUX::Controls::Grid::SetRow(cell, static_cast<int32_t>(row));
                     WUX::Controls::Grid::SetColumn(cell, static_cast<int32_t>(col));
@@ -139,7 +174,85 @@ WUX::Controls::RichTextBlock MarkdownToXaml::Convert(std::string_view markdownTe
         }
     }
 
+    data._TrimOuterMargins();
     return data._root;
+}
+
+// The gap under an ordinary paragraph, which depends on where it is: inside a
+// tight list the items sit close, everywhere else a paragraph gets a full gap.
+double MarkdownToXaml::_paragraphBottomGap() const noexcept
+{
+    if (!_lists.empty() && _lists.back().tight)
+    {
+        return Rhythm::TightItemGap * _baseFontSize;
+    }
+    return Rhythm::BlockGap * _baseFontSize;
+}
+
+void MarkdownToXaml::_SetLastBlockBottom(double bottom)
+{
+    const auto blocks = _root.Blocks();
+    if (blocks.Size() == 0)
+    {
+        return;
+    }
+    const auto last = blocks.GetAt(blocks.Size() - 1);
+    auto margin = last.Margin();
+    margin.Bottom = bottom;
+    last.Margin(margin);
+}
+
+// Space belongs between blocks, not around the whole document. Whatever hosts
+// this - a documentation page, a pane, a table cell, a hover card - already has
+// its own padding, and a heading's top gap or a paragraph's bottom gap at the
+// very edge would double it. Table cells and callouts are rendered by a nested
+// Convert, so this is also what keeps a one-line cell one line tall.
+void MarkdownToXaml::_TrimOuterMargins()
+{
+    const auto blocks = _root.Blocks();
+    if (blocks.Size() == 0)
+    {
+        return;
+    }
+    const auto first = blocks.GetAt(0);
+    auto top = first.Margin();
+    top.Top = 0;
+    first.Margin(top);
+    _SetLastBlockBottom(0);
+}
+
+// A horizontal line across the text column: the rule under an h1/h2, and a
+// thematic break (---). A paragraph holding one thin Border, with its line
+// height pinned to the rule's thickness - otherwise the paragraph keeps the
+// body line height and a 1px rule arrives with 20px of empty line around it.
+void MarkdownToXaml::_AppendRule(double thickness, double topGap, double bottomGap)
+{
+    _EndParagraph();
+    WUX::Controls::Border rule;
+    rule.Height(thickness);
+    rule.Background(WUX::Media::SolidColorBrush{ winrt::Windows::UI::Color{ 60, 128, 128, 128 } });
+
+    WUX::Documents::InlineUIContainer container;
+    container.Child(rule);
+    auto paragraph = _CurrentParagraph();
+    paragraph.Inlines().Append(container);
+    paragraph.LineStackingStrategy(WUX::LineStackingStrategy::BlockLineHeight);
+    paragraph.LineHeight(thickness);
+    paragraph.Margin(WUX::ThicknessHelper::FromLengths(static_cast<double>(IndentWidth) * _indent, topGap, 0, bottomGap));
+
+    const auto resize = [root = winrt::make_weak(_root), child = winrt::make_weak(rule), indent = _indent] {
+        try
+        {
+            const auto owner = root.get();
+            const auto content = child.get();
+            if (owner && content && owner.ActualWidth() > 0)
+                content.Width(std::max(1.0, owner.ActualWidth() - IndentWidth * indent));
+        }
+        CATCH_LOG();
+    };
+    _root.SizeChanged([resize](auto&&, auto&&) { resize(); });
+    rule.Loaded([resize](auto&&, auto&&) { resize(); });
+    _EndParagraph();
 }
 
 void MarkdownToXaml::_AppendBlock(const WUX::FrameworkElement& element)
@@ -148,7 +261,11 @@ void MarkdownToXaml::_AppendBlock(const WUX::FrameworkElement& element)
     WUX::Documents::InlineUIContainer container;
     container.Child(element);
     _CurrentParagraph().Inlines().Append(container);
-    _CurrentParagraph().Margin(WUX::Thickness{ 0, 8, 0, 8 });
+    // Only a gap below, like every other block. The left margin keeps the
+    // list indent: overwriting it with zero, as this used to, pulled a code
+    // block inside a list item out to the page edge while the resize below
+    // still subtracted the indent from its width.
+    _CurrentParagraph().Margin(WUX::ThicknessHelper::FromLengths(static_cast<double>(IndentWidth) * _indent, 0, 0, Rhythm::BlockGap * _baseFontSize));
     // Inline controls otherwise measure to their intrinsic width and can escape
     // the pane. Reflow them with the owning rich-text block on every resize.
     const auto resize = [root = winrt::make_weak(_root), child = winrt::make_weak(element), indent = _indent] {
@@ -172,6 +289,10 @@ MarkdownToXaml::MarkdownToXaml(const winrt::hstring& baseUrl) :
     _root.ContextFlyout(winrt::Microsoft::Terminal::UI::TextMenuFlyout{});
     _root.IsTextSelectionEnabled(true);
     _root.TextWrapping(WUX::TextWrapping::WrapWholeWords);
+    if (const auto size = _root.FontSize(); size > 0)
+    {
+        _baseFontSize = size;
+    }
 }
 
 WUX::Documents::Paragraph MarkdownToXaml::_CurrentParagraph()
@@ -179,19 +300,23 @@ WUX::Documents::Paragraph MarkdownToXaml::_CurrentParagraph()
     if (_lastParagraph == nullptr)
     {
         _lastParagraph = WUX::Documents::Paragraph{};
-        if (_indent > 0)
+
+        // A list item's marker is written as part of the paragraph's text, but
+        // the item's text should still line up in a column. So a paragraph that
+        // carries a marker hangs its first line out by the marker's width.
+        // Only that one: a second paragraph in the same item has no marker and
+        // lines up with the first one's text rather than with its bullet.
+        if (_pendingMarkerWidth > 0)
         {
-            // If we're in a list, we will start this paragraph with a bullet
-            // point. That bullet point will be added as part of the actual text
-            // of the paragraph, but we want the real text of the paragraph all
-            // aligned. So we will _de-indent_ the first line, to give us space
-            // for the bullet.
-            if (_indent - _blockQuoteDepth > 0)
-            {
-                _lastParagraph.TextIndent(-WidthOfBulletPoint);
-            }
-            _lastParagraph.Margin(WUX::ThicknessHelper::FromLengths(static_cast<double>(IndentWidth) * _indent, 0, 0, 0));
+            _lastParagraph.TextIndent(-_pendingMarkerWidth);
+            _pendingMarkerWidth = 0;
         }
+
+        // MaxHeight stacking makes this a minimum, so a line holding something
+        // taller - a heading, an inline image - still grows to fit it.
+        _lastParagraph.LineStackingStrategy(WUX::LineStackingStrategy::MaxHeight);
+        _lastParagraph.LineHeight(Rhythm::BodyLineHeight * _baseFontSize);
+        _lastParagraph.Margin(WUX::ThicknessHelper::FromLengths(static_cast<double>(IndentWidth) * _indent, 0, 0, _paragraphBottomGap()));
         _root.Blocks().Append(_lastParagraph);
     }
     return _lastParagraph;
@@ -298,19 +423,29 @@ void MarkdownToXaml::_RenderNode(cmark_node* node, cmark_event_type ev_type)
 
     case CMARK_NODE_LIST:
     {
-        // when `node->as.list.list_type == CMARK_BULLET_LIST`, we're an unordered list.
-        // Otherwise, we're an ordered one (and we might not start at 0).
-        //
-        // However, we don't support numbered lists for now.
         if (entering)
         {
             _EndParagraph();
             _indent++;
+            ListState list;
+            list.ordered = cmark_node_get_list_type(node) == CMARK_ORDERED_LIST;
+            list.next = std::max(0, cmark_node_get_list_start(node));
+            list.tight = cmark_node_get_list_tight(node) != 0;
+            _lists.push_back(list);
         }
         else
         {
             _EndParagraph();
             _indent = std::max(0, _indent - 1);
+            if (!_lists.empty())
+            {
+                _lists.pop_back();
+            }
+            // The last item of a tight list left only an item-sized gap. The
+            // list as a whole is a block and owes the full gap to whatever
+            // follows it - unless it is nested, in which case what follows is
+            // the next item of the list around it.
+            _SetLastBlockBottom(_paragraphBottomGap());
         }
         break;
     }
@@ -320,7 +455,19 @@ void MarkdownToXaml::_RenderNode(cmark_node* node, cmark_event_type ev_type)
         if (entering)
         {
             _EndParagraph();
-            _NewRun().Text(gsl::at(bullets, std::clamp(_indent - _blockQuoteDepth - 1, 0, 2)));
+            if (!_lists.empty() && _lists.back().ordered)
+            {
+                // Numbered, as the source asked. The hanging indent grows with
+                // the number so "10." lines up as well as "9." does.
+                const auto number = _lists.back().next++;
+                _pendingMarkerWidth = number >= 10 ? 26.0 : 19.0;
+                _NewRun().Text(winrt::hstring{ fmt::format(FMT_COMPILE(L"{}. "), number) });
+            }
+            else
+            {
+                _pendingMarkerWidth = WidthOfBulletPoint;
+                _NewRun().Text(gsl::at(bullets, std::clamp(static_cast<int>(_lists.size()) - 1, 0, 2)));
+            }
         }
         break;
 
@@ -331,14 +478,25 @@ void MarkdownToXaml::_RenderNode(cmark_node* node, cmark_event_type ev_type)
         // At the start of a header, change the font size to match the new
         // level of header we're at. The text will come later, in a
         // CMARK_NODE_TEXT
+        const auto level = std::clamp(cmark_node_get_heading_level(node), 1, 6);
+        const auto size = HeadingScale[level - 1] * _baseFontSize;
         if (entering)
         {
-            // Insert a blank line, just to help break up the walls of text.
-            // This better reflects the way MD is rendered to HTML
-            _root.Blocks().Append(WUX::Documents::Paragraph{});
-
-            const auto level = cmark_node_get_heading_level(node);
-            _CurrentParagraph().FontSize(std::max(HeaderMinFontSize, H1FontSize - level * 6));
+            auto heading = _CurrentParagraph();
+            heading.FontSize(size);
+            heading.FontWeight(winrt::Windows::UI::Text::FontWeights::SemiBold());
+            heading.LineHeight(Rhythm::HeadingLineHeight * size);
+            // Above: whatever the previous block did not already leave. Below:
+            // the full gap, except an h1/h2, whose gap comes after its rule.
+            const auto above = (Rhythm::HeadingTopGap - Rhythm::BlockGap) * _baseFontSize;
+            const auto below = level <= 2 ? Rhythm::HeadingRulePadding * size : Rhythm::BlockGap * _baseFontSize;
+            heading.Margin(WUX::ThicknessHelper::FromLengths(static_cast<double>(IndentWidth) * _indent, above, 0, below));
+        }
+        else if (level <= 2)
+        {
+            // GitHub rules off the two top levels, which is most of what makes
+            // a long document scannable: the eye finds sections by the lines.
+            _AppendRule(1, 0, Rhythm::BlockGap * _baseFontSize);
         }
         break;
     }
@@ -368,32 +526,32 @@ void MarkdownToXaml::_RenderNode(cmark_node* node, cmark_event_type ev_type)
         break;
 
     case CMARK_NODE_THEMATIC_BREAK:
-        // A <hr>. Not currently supported.
+        if (entering)
+        {
+            // The previous block already left a BlockGap; top it up to the
+            // break's own gap, and leave the same below.
+            _AppendRule(2,
+                        (Rhythm::ThematicBreakGap - Rhythm::BlockGap) * _baseFontSize,
+                        Rhythm::ThematicBreakGap * _baseFontSize);
+        }
         break;
 
     case CMARK_NODE_PARAGRAPH:
     {
-        bool tight;
+        // A paragraph normally starts a block of its own. The exception is the
+        // first paragraph of a list item, which has to continue the paragraph
+        // the item already opened with its marker - ending it would leave the
+        // bullet alone on a line with the text below it, which is what a
+        // "loose" list (blank lines between items) used to render as.
         cmark_node* parent = cmark_node_parent(node);
-        cmark_node* grandparent = cmark_node_parent(parent);
-
-        if (grandparent != nullptr && cmark_node_get_type(grandparent))
-        {
-            tight = cmark_node_get_list_tight(grandparent);
-        }
-        else
-        {
-            tight = false;
-        }
-
-        // If we aren't in a list, then end the current paragraph and
-        // start a new one.
-        if (!tight)
+        const bool firstInItem = entering &&
+                                 parent != nullptr &&
+                                 cmark_node_get_type(parent) == CMARK_NODE_ITEM &&
+                                 cmark_node_previous(node) == nullptr;
+        if (!firstInItem)
         {
             _EndParagraph();
         }
-
-        // Start a new paragraph if we don't have one
         break;
     }
     case CMARK_NODE_TEXT:
