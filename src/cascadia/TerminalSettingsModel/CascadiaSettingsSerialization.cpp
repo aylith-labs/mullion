@@ -1715,6 +1715,212 @@ winrt::hstring CascadiaSettings::SerializedFingerprint() const
     return {};
 }
 
+winrt::hstring CascadiaSettings::SerializedSettings() const
+{
+    try
+    {
+        return winrt::hstring{ til::u8u16(_serializeSettings(ToJson())) };
+    }
+    CATCH_LOG();
+    return {};
+}
+
+namespace
+{
+    // What a reader can recognise an array entry by: a profile's or scheme's name
+    // before its guid, an action's id, a binding's keys.
+    std::optional<std::string> _entryLabel(const Json::Value& entry)
+    {
+        if (!entry.isObject())
+        {
+            return std::nullopt;
+        }
+        for (const auto key : { "name", "id", "keys", "guid" })
+        {
+            if (const auto& value = entry[key]; value.isString() && !value.asString().empty())
+            {
+                return value.asString();
+            }
+        }
+        return std::nullopt;
+    }
+
+    // The entries of an array keyed by their labels, in order, or nothing when an
+    // entry has no label or two share one -- then the array is compared whole.
+    std::optional<std::vector<std::pair<std::string, const Json::Value*>>> _labelledEntries(const Json::Value& array)
+    {
+        std::vector<std::pair<std::string, const Json::Value*>> entries;
+        std::set<std::string> seen;
+        for (const auto& entry : array)
+        {
+            auto label = _entryLabel(entry);
+            if (!label || !seen.insert(*label).second)
+            {
+                return std::nullopt;
+            }
+            entries.emplace_back(std::move(*label), &entry);
+        }
+        return entries;
+    }
+
+    std::string _shortValue(const Json::Value& value)
+    {
+        if (value.isNull())
+        {
+            return "nothing";
+        }
+        if (value.isObject())
+        {
+            return "{…}";
+        }
+        if (value.isArray())
+        {
+            return fmt::format(FMT_COMPILE("[{} items]"), value.size());
+        }
+        Json::StreamWriterBuilder compact;
+        compact.settings_["indentation"] = "";
+        auto text = value.isString() ? fmt::format(FMT_COMPILE("\"{}\""), value.asString()) : Json::writeString(compact, value);
+        while (!text.empty() && (text.back() == '\n' || text.back() == '\r'))
+        {
+            text.pop_back();
+        }
+        if (text.size() > 48)
+        {
+            text = text.substr(0, 47) + "…\"";
+        }
+        return text;
+    }
+
+    struct ChangeWriter
+    {
+        std::vector<std::string> lines;
+        size_t limit;
+        bool truncated = false;
+
+        void add(std::string line)
+        {
+            if (lines.size() >= limit)
+            {
+                truncated = true;
+                return;
+            }
+            lines.emplace_back(std::move(line));
+        }
+
+        static std::string join(const std::string& path, const std::string& segment)
+        {
+            return path.empty() ? segment : path + " › " + segment;
+        }
+
+        void diff(const Json::Value& before, const Json::Value& after, const std::string& path)
+        {
+            if (truncated)
+            {
+                return;
+            }
+            if (before.isObject() && after.isObject())
+            {
+                std::set<std::string> keys;
+                for (const auto& key : before.getMemberNames())
+                {
+                    keys.insert(key);
+                }
+                for (const auto& key : after.getMemberNames())
+                {
+                    keys.insert(key);
+                }
+                for (const auto& key : keys)
+                {
+                    // "profiles › list › PowerShell" says nothing "list" adds.
+                    const auto childPath = key == "list" ? path : join(path, key);
+                    if (!before.isMember(key))
+                    {
+                        add(fmt::format(FMT_COMPILE("{}: added {}"), childPath, _shortValue(after[key])));
+                    }
+                    else if (!after.isMember(key))
+                    {
+                        add(fmt::format(FMT_COMPILE("{}: removed"), childPath));
+                    }
+                    else
+                    {
+                        diff(before[key], after[key], childPath);
+                    }
+                }
+                return;
+            }
+            if (before.isArray() && after.isArray() && before != after)
+            {
+                const auto oldEntries = _labelledEntries(before);
+                const auto newEntries = _labelledEntries(after);
+                if (oldEntries && newEntries)
+                {
+                    std::map<std::string, const Json::Value*> oldByLabel{ oldEntries->begin(), oldEntries->end() };
+                    std::set<std::string> newLabels;
+                    for (const auto& [label, entry] : *newEntries)
+                    {
+                        newLabels.insert(label);
+                        if (const auto it = oldByLabel.find(label); it == oldByLabel.end())
+                        {
+                            add(fmt::format(FMT_COMPILE("{}: added"), join(path, label)));
+                        }
+                        else
+                        {
+                            diff(*it->second, *entry, join(path, label));
+                        }
+                    }
+                    for (const auto& [label, entry] : *oldEntries)
+                    {
+                        if (!newLabels.contains(label))
+                        {
+                            add(fmt::format(FMT_COMPILE("{}: removed"), join(path, label)));
+                        }
+                    }
+                    return;
+                }
+            }
+            if (before != after)
+            {
+                add(fmt::format(FMT_COMPILE("{}: {} → {}"), path.empty() ? std::string{ "settings" } : path, _shortValue(before), _shortValue(after)));
+            }
+        }
+    };
+}
+
+// Method Description:
+// - Mullion: the differences between `baseline`, an earlier SerializedSettings(),
+//   and these settings, one readable line each. The editor shows them on Save and
+//   Discard so a reader can see what either would do before pressing it.
+// - Compares the serialized documents rather than the objects for the same reason
+//   SerializedFingerprint does: that is exactly what a save changes, and nothing
+//   per-setting has to be kept in step with MTSMSettings.h.
+winrt::Windows::Foundation::Collections::IVector<winrt::hstring> CascadiaSettings::DescribeChangesFrom(const winrt::hstring& baseline, uint32_t limit) const
+{
+    auto result = winrt::single_threaded_vector<winrt::hstring>();
+    try
+    {
+        const auto baselineUtf8 = til::u16u8(baseline);
+        Json::Value before;
+        std::string errors;
+        const std::unique_ptr<Json::CharReader> reader{ Json::CharReaderBuilder{}.newCharReader() };
+        if (!reader->parse(baselineUtf8.data(), baselineUtf8.data() + baselineUtf8.size(), &before, &errors))
+        {
+            return result;
+        }
+        ChangeWriter writer{ .limit = std::max<size_t>(limit, 1) };
+        writer.diff(before, ToJson(), {});
+        for (const auto& line : writer.lines)
+        {
+            result.Append(winrt::hstring{ til::u8u16(line) });
+        }
+        if (writer.truncated)
+        {
+            result.Append(L"…");
+        }
+    }
+    CATCH_LOG();
+    return result;
+}
+
 void CascadiaSettings::_writeSettingsToDisk(std::string_view contents)
 {
     FILETIME lastWriteTime{};

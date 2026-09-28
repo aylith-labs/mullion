@@ -50,6 +50,14 @@ namespace Microsoft.Terminal.Settings.Model
         // the same JSON.
         String SerializedFingerprint { get; };
 
+        // Mullion: what a save would write, as text, so the editor can keep the
+        // version it opened with and say what has changed since.
+        String SerializedSettings { get; };
+        // One line per difference between `baseline` (an earlier SerializedSettings)
+        // and these settings, as "profiles › PowerShell › fontSize: 10 → 12". At
+        // most `limit` lines; a last line of "…" means there were more.
+        Windows.Foundation.Collections.IVector<String> DescribeChangesFrom(String baseline, UInt32 limit);
+
         GlobalAppSettings GlobalSettings { get; };
 
         WindowSettings WindowSettingsDefaults();

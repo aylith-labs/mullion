@@ -167,6 +167,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // narrower question we actually want answered: has anything moved since we last
         // agreed with the file.
         winrt::hstring _cleanFingerprint;
+        // The clean clone's serialization itself, kept so Save and Discard can say
+        // what they would change (CascadiaSettings::DescribeChangesFrom), and the
+        // fingerprint that list was last built for, so the one-second sweep does not
+        // rebuild it when nothing moved.
+        winrt::hstring _cleanSerialized;
+        winrt::hstring _describedFingerprint;
+        void _DescribeUnsavedChanges(const winrt::hstring& fingerprint);
         bool _unsavedChanges{ false };
         bool _autoSave{ false };
         // Set while _ReadEditorChromePreferences is pushing stored values into the two

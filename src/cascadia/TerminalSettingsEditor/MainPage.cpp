@@ -1483,8 +1483,49 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     void MainPage::_RecordCleanState()
     {
         _cleanFingerprint = _settingsClone.SerializedFingerprint();
+        _cleanSerialized = _settingsClone.SerializedSettings();
         _unsavedChanges = false;
         _ApplySaveButtonState();
+        _DescribeUnsavedChanges(_cleanFingerprint);
+    }
+
+    // Mullion: hovering Save or Discard lists what each would change, so neither is
+    // pressed blind. Clean, they go back to their ordinary tooltips.
+    void MainPage::_DescribeUnsavedChanges(const winrt::hstring& fingerprint)
+    {
+        // Keyed on the state too: a save turns the dirty fingerprint into the clean
+        // one without changing it, and the list must still go.
+        const auto key = winrt::hstring{ std::wstring{ fingerprint } + (_unsavedChanges ? L"*" : L"") };
+        if (key == _describedFingerprint)
+        {
+            return;
+        }
+        _describedFingerprint = key;
+
+        const auto saveTip = RS_(L"Settings_SaveSettingsButton/[using:Windows.UI.Xaml.Controls]ToolTipService/ToolTip");
+        const auto discardTip = RS_(L"Settings_ResetSettingsButton/[using:Windows.UI.Xaml.Controls]ToolTipService/ToolTip");
+        if (!_unsavedChanges || _cleanSerialized.empty())
+        {
+            WUX::Controls::ToolTipService::SetToolTip(SaveButton(), box_value(saveTip));
+            WUX::Controls::ToolTipService::SetToolTip(ResetButton(), box_value(discardTip));
+            return;
+        }
+
+        std::wstring list;
+        for (const auto& line : _settingsClone.DescribeChangesFrom(_cleanSerialized, 20))
+        {
+            list.append(L"\n• ").append(line);
+        }
+        if (list.empty())
+        {
+            // The fingerprint moved but the documents compare equal as JSON -- a
+            // formatting-only difference. Say nothing rather than list nothing.
+            WUX::Controls::ToolTipService::SetToolTip(SaveButton(), box_value(saveTip));
+            WUX::Controls::ToolTipService::SetToolTip(ResetButton(), box_value(discardTip));
+            return;
+        }
+        WUX::Controls::ToolTipService::SetToolTip(SaveButton(), box_value(winrt::hstring{ std::wstring{ saveTip } + list }));
+        WUX::Controls::ToolTipService::SetToolTip(ResetButton(), box_value(winrt::hstring{ std::wstring{ discardTip } + list }));
     }
 
     void MainPage::_ApplySaveButtonState()
@@ -1567,6 +1608,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         _unsavedChanges = dirty;
         _ApplySaveButtonState();
+        _DescribeUnsavedChanges(dirty ? fingerprint : _cleanFingerprint);
     }
 
     void MainPage::BreadcrumbBar_ItemClicked(const Microsoft::UI::Xaml::Controls::BreadcrumbBar& /*sender*/, const Microsoft::UI::Xaml::Controls::BreadcrumbBarItemClickedEventArgs& args)

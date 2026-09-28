@@ -61,6 +61,7 @@ namespace SettingsModelUnitTests
         TEST_METHOD(ProfileWithInvalidIcon);
 
         TEST_METHOD(ModifyProfileSettingAndRoundtrip);
+        TEST_METHOD(DescribeChangesFromBaseline);
         TEST_METHOD(ModifyGlobalSettingAndRoundtrip);
         TEST_METHOD(ModifyColorSchemeAndRoundtrip);
         TEST_METHOD(FixupUserSettingsDetectsChanges);
@@ -1338,6 +1339,39 @@ namespace SettingsModelUnitTests
         // not be reflected back in settings.json as null *or* as the commandline. The value should be exactly
         // what was written in the settings file.
         VERIFY_ARE_EQUAL(R"(c:\this_icon_had_better_not_exist.tiff)", newResult["profiles"]["list"][0]["icon"].asString());
+    }
+
+    void SerializationTests::DescribeChangesFromBaseline()
+    {
+        // What the Save and Discard tooltips list: one line per changed setting,
+        // profiles named rather than numbered, and nothing at all when nothing moved.
+        static constexpr std::string_view settingsJson{ R"(
+        {
+            "defaultProfile": "{6239a42c-0000-49a3-80bd-e8fdd045185c}",
+            "profiles": [
+                {
+                    "name": "profile0",
+                    "guid": "{6239a42c-0000-49a3-80bd-e8fdd045185c}",
+                    "historySize": 1000
+                }
+            ]
+        })" };
+
+        const auto settings{ winrt::make_self<implementation::CascadiaSettings>(settingsJson) };
+        const auto baseline = settings->SerializedSettings();
+        VERIFY_ARE_EQUAL(0u, settings->DescribeChangesFrom(baseline, 20).Size());
+
+        settings->AllProfiles().GetAt(0).HistorySize(5000);
+        settings->AllProfiles().GetAt(0).TabTitle(L"NewTitle");
+        const auto changes = settings->DescribeChangesFrom(baseline, 20);
+        VERIFY_ARE_EQUAL(2u, changes.Size());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"profiles \u203a profile0 \u203a historySize: 1000 \u2192 5000" }, changes.GetAt(0));
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"profiles \u203a profile0 \u203a tabTitle: added \"NewTitle\"" }, changes.GetAt(1));
+
+        // Past the limit, the last line says there was more.
+        const auto capped = settings->DescribeChangesFrom(baseline, 1);
+        VERIFY_ARE_EQUAL(2u, capped.Size());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"\u2026" }, capped.GetAt(1));
     }
 
     void SerializationTests::ModifyProfileSettingAndRoundtrip()
