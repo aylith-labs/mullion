@@ -288,18 +288,21 @@ namespace winrt::Microsoft::Terminal::Settings
                                  winrt::Windows::UI::Xaml::ElementTheme::Light;
         }
 
+        Model::ColorScheme activeScheme{ nullptr };
         switch (requestedTheme)
         {
         case winrt::Windows::UI::Xaml::ElementTheme::Light:
             if (const auto scheme = schemes.TryLookup(appearance.LightColorSchemeName()))
             {
                 ApplyColorScheme(scheme);
+                activeScheme = scheme;
             }
             break;
         case winrt::Windows::UI::Xaml::ElementTheme::Dark:
             if (const auto scheme = schemes.TryLookup(appearance.DarkColorSchemeName()))
             {
                 ApplyColorScheme(scheme);
+                activeScheme = scheme;
             }
             break;
         case winrt::Windows::UI::Xaml::ElementTheme::Default:
@@ -348,7 +351,20 @@ namespace winrt::Microsoft::Terminal::Settings
         _IntenseIsBold = WI_IsFlagSet(appearance.IntenseTextStyle(), Microsoft::Terminal::Settings::Model::IntenseStyle::Bold);
         _IntenseIsBright = WI_IsFlagSet(appearance.IntenseTextStyle(), Microsoft::Terminal::Settings::Model::IntenseStyle::Bright);
 
+        // Mullion: whether text too close to its background gets adjusted is
+        // mostly a property of the palette -- a low-contrast scheme wants it and
+        // a carefully tuned one does not. So a scheme that states a value wins
+        // over profiles.defaults and the built-in default, and only a value set
+        // on this profile's own appearance beats the scheme. HasX() reports the
+        // appearance's own layer, not what it inherits.
         _AdjustIndistinguishableColors = appearance.AdjustIndistinguishableColors();
+        if (activeScheme && !appearance.HasAdjustIndistinguishableColors())
+        {
+            if (const auto schemeMode = activeScheme.AdjustIndistinguishableColors())
+            {
+                _AdjustIndistinguishableColors = schemeMode.Value();
+            }
+        }
         _Opacity = appearance.Opacity();
         _UseAcrylic = appearance.UseAcrylic();
     }

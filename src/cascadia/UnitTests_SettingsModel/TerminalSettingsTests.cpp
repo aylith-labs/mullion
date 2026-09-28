@@ -7,6 +7,7 @@
 #include <pcg_random.hpp>
 
 #include "../TerminalSettingsModel/CascadiaSettings.h"
+#include "../TerminalSettingsModel/ColorScheme.h"
 #include "../TerminalSettingsModel/ModelSerializationHelpers.h"
 #include "TestUtils.h"
 
@@ -52,6 +53,7 @@ namespace SettingsModelUnitTests
         TEST_METHOD(MakeSettingsForProfile);
         TEST_METHOD(MakeSettingsForDefaultProfileThatDoesntExist);
         TEST_METHOD(TestLayerProfileOnColorScheme);
+        TEST_METHOD(TestSchemeAdjustIndistinguishableColors);
         TEST_METHOD(TestCommandlineToTitlePromotion);
         TEST_METHOD(TestInitialPositionParsing);
     };
@@ -813,6 +815,63 @@ namespace SettingsModelUnitTests
         VERIFY_ARE_EQUAL(til::color(0x34, 0x56, 0x78), terminalSettings3->CursorColor()); // from profile (not set in color scheme)
         VERIFY_ARE_EQUAL(til::color(0x45, 0x67, 0x89), terminalSettings4->CursorColor()); // from profile (no color scheme)
         VERIFY_ARE_EQUAL(DEFAULT_CURSOR_COLOR, terminalSettings5->CursorColor()); // default
+    }
+
+    void TerminalSettingsTests::TestSchemeAdjustIndistinguishableColors()
+    {
+        Log::Comment(L"A scheme's adjustIndistinguishableColors beats profiles.defaults and loses to the profile's own value.");
+
+        static constexpr std::string_view settingsString{ R"(
+        {
+            "defaultProfile": "profile0",
+            "profiles": {
+                "defaults": { "adjustIndistinguishableColors": "always" },
+                "list": [
+                    { "name": "profile0", "colorScheme": "schemeNever" },
+                    { "name": "profile1", "colorScheme": "schemePlain" },
+                    { "name": "profile2", "colorScheme": "schemeNever", "adjustIndistinguishableColors": "indexed" }
+                ]
+            },
+            "schemes": [
+                {
+                    "name": "schemeNever",
+                    "adjustIndistinguishableColors": "never",
+                    "black": "#121314", "red": "#121314", "green": "#121314", "yellow": "#121314",
+                    "blue": "#121314", "purple": "#121314", "cyan": "#121314", "white": "#121314",
+                    "brightBlack": "#121314", "brightRed": "#121314", "brightGreen": "#121314", "brightYellow": "#121314",
+                    "brightBlue": "#121314", "brightPurple": "#121314", "brightCyan": "#121314", "brightWhite": "#121314"
+                },
+                {
+                    "name": "schemePlain",
+                    "black": "#121314", "red": "#121314", "green": "#121314", "yellow": "#121314",
+                    "blue": "#121314", "purple": "#121314", "cyan": "#121314", "white": "#121314",
+                    "brightBlack": "#121314", "brightRed": "#121314", "brightGreen": "#121314", "brightYellow": "#121314",
+                    "brightBlue": "#121314", "brightPurple": "#121314", "brightCyan": "#121314", "brightWhite": "#121314"
+                }
+            ]
+        })" };
+
+        const auto settings = winrt::make_self<implementation::CascadiaSettings>(settingsString);
+        const auto activeProfiles = settings->ActiveProfiles();
+        const auto colorSchemes = settings->GlobalSettings().ColorSchemes();
+        const auto currentTheme = settings->GlobalSettings().CurrentTheme(settings->WindowSettingsDefaults());
+        const auto modeFor = [&](uint32_t index) {
+            auto terminalSettings{ winrt::make_self<TerminalSettings>() };
+            const auto profile = activeProfiles.GetAt(index);
+            terminalSettings->_ApplyProfileSettings(profile);
+            terminalSettings->_ApplyAppearanceSettings(profile.DefaultAppearance(), colorSchemes, currentTheme);
+            return static_cast<int>(terminalSettings->AdjustIndistinguishableColors());
+        };
+
+        VERIFY_ARE_EQUAL(static_cast<int>(winrt::Microsoft::Terminal::Core::AdjustTextMode::Never), modeFor(0)); // the scheme beats profiles.defaults
+        VERIFY_ARE_EQUAL(static_cast<int>(winrt::Microsoft::Terminal::Core::AdjustTextMode::Always), modeFor(1)); // no opinion in the scheme: profiles.defaults stands
+        VERIFY_ARE_EQUAL(static_cast<int>(winrt::Microsoft::Terminal::Core::AdjustTextMode::Indexed), modeFor(2)); // the profile's own value beats the scheme
+
+        Log::Comment(L"The scheme keeps its value through a round trip, and a scheme without one writes no key.");
+        const auto schemeNever = colorSchemes.Lookup(L"schemeNever");
+        const auto schemePlain = colorSchemes.Lookup(L"schemePlain");
+        VERIFY_IS_TRUE(winrt::get_self<implementation::ColorScheme>(schemeNever)->ToJson()["adjustIndistinguishableColors"].asString() == "never");
+        VERIFY_IS_FALSE(winrt::get_self<implementation::ColorScheme>(schemePlain)->ToJson().isMember("adjustIndistinguishableColors"));
     }
 
     void TerminalSettingsTests::TestCommandlineToTitlePromotion()

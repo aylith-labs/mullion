@@ -57,6 +57,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         WINRT_PROPERTY(Core::Color, Background, static_cast<Core::Color>(DEFAULT_BACKGROUND));
         WINRT_PROPERTY(Core::Color, SelectionBackground, static_cast<Core::Color>(DEFAULT_FOREGROUND));
         WINRT_PROPERTY(Core::Color, CursorColor, static_cast<Core::Color>(DEFAULT_CURSOR_COLOR));
+        WINRT_PROPERTY(winrt::Windows::Foundation::IReference<Core::AdjustTextMode>, AdjustIndistinguishableColors, nullptr);
 
     private:
         bool _layerJson(const Json::Value& json);

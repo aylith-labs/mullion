@@ -439,6 +439,22 @@
                     Style="{StaticResource BrowseButtonStyle}" />
         </local:SettingsCard>
 
+        <!--  Adjust Indistinguishable Colors, per scheme (Mullion)  -->
+        <local:SettingsCard x:Name="SchemeAdjustIndistinguishableColors"
+                            x:Uid="ColorScheme_AdjustIndistinguishableColors"
+                            IsEnabled="{x:Bind ViewModel.IsEditable, Mode=OneWay}"
+                            IsForkFeature="True">
+            <ComboBox AutomationProperties.AccessibilityView="Content"
+                      SelectedIndex="{x:Bind ViewModel.AdjustIndistinguishableColorsIndex, Mode=TwoWay}"
+                      Style="{StaticResource ComboBoxSettingStyle}">
+                <ComboBoxItem x:Uid="ColorScheme_AdjustIndistinguishableColorsInherit" />
+                <ComboBoxItem x:Uid="Profile_AdjustIndistinguishableColorsNever" />
+                <ComboBoxItem x:Uid="Profile_AdjustIndistinguishableColorsIndexed" />
+                <ComboBoxItem x:Uid="Profile_AdjustIndistinguishableColorsAlways" />
+                <ComboBoxItem x:Uid="Profile_AdjustIndistinguishableColorsAutomatic" />
+            </ComboBox>
+        </local:SettingsCard>
+
         <local:SettingsExpander x:Name="RenameContainer"
                                 x:Uid="ColorScheme_Rename"
                                 Visibility="{x:Bind ViewModel.IsEditable, Mode=OneWay}">

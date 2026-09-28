@@ -7,6 +7,7 @@
 #include "../../types/inc/colorTable.hpp"
 #include "Utils.h"
 #include "JsonUtils.h"
+#include "TerminalSettingsSerializationHelpers.h"
 
 #include "ColorScheme.g.cpp"
 
@@ -20,6 +21,8 @@ static constexpr std::string_view ForegroundKey{ "foreground" };
 static constexpr std::string_view BackgroundKey{ "background" };
 static constexpr std::string_view SelectionBackgroundKey{ "selectionBackground" };
 static constexpr std::string_view CursorColorKey{ "cursorColor" };
+// The same key and values as the profile setting, so a scheme reads the way a profile does.
+static constexpr std::string_view AdjustIndistinguishableColorsKey{ "adjustIndistinguishableColors" };
 
 static constexpr size_t ColorSchemeExpectedSize = 16;
 static constexpr std::array<std::pair<std::string_view, size_t>, 18> TableColorsMapping{ {
@@ -67,6 +70,7 @@ winrt::com_ptr<ColorScheme> ColorScheme::Copy() const
     scheme->_Background = _Background;
     scheme->_SelectionBackground = _SelectionBackground;
     scheme->_CursorColor = _CursorColor;
+    scheme->_AdjustIndistinguishableColors = _AdjustIndistinguishableColors;
     scheme->_table = _table;
     scheme->_Origin = _Origin;
     return scheme;
@@ -104,6 +108,7 @@ bool ColorScheme::_layerJson(const Json::Value& json)
     JsonUtils::GetValueForKey(json, BackgroundKey, _Background);
     JsonUtils::GetValueForKey(json, SelectionBackgroundKey, _SelectionBackground);
     JsonUtils::GetValueForKey(json, CursorColorKey, _CursorColor);
+    JsonUtils::GetValueForKey(json, AdjustIndistinguishableColorsKey, _AdjustIndistinguishableColors);
 
     // Required fields
     size_t colorCount = 0;
@@ -136,6 +141,11 @@ Json::Value ColorScheme::ToJson() const
     JsonUtils::SetValueForKey(json, BackgroundKey, _Background);
     JsonUtils::SetValueForKey(json, SelectionBackgroundKey, _SelectionBackground);
     JsonUtils::SetValueForKey(json, CursorColorKey, _CursorColor);
+    // Written only when set: a scheme with no opinion serializes exactly as upstream's does.
+    if (_AdjustIndistinguishableColors)
+    {
+        JsonUtils::SetValueForKey(json, AdjustIndistinguishableColorsKey, _AdjustIndistinguishableColors);
+    }
 
     for (size_t i = 0; i < ColorSchemeExpectedSize; ++i)
     {

@@ -25,6 +25,10 @@ namespace Microsoft.Terminal.Settings.Editor
         ColorTableEntry CursorColor;
         ColorTableEntry SelectionBackgroundColor;
 
+        // 0 = the scheme states nothing (the profile decides), then 1..4 for
+        // AdjustTextMode's Never, Indexed, Always, Automatic in declaration order.
+        Int32 AdjustIndistinguishableColorsIndex;
+
         void DeleteConfirmation_Click(IInspectable sender, Windows.UI.Xaml.RoutedEventArgs args);
         void SetAsDefault_Click(IInspectable sender, Windows.UI.Xaml.RoutedEventArgs args);
         void Duplicate_Click(IInspectable sender, Windows.UI.Xaml.RoutedEventArgs args);

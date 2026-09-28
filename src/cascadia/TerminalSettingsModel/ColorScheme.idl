@@ -16,6 +16,12 @@ namespace Microsoft.Terminal.Settings.Model
         Microsoft.Terminal.Core.Color SelectionBackground;
         Microsoft.Terminal.Core.Color CursorColor;
 
+        // Mullion: a scheme may say how its own indistinguishable text is
+        // adjusted. Null means the scheme has no opinion and the profile's
+        // value stands; see TerminalSettings::_ApplyAppearanceSettings for
+        // the precedence.
+        Windows.Foundation.IReference<Microsoft.Terminal.Core.AdjustTextMode> AdjustIndistinguishableColors;
+
         // winrt::com_arrays prevent data binding.
         // Instead of representing Table as a property,
         // we expose the getter as a function.

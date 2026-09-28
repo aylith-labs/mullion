@@ -34,6 +34,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void RefreshIsDefault();
         bool IsEditable() const;
 
+        int32_t AdjustIndistinguishableColorsIndex() const;
+        void AdjustIndistinguishableColorsIndex(int32_t index);
+
         void DeleteConfirmation_Click(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& e);
         void SetAsDefault_Click(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& e);
         void Duplicate_Click(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& e);

@@ -3725,6 +3725,16 @@
             "$ref": "#/$defs/Color",
             "description": "Sets the background color of the color scheme."
           },
+          "adjustIndistinguishableColors": {
+            "description": "How text too close to its background is adjusted while this scheme is in use. Beats profiles.defaults; a value set on the profile itself still wins. Leave it out to let the profile decide.",
+            "enum": [
+              "never",
+              "indexed",
+              "always",
+              "automatic"
+            ],
+            "type": "string"
+          },
           "black": {
             "$ref": "#/$defs/Color",
             "description": "Sets the color used as ANSI black."

@@ -78,6 +78,32 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return _scheme.Origin() == Model::OriginTag::User;
     }
 
+    int32_t ColorSchemeViewModel::AdjustIndistinguishableColorsIndex() const
+    {
+        const auto mode = _scheme.AdjustIndistinguishableColors();
+        return mode ? static_cast<int32_t>(mode.Value()) + 1 : 0;
+    }
+
+    void ColorSchemeViewModel::AdjustIndistinguishableColorsIndex(int32_t index)
+    {
+        if (index == AdjustIndistinguishableColorsIndex() || index < 0 ||
+            index > static_cast<int32_t>(Core::AdjustTextMode::Automatic) + 1)
+        {
+            return;
+        }
+        if (index == 0)
+        {
+            _scheme.AdjustIndistinguishableColors(nullptr);
+        }
+        else
+        {
+            _scheme.AdjustIndistinguishableColors(winrt::Windows::Foundation::IReference<Core::AdjustTextMode>{ static_cast<Core::AdjustTextMode>(index - 1) });
+        }
+        // Not the property the binding just wrote -- that would re-enter the
+        // ComboBox (doc/troubleshooting.md). The page's save-state hook reads the
+        // serialized fingerprint, which already carries the change.
+    }
+
     bool ColorSchemeViewModel::RequestRename(winrt::hstring newName)
     {
         if (const auto parentPageVM{ _parentPageVM.get() })
