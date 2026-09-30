@@ -98,6 +98,7 @@
     <ClInclude Include="LanguageProfileNotifier.h" />
     <ClInclude Include="PaneSessionCapture.h" />
     <ClInclude Include="ProcessCapture.h" />
+    <ClInclude Include="ProbeGate.h" />
     <ClInclude Include="HyperlinkPreviewService.h" />
     <ClInclude Include="FilePreviewReader.h" />
     <ClInclude Include="MinMaxCloseControl.h">

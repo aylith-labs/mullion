@@ -3,7 +3,8 @@
 
 #include "pch.h"
 #include "PaneSessionCapture.h"
-#include "ProcessCapture.h"
+#include "ProbeGate.h"
+#include "../../inc/ProcessCaptureImpl.h"
 
 #include <TlHelp32.h>
 #include <shellapi.h>
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <sstream>
 #include <til/string.h>
 #include <til/u8u16convert.h>
@@ -400,18 +402,96 @@ for d in /proc/[0-9]*; do
   fi
   printf '%s\036%s\036%s\036%s\036%s\036%s\036%s\036%s\n' "$w" "$p" "$2" "$3" "$6" "$c" "$g" "$a"
 done
+exit 0
 )SH";
 
-        // Runs `wsl.exe -d <distro> -- sh -s`, writes the script to its stdin
-        // and reads stdout to EOF.
-        //
-        // The pipes, the CREATE_NO_WINDOW and the polled read with a deadline
-        // all live in RunProcessCapture now: the integration fetch pipeline
-        // needs exactly the same thing for its `command` steps, and two copies
-        // of that would drift.
-        std::string RunWslProbe(const std::wstring& distro, DWORD timeoutMs)
+        // How long one probe may take before its whole process tree is
+        // killed. A healthy probe on a busy distro finishes in a second or
+        // two; this is the "WSL is not answering" line.
+        constexpr unsigned long WslProbeTimeoutMs = 10'000;
+
+        // One gate per distro, shared by every window in the process: each
+        // window's persist tick asks independently, and without a shared gate
+        // two windows meant two wsl.exe per tick.
+        struct WslGates
         {
-            return ::TerminalApp::RunProcessCapture(fmt::format(LR"(wsl.exe -d {} -- sh -s)", distro), WslProbeScript, timeoutMs);
+            std::mutex Mutex;
+            std::map<std::wstring, ::TerminalApp::ProbeGate> ByDistro;
+        };
+
+        WslGates& Gates()
+        {
+            static WslGates gates;
+            return gates;
+        }
+
+        // Runs `wsl.exe -d <distro> -- sh -s`, writes the script to its stdin
+        // and reads stdout to EOF -- unless the gate says not now, in which
+        // case nothing runs and the answer is nullopt ("unknown", which the
+        // caller must not confuse with "nothing is running").
+        //
+        // History, because it explains every line of this: until 2026-09-30
+        // this was fired on every persist tick with nothing tracking the
+        // previous call. When wslservice wedged, each wsl.exe hung; the
+        // deadline killed it, but its conhost survived, and a new probe
+        // started ~15 s later regardless. The job object in CaptureProcessEx
+        // now takes the conhost with it, and the gate means a probe starts
+        // only when none is outstanding, and backs off (30 s doubling to
+        // 5 min) while WSL is not answering.
+        std::optional<std::string> RunWslProbe(const std::wstring& distro, bool urgent)
+        {
+            auto& gates = Gates();
+            {
+                std::lock_guard lock{ gates.Mutex };
+                if (!gates.ByDistro[distro].TryBegin(GetTickCount64(), urgent))
+                {
+                    return std::nullopt;
+                }
+            }
+
+            ::TerminalUtils::CaptureResult result;
+            try
+            {
+                result = ::TerminalUtils::CaptureProcessEx(fmt::format(LR"(wsl.exe -d {} -- sh -s)", distro), WslProbeScript, WslProbeTimeoutMs);
+            }
+            // Falls through as a failure: the gate must be released either way.
+            CATCH_LOG();
+
+            // Anything but a clean exit is "not answering": a hang, a launch
+            // failure, or wsl.exe reporting an error (the script itself ends
+            // in `exit 0`).
+            const auto answered = result.Outcome == ::TerminalUtils::CaptureOutcome::Exited && result.ExitCode == 0;
+
+            auto transition = ::TerminalApp::ProbeGate::Transition::None;
+            uint64_t backoffMs = 0;
+            {
+                std::lock_guard lock{ gates.Mutex };
+                auto& gate = gates.ByDistro[distro];
+                transition = gate.End(GetTickCount64(), answered);
+                backoffMs = gate.CurrentBackoffMs();
+            }
+
+            // Once per state change, never per poll.
+            if (transition == ::TerminalApp::ProbeGate::Transition::WentDown)
+            {
+                LOG_HR_MSG(HRESULT_FROM_WIN32(result.Outcome == ::TerminalUtils::CaptureOutcome::TimedOut ? ERROR_TIMEOUT : ERROR_BAD_ENVIRONMENT),
+                           "session resume: WSL distro '%ls' is not answering (%hs); backing off from %llus, doubling to 300s",
+                           distro.c_str(),
+                           result.Outcome == ::TerminalUtils::CaptureOutcome::TimedOut ? "timed out" :
+                           result.Outcome == ::TerminalUtils::CaptureOutcome::LaunchFailed ? "launch failed" :
+                                                                                          "exited with an error",
+                           backoffMs / 1000);
+            }
+            else if (transition == ::TerminalApp::ProbeGate::Transition::Recovered)
+            {
+                OutputDebugStringW(fmt::format(L"session resume: WSL distro '{}' is answering again\n", distro).c_str());
+            }
+
+            if (!answered)
+            {
+                return std::nullopt;
+            }
+            return std::move(result.Output);
         }
 
         struct WslRecord
@@ -745,12 +825,13 @@ done
         return ResumePlan{ JoinArgv(rebuilt), true };
     }
 
-    std::vector<CapturedPane> Capture(const std::vector<PaneProbe>& panes)
+    CaptureOutput Capture(const std::vector<PaneProbe>& panes, bool urgent)
     {
-        std::vector<CapturedPane> captured;
+        CaptureOutput out;
+        auto& captured = out.Panes;
         if (panes.empty())
         {
-            return captured;
+            return out;
         }
 
         // --- WSL panes: one probe per distinct distro, never per pane.
@@ -764,10 +845,16 @@ done
         }
 
         std::vector<WslRecord> wslRecords;
+        std::vector<std::wstring> unanswered;
         for (const auto& distro : distros)
         {
-            const auto output = RunWslProbe(distro, 8000);
-            auto parsed = ParseWslProbe(output);
+            const auto output = RunWslProbe(distro, urgent);
+            if (!output)
+            {
+                unanswered.push_back(distro);
+                continue;
+            }
+            auto parsed = ParseWslProbe(*output);
             wslRecords.insert(wslRecords.end(), std::make_move_iterator(parsed.begin()), std::make_move_iterator(parsed.end()));
         }
 
@@ -775,6 +862,13 @@ done
         {
             if (pane.Distro.empty())
             {
+                continue;
+            }
+            // Skipped, backed off or timed out: we learned nothing about this
+            // pane, which is not the same as learning it runs nothing.
+            if (std::find(unanswered.begin(), unanswered.end(), pane.Distro) != unanswered.end())
+            {
+                out.Unknown.push_back(pane.SessionId);
                 continue;
             }
 
@@ -884,6 +978,6 @@ done
             }
         }
 
-        return captured;
+        return out;
     }
 }

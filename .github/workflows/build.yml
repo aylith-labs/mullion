@@ -105,6 +105,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'File preview preflight did not compile' }
           & $previewTestExe
           if ($LASTEXITCODE -ne 0) { throw 'File preview preflight failed' }
+          # Hidden-child capture: job-object tree kill (conhost included) and the
+          # single-flight/backoff gate the session-resume WSL probe runs behind.
+          $captureTestExe = Join-Path $env:RUNNER_TEMP 'ProcessCaptureTests.exe'
+          $captureTestObj = Join-Path $env:RUNNER_TEMP 'ProcessCaptureTests.obj'
+          & cl /nologo /EHsc /std:c++20 /DPROCESS_CAPTURE_STANDALONE /DNOMINMAX /DWIN32_LEAN_AND_MEAN /DUNICODE /D_UNICODE "/I$wilInclude" .\src\cascadia\UnitTests_Control\ProcessCaptureTests.cpp "/Fe:$captureTestExe" "/Fo:$captureTestObj"
+          if ($LASTEXITCODE -ne 0) { throw 'Process capture preflight did not compile' }
+          & $captureTestExe
+          if ($LASTEXITCODE -ne 0) { throw 'Process capture preflight failed' }
       - name: Restore and build
         shell: pwsh
         run: |

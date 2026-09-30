@@ -404,7 +404,9 @@ namespace winrt::TerminalApp::implementation
 
         bool _resumeEnabled() const;
         std::vector<::TerminalApp::SessionResume::PaneProbe> _collectResumeProbes();
-        void _applyResumeCommands(const std::map<std::wstring, winrt::hstring>& commands);
+        // `unknown`: sessions the capture could not ask about this round;
+        // their previous command is kept rather than cleared.
+        void _applyResumeCommands(const std::map<std::wstring, winrt::hstring>& commands, const std::set<std::wstring>& unknown);
         void _queueResumeCommand(const Microsoft::Terminal::Control::TermControl& control, const hstring& command);
         safe_void_coroutine _flushPendingResumes();
         safe_void_coroutine _runResumeCommand(Microsoft::Terminal::Control::TermControl control, hstring command);

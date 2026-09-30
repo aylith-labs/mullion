@@ -35,6 +35,10 @@
     </ClCompile>
     <ClCompile Include="ControlInteractivityTests.cpp" />
     <ClCompile Include="ControlPipeProtocolTests.cpp" />
+    <!-- Shared with the standalone preflight, like FilePreviewTests. -->
+    <ClCompile Include="ProcessCaptureTests.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

@@ -153,7 +153,7 @@ namespace winrt::TerminalApp::implementation
     // Hand each plan back to the pane it came from. Re-walks rather than
     // holding pane pointers across the background hop, because a pane can be
     // closed while the probe is still running.
-    void TerminalPage::_applyResumeCommands(const std::map<std::wstring, winrt::hstring>& commands)
+    void TerminalPage::_applyResumeCommands(const std::map<std::wstring, winrt::hstring>& commands, const std::set<std::wstring>& unknown)
     {
         for (const auto& tab : _tabs)
         {
@@ -191,6 +191,12 @@ namespace winrt::TerminalApp::implementation
                 }
 
                 const auto key = ::Microsoft::Console::Utils::GuidToPlainString(connection.SessionId());
+                // Not probed this round (WSL busy, backing off, or timed
+                // out): keep whatever the last answered round decided.
+                if (unknown.count(key) != 0)
+                {
+                    return;
+                }
                 const auto found = commands.find(key);
                 const auto impl = winrt::get_self<implementation::TerminalPaneContent>(termContent);
                 // A pane that no longer resolves to anything resumable is
@@ -200,18 +206,30 @@ namespace winrt::TerminalApp::implementation
         }
     }
 
-    static std::map<std::wstring, winrt::hstring> _plansFor(const std::vector<::TerminalApp::SessionResume::PaneProbe>& probes,
-                                                            const ::TerminalApp::SessionResume::Policy& policy)
+    namespace
     {
-        std::map<std::wstring, winrt::hstring> commands;
-        for (const auto& captured : ::TerminalApp::SessionResume::Capture(probes))
+        struct ResumeCapture
         {
-            if (const auto plan = ::TerminalApp::SessionResume::BuildPlan(captured, policy))
+            std::map<std::wstring, winrt::hstring> Commands;
+            std::set<std::wstring> Unknown;
+        };
+    }
+
+    static ResumeCapture _plansFor(const std::vector<::TerminalApp::SessionResume::PaneProbe>& probes,
+                                   const ::TerminalApp::SessionResume::Policy& policy,
+                                   bool urgent)
+    {
+        ResumeCapture result;
+        auto captured = ::TerminalApp::SessionResume::Capture(probes, urgent);
+        for (const auto& pane : captured.Panes)
+        {
+            if (const auto plan = ::TerminalApp::SessionResume::BuildPlan(pane, policy))
             {
-                commands.emplace(captured.SessionId, winrt::hstring{ plan->CommandLine });
+                result.Commands.emplace(pane.SessionId, winrt::hstring{ plan->CommandLine });
             }
         }
-        return commands;
+        result.Unknown.insert(std::make_move_iterator(captured.Unknown.begin()), std::make_move_iterator(captured.Unknown.end()));
+        return result;
     }
 
     // Periodic path. Fire and forget: the persist pass that follows uses
@@ -235,15 +253,21 @@ namespace winrt::TerminalApp::implementation
         const auto dispatcher = Dispatcher();
         co_await winrt::resume_background();
 
-        std::map<std::wstring, winrt::hstring> commands;
+        // Empty on a throw: then nothing is applied, rather than every pane's
+        // command being cleared as if it had been found running nothing.
+        std::optional<ResumeCapture> capture;
         try
         {
-            commands = _plansFor(probes, policy);
+            capture = _plansFor(probes, policy, false);
         }
         CATCH_LOG();
 
+        // Back to the UI thread either way, so strongThis is released there.
         co_await wil::resume_foreground(dispatcher);
-        _applyResumeCommands(commands);
+        if (capture)
+        {
+            _applyResumeCommands(capture->Commands, capture->Unknown);
+        }
     }
 
     // Shutdown path. Bounded, because this runs while the app is on its way
@@ -268,25 +292,33 @@ namespace winrt::TerminalApp::implementation
             std::mutex Mutex;
             std::condition_variable Ready;
             bool Done{ false };
-            std::map<std::wstring, winrt::hstring> Commands;
+            std::optional<ResumeCapture> Capture;
         };
         const auto shared = std::make_shared<Shared>();
 
         // Detached, and every piece of state it touches is owned by the
         // shared_ptr it captured -- so when the wait below gives up, the
         // straggler can finish and tidy up after itself rather than writing
-        // into a stack frame that is already gone.
+        // into a stack frame that is already gone. A wsl.exe it started is in
+        // a kill-on-close job, so if the process exits under it the child
+        // tree goes too rather than outliving us.
+        //
+        // Urgent: skips the healthy-probe spacing, so a pane that started an
+        // agent seconds ago is still captured on the way out. The backoff and
+        // single-flight still apply -- if the periodic probe is mid-flight or
+        // WSL is known not to be answering, WSL panes keep their cached
+        // command instead of this starting another wsl.exe.
         std::thread([shared, probes, policy]() {
-            std::map<std::wstring, winrt::hstring> commands;
+            std::optional<ResumeCapture> capture;
             try
             {
-                commands = _plansFor(probes, policy);
+                capture = _plansFor(probes, policy, true);
             }
             CATCH_LOG();
 
             {
                 std::lock_guard guard{ shared->Mutex };
-                shared->Commands = std::move(commands);
+                shared->Capture = std::move(capture);
                 shared->Done = true;
             }
             shared->Ready.notify_one();
@@ -299,9 +331,12 @@ namespace winrt::TerminalApp::implementation
             return;
         }
 
-        auto commands = std::move(shared->Commands);
+        auto capture = std::move(shared->Capture);
         guard.unlock();
-        _applyResumeCommands(commands);
+        if (capture)
+        {
+            _applyResumeCommands(capture->Commands, capture->Unknown);
+        }
     }
     CATCH_LOG()
 

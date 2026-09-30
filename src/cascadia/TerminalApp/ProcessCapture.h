@@ -4,10 +4,12 @@
 // Running a child process to completion and reading everything it wrote,
 // with a deadline.
 //
-// Factored out of PaneSessionCapture's WSL probe, which is still its largest
-// caller. The integration fetch pipeline needs the same thing for its
-// `command` steps, and the two must not drift: the CREATE_NO_WINDOW and the
-// polled read below are both load-bearing, and neither is obvious.
+// A thin wrapper over TerminalUtils::CaptureProcessEx (src/inc/ProcessCaptureImpl.h),
+// which PaneSessionCapture's WSL probe calls directly because it needs to know
+// whether the child timed out. The integration fetch pipeline uses this for its
+// `command` steps. There is one implementation so the two cannot drift: the
+// CREATE_NO_WINDOW, the kill-on-close job object and the polled read are all
+// load-bearing, and none of them is obvious.
 
 #pragma once
 
@@ -18,8 +20,9 @@ namespace TerminalApp
 {
     // Blocking. Launches `commandLine`, writes `stdinData` to the child's stdin
     // (nothing at all when it is empty), and reads stdout+stderr to EOF or to
-    // the deadline, whichever comes first. A child still running at the
-    // deadline is terminated.
+    // the deadline, whichever comes first. The child runs in a job object, and
+    // its whole tree -- console host included -- is terminated before this
+    // returns, at the deadline or after a clean exit alike.
     //
     // Returns what was read, which is empty when the process could not be
     // started. The bytes are whatever the child wrote -- no decoding happens

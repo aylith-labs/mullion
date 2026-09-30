@@ -18,7 +18,17 @@
 //   WSL     - ONE `wsl.exe` call per distro (never per pane) running a probe
 //             script that reports every process carrying a WT_SESSION, its
 //             foreground process group, argv, cwd, and any agent session
-//             directory it holds open.
+//             directory it holds open. Gated process-wide: never two at once,
+//             at most one per 30 s while healthy, backing off to 5 min while
+//             the distro is not answering, and the whole wsl.exe tree
+//             (conhost included) killed through a job object at 10 s.
+//
+//             A cheaper source was considered and rejected. Reading /proc over
+//             \\wsl.localhost goes through the same wedged service, as a
+//             blocking file read in this process that no deadline can
+//             interrupt -- strictly worse than a child we can kill. Shell
+//             integration (OSC 7 and friends) gives a cwd, not the foreground
+//             argv or the agent session id, and only for configured shells.
 //
 // The WSL path works because ConptyConnection gives every connection its own
 // WT_SESSION guid AND appends it to WSLENV (ConptyConnection.cpp:61-94), so
@@ -160,7 +170,20 @@ namespace TerminalApp::SessionResume
     // and the flag is the half nothing would notice was wrong.
     bool ResumesAgentSession(std::wstring_view commandLine) noexcept;
 
-    // Blocking. One process snapshot plus one wsl.exe launch per distinct
-    // distro, regardless of how many panes are asked about.
-    std::vector<CapturedPane> Capture(const std::vector<PaneProbe>& panes);
+    struct CaptureOutput
+    {
+        std::vector<CapturedPane> Panes;
+        // Sessions whose distro was not probed this round -- a probe for it
+        // was still outstanding, it is backing off after not answering, or it
+        // just timed out. Their previous answer still stands; clearing it
+        // would throw away a good resume command because WSL was busy.
+        std::vector<std::wstring> Unknown;
+    };
+
+    // Blocking. One process snapshot plus at most one wsl.exe launch per
+    // distinct distro, regardless of how many panes are asked about -- and
+    // none at all for a distro whose previous probe is still running or that
+    // is backing off (see ProbeGate.h). `urgent` (the shutdown capture) skips
+    // the healthy-probe spacing, never the backoff.
+    CaptureOutput Capture(const std::vector<PaneProbe>& panes, bool urgent = false);
 }
