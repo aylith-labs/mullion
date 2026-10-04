@@ -117,6 +117,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _PreNavigateHelper();
         void _UpdateForkNavItems();
         void _Navigate(const IInspectable& vm, BreadcrumbSubPage subPage = BreadcrumbSubPage::None, hstring elementToFocus = {});
+        void _NavigateToSearchResult(const IInspectable& result);
         void _NavigateToProfileHandler(const IInspectable& sender, winrt::guid profileGuid);
         void _NavigateToColorSchemeHandler(const IInspectable& sender, const IInspectable& args);
         void _NavigateToLinkTooltipHandler(const IInspectable& sender, const IInspectable& args);
@@ -217,6 +218,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::Microsoft::Terminal::Settings::Editor::IntegrationsViewModel _integrationsVM{ nullptr };
 
         Windows::Foundation::IAsyncOperation<Windows::Foundation::Collections::IObservableVector<Windows::Foundation::IInspectable>> _currentSearch{ nullptr };
+        Windows::Foundation::IInspectable _highlightedSearchResult{ nullptr };
 
         Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _profileViewModelChangedRevoker;
         Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _colorSchemesPageViewModelChangedRevoker;
