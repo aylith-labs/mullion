@@ -67,9 +67,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     ControlCore::ControlCore(Control::IControlSettings settings,
                              Control::IControlAppearance unfocusedAppearance,
-                             TerminalConnection::ITerminalConnection connection) :
+                             TerminalConnection::ITerminalConnection connection,
+                             Windows::System::DispatcherQueue dispatcher) :
         _desiredFont{ DEFAULT_FONT_FACE, 0, DEFAULT_FONT_WEIGHT, DEFAULT_FONT_SIZE, CP_UTF8 },
-        _actualFont{ DEFAULT_FONT_FACE, 0, DEFAULT_FONT_WEIGHT, { 0, DEFAULT_FONT_SIZE }, CP_UTF8, false }
+        _actualFont{ DEFAULT_FONT_FACE, 0, DEFAULT_FONT_WEIGHT, { 0, DEFAULT_FONT_SIZE }, CP_UTF8, false },
+        _dispatcher{ dispatcher }
     {
         static const auto textMeasurementInit = [&]() {
             TextMeasurementMode mode = TextMeasurementMode::Graphemes;
@@ -182,16 +184,19 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     void ControlCore::_setupDispatcherAndCallbacks()
     {
-        // Get our dispatcher. If we're hosted in-proc with XAML, this will get
-        // us the same dispatcher as TermControl::Dispatcher(). If we're out of
-        // proc, this'll return null. We'll need to instead make a new
-        // DispatcherQueue (on a new thread), so we can use that for throttled
-        // functions.
-        _dispatcher = winrt::Windows::System::DispatcherQueue::GetForCurrentThread();
         if (!_dispatcher)
         {
-            auto controller{ winrt::Windows::System::DispatcherQueueController::CreateOnDedicatedThread() };
-            _dispatcher = controller.DispatcherQueue();
+            // Get our dispatcher. If we're hosted in-proc with XAML, this will get
+            // us the same dispatcher as TermControl::Dispatcher(). If we're out of
+            // proc, this'll return null. We'll need to instead make a new
+            // DispatcherQueue (on a new thread), so we can use that for throttled
+            // functions.
+            _dispatcher = winrt::Windows::System::DispatcherQueue::GetForCurrentThread();
+            if (!_dispatcher)
+            {
+                auto controller{ winrt::Windows::System::DispatcherQueueController::CreateOnDedicatedThread() };
+                _dispatcher = controller.DispatcherQueue();
+            }
         }
 
         const auto shared = _shared.lock();
@@ -433,12 +438,20 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _terminal->Create(viewportSize, Utils::ClampToShortMax(_settings.HistorySize(), 0), *_renderer);
             _terminal->UpdateSettings(_settings);
 
-            // Tell the render engine to notify us when the swap chain changes.
-            // We do this after we initially set the swapchain so as to avoid
-            // unnecessary callbacks (and locking problems)
-            _renderEngine->SetCallback([this](HANDLE handle) {
-                _renderEngineSwapChainChanged(handle);
-            });
+            if (SwapChainChanged)
+            {
+                // Tell the render engine to notify us when the swap chain changes.
+                // We do this after we initially set the swapchain so as to avoid
+                // unnecessary callbacks (and locking problems)
+                //
+                // We only do this if somebody is listening (and they have to have
+                // been listening from the start; see TermControl's constructor for
+                // an example). Otherwise, there is no reason for us to handle this
+                // callback, or copy the handle, or do anything else either.
+                _renderEngine->SetCallback([this](HANDLE handle) {
+                    _renderEngineSwapChainChanged(handle);
+                });
+            }
 
             _renderEngine->SetRetroTerminalEffect(_settings.RetroTerminalEffect());
             _renderEngine->SetPixelShaderPath(_settings.PixelShaderPath());
@@ -565,19 +578,22 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     {
         if (!_midiAudioSkipTimer)
         {
-            _midiAudioSkipTimer = _dispatcher.CreateTimer();
-            _midiAudioSkipTimer.Interval(std::chrono::seconds(1));
-            _midiAudioSkipTimer.IsRepeating(false);
-            _midiAudioSkipTimer.Tick([weakSelf = get_weak()](auto&&, auto&&) {
-                if (const auto self = weakSelf.get())
-                {
-                    self->_midiAudio.EndSkip();
-                }
-            });
+            // Capturing a no-lifetime reference to `this' is acceptable,
+            // as we will cancel outstanding work and wait for completion
+            // in the destructor. `this' will always outlive the timer.
+            _midiAudioSkipTimer.reset(CreateThreadpoolTimer(
+                [](PTP_CALLBACK_INSTANCE, PVOID ctx, PTP_TIMER) {
+                    auto myThis = static_cast<ControlCore*>(ctx);
+                    myThis->_midiAudio.EndSkip();
+                },
+                this,
+                nullptr));
         }
 
         _midiAudio.BeginSkip();
-        _midiAudioSkipTimer.Start();
+
+        static constexpr FILETIME oneMsFileTime{ .dwLowDateTime = static_cast<DWORD>(-10000000) /* 1ms in 100ns units */, .dwHighDateTime = 0 };
+        SetThreadpoolTimer(_midiAudioSkipTimer.get(), const_cast<PFILETIME>(&oneMsFileTime) /* safe; treated as const internally */, 0, 0);
     }
 
     bool ControlCore::_shouldTryUpdateSelection(const WORD vkey)
@@ -1763,7 +1779,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     void ControlCore::OpenCWD()
     {
         const auto workingDirectory = WorkingDirectory();
-        ShellExecute(nullptr, nullptr, L"explorer", workingDirectory.c_str(), nullptr, SW_SHOW);
+        if (!Utils::IsValidDirectory(workingDirectory.c_str()))
+        {
+            return;
+        }
+        ShellExecute(nullptr, nullptr, workingDirectory.c_str(), nullptr, nullptr, SW_SHOW);
     }
 
     // Puts arbitrary text on the clipboard, for callers that have something to copy which is
@@ -3137,5 +3157,27 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     void ControlCore::PreviewInput(std::wstring_view input)
     {
         _terminal->PreviewText(input);
+    }
+
+    ControlCore::TimerHandle ControlCore::RegisterRenderTimer(const char* name, std::function<void()> callback)
+    {
+        return _renderer->RegisterTimer(name, [cb = std::move(callback)](auto&&, auto&&) {
+            cb();
+        });
+    }
+
+    bool ControlCore::IsRenderTimerRunning(TimerHandle h)
+    {
+        return _renderer->IsTimerRunning(h);
+    }
+
+    void ControlCore::StartRepeatingRenderTimer(TimerHandle h, uint64_t micros)
+    {
+        _renderer->StartRepeatingTimer(h, std::chrono::microseconds(micros));
+    }
+
+    void ControlCore::StopRenderTimer(TimerHandle h)
+    {
+        _renderer->StopTimer(h);
     }
 }
