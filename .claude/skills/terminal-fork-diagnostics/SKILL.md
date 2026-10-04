@@ -236,6 +236,7 @@ Run these before pushing anything:
 
 ```powershell
 .\tools\Check-SettingsModelConsistency.ps1   # missing resw strings, enum labels
+.\tools\Check-XamlResourceKeys.ps1           # a {StaticResource} nothing defines any more
 .\tools\GenerateSettingsIndex.ps1 -SourceDir .\src\cascadia\TerminalSettingsEditor -OutputDir <scratch>
 ```
 

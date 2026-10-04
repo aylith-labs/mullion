@@ -60,6 +60,13 @@ jobs:
         shell: pwsh
         run: .\tools\Check-XamlComments.ps1
 
+      # A resource key nothing defines compiles, packages and passes the tests,
+      # then fail-fasts the page that uses it (upstream #20336 removed one the
+      # Personalization page still used).
+      - name: XAML resource keys
+        shell: pwsh
+        run: .\tools\Check-XamlResourceKeys.ps1
+
       # The checked-in dep\nuget\nuget.exe is 4.1.0 (2017) and predates .slnx:
       # restoring with it fails with "Invalid input 'OpenConsole.slnx'. The file
       # type was not recognized." Upstream installs a current nuget for the same

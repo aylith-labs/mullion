@@ -23,6 +23,17 @@
                           x:DataType="local:EnumEntry">
                 <TextBlock Text="{x:Bind EnumName, Mode=OneWay}" />
             </DataTemplate>
+
+            <!--
+                Caps each group's stack at the column width the cards use. Defined here,
+                not in CommonResources.xaml, because upstream deleted its copy there once
+                nothing of theirs used it (#20336) - and a StaticResource that is not
+                found is a fail-fast when this page loads, not a build error.
+            -->
+            <Style x:Key="PivotStackStyle"
+                   TargetType="StackPanel">
+                <Setter Property="MaxWidth" Value="{StaticResource StandardControlMaxWidth}" />
+            </Style>
         </ResourceDictionary>
     </Page.Resources>
 
