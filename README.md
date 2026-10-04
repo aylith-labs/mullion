@@ -8,11 +8,6 @@ ever take them. Named for the upright bar between window panes.
 [![Build](https://github.com/aylith-labs/mullion/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/aylith-labs/mullion/actions/workflows/build.yml)
 &nbsp;·&nbsp; **[mullion.aylith.com](https://mullion.aylith.com)**: the feature tour, with screenshots
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/media/link-card-dark.png">
-  <img alt="A link tooltip card in Mullion, with a rendered preview and action buttons" src="docs/media/link-card-light.png" width="720">
-</picture>
-
 ## What it adds
 
 ### Links that do something
