@@ -13,8 +13,6 @@
 #include "Activity.h"
 #include "Documentation.h"
 #include "Compatibility.h"
-#include "Rendering.h"
-#include "RenderingViewModel.h"
 #include "Extensions.h"
 #include "Actions.h"
 #include "ProfileViewModel.h"
@@ -1001,11 +999,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                     contentFrame().Navigate(xaml_typename<Editor::Integrations>(), winrt::make<NavigateToPageArgs>(_integrationsVM, *this, elementToFocus));
                     _breadcrumbs.Append(winrt::make<Breadcrumb>(vm, RS_(L"Nav_Integrations/Content"), BreadcrumbSubPage::None));
                 }
-            }
-            else if (*clickedItemTag == renderingTag)
-            {
-                contentFrame().Navigate(xaml_typename<Editor::Rendering>(), winrt::make<NavigateToPageArgs>(winrt::make<RenderingViewModel>(_settingsClone), *this, elementToFocus));
-                _breadcrumbs.Append(winrt::make<Breadcrumb>(vm, RS_(L"Nav_Rendering/Content"), BreadcrumbSubPage::None));
             }
             else if (*clickedItemTag == compatibilityTag)
             {

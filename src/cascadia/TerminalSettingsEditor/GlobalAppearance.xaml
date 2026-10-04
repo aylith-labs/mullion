@@ -71,18 +71,25 @@
                     </local:SettingsExpander.Content>
                     <local:SettingsExpander.Items>
 
+                        <!--
+                            Checkbox rows, in upstream's #20200 form. The uid sits on the
+                            CheckBox and the strings are .Content, which is how every
+                            locale upstream ships them; a toggle card under the same uid
+                            would have its toggle replaced by that text.
+                        -->
+
                         <!--  Show Acrylic in Tab Row  -->
                         <local:SettingsCard x:Name="AcrylicTabRow"
-                                            x:Uid="Globals_AcrylicTabRow">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.UseAcrylicInTabRow, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_AcrylicTabRow"
+                                      IsChecked="{x:Bind ViewModel.UseAcrylicInTabRow, Mode=TwoWay}" />
                         </local:SettingsCard>
 
                         <!--  Enable Unfocused Acrylic  -->
                         <local:SettingsCard x:Name="EnableUnfocusedAcrylic"
-                                            x:Uid="Globals_EnableUnfocusedAcrylic">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.EnableUnfocusedAcrylic, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_EnableUnfocusedAcrylic"
+                                      IsChecked="{x:Bind ViewModel.EnableUnfocusedAcrylic, Mode=TwoWay}" />
                         </local:SettingsCard>
                     </local:SettingsExpander.Items>
                 </local:SettingsExpander>
@@ -249,41 +256,43 @@
                     </local:SettingsExpander.HeaderIcon>
                     <local:SettingsExpander.Items>
 
-                        <!--  Show Titlebar  -->
+                        <!--  Checkbox rows, as under Theme above.  -->
+
+                        <!--  Hide the title bar  -->
                         <local:SettingsCard x:Name="ShowTitlebar"
-                                            x:Uid="Globals_ShowTitlebar">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTabsInTitlebar, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}"
-                                          Toggled="{x:Bind ViewModel.ShowTitlebarToggled}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_ShowTitlebar"
+                                      Click="{x:Bind ViewModel.ShowTitlebarToggled}"
+                                      IsChecked="{x:Bind ViewModel.ShowTabsInTitlebar, Mode=TwoWay}" />
                         </local:SettingsCard>
 
                         <!--  Always show tabs  -->
                         <local:SettingsCard x:Name="AlwaysShowTabs"
-                                            x:Uid="Globals_AlwaysShowTabs"
-                                            IsEnabled="{x:Bind mtu:Converters.InvertBoolean(ViewModel.ShowTabsInTitlebar), Mode=OneWay}">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.AlwaysShowTabs, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_AlwaysShowTabs"
+                                      IsChecked="{x:Bind ViewModel.AlwaysShowTabs, Mode=TwoWay}"
+                                      IsEnabled="{x:Bind mtu:Converters.InvertBoolean(ViewModel.ShowTabsInTitlebar), Mode=OneWay}" />
                         </local:SettingsCard>
 
                         <!--  Show tabs in full screen  -->
                         <local:SettingsCard x:Name="ShowTabsFullscreen"
-                                            x:Uid="Globals_ShowTabsFullscreen">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTabsFullscreen, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_ShowTabsFullscreen"
+                                      IsChecked="{x:Bind ViewModel.ShowTabsFullscreen, Mode=TwoWay}" />
                         </local:SettingsCard>
 
                         <!--  Show Title in Titlebar  -->
                         <local:SettingsCard x:Name="ShowTitleInTitlebar"
-                                            x:Uid="Globals_ShowTitleInTitlebar">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTitleInTitlebar, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_ShowTitleInTitlebar"
+                                      IsChecked="{x:Bind ViewModel.ShowTitleInTitlebar, Mode=TwoWay}" />
                         </local:SettingsCard>
 
                         <!--  Show Admin Shield  -->
                         <local:SettingsCard x:Name="ShowAdminShield"
-                                            x:Uid="Globals_ShowAdminShield">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowAdminShield, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_ShowAdminShield"
+                                      IsChecked="{x:Bind ViewModel.ShowAdminShield, Mode=TwoWay}" />
                         </local:SettingsCard>
                     </local:SettingsExpander.Items>
                 </local:SettingsExpander>
@@ -392,9 +401,9 @@
 
                         <!--  Minimize To Notification Area  -->
                         <local:SettingsCard x:Name="MinimizeToNotificationArea"
-                                            x:Uid="Globals_MinimizeToNotificationArea">
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.MinimizeToNotificationArea, Mode=TwoWay}"
-                                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                                            ContentAlignment="Left">
+                            <CheckBox x:Uid="Globals_MinimizeToNotificationArea"
+                                      IsChecked="{x:Bind ViewModel.MinimizeToNotificationArea, Mode=TwoWay}" />
                         </local:SettingsCard>
                     </local:SettingsExpander.Items>
                 </local:SettingsExpander>

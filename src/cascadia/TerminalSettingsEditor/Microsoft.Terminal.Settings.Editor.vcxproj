@@ -142,10 +142,6 @@
       <DependentUpon>Profiles.xaml</DependentUpon>
       <SubType>Code</SubType>
     </ClInclude>
-    <ClInclude Include="RenderingViewModel.h">
-      <DependentUpon>RenderingViewModel.idl</DependentUpon>
-      <SubType>Code</SubType>
-    </ClInclude>
     <ClInclude Include="InteractionViewModel.h">
       <DependentUpon>InteractionViewModel.idl</DependentUpon>
       <SubType>Code</SubType>
@@ -201,9 +197,6 @@
     <ClInclude Include="Appearances.h">
       <DependentUpon>Appearances.xaml</DependentUpon>
       <SubType>Code</SubType>
-    </ClInclude>
-    <ClInclude Include="Rendering.h">
-      <DependentUpon>Rendering.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="SettingsCard.h">
       <DependentUpon>SettingsCard.idl</DependentUpon>
@@ -306,9 +299,6 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Appearances.xaml">
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Rendering.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Include="SettingsControlsStyle.xaml">
@@ -418,10 +408,6 @@
       <DependentUpon>Profiles.xaml</DependentUpon>
       <SubType>Code</SubType>
     </ClCompile>
-    <ClCompile Include="RenderingViewModel.cpp">
-      <DependentUpon>RenderingViewModel.idl</DependentUpon>
-      <SubType>Code</SubType>
-    </ClCompile>
     <ClCompile Include="InteractionViewModel.cpp">
       <DependentUpon>InteractionViewModel.idl</DependentUpon>
       <SubType>Code</SubType>
@@ -477,9 +463,6 @@
     <ClCompile Include="Appearances.cpp">
       <DependentUpon>Appearances.xaml</DependentUpon>
       <SubType>Code</SubType>
-    </ClCompile>
-    <ClCompile Include="Rendering.cpp">
-      <DependentUpon>Rendering.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="SettingsCard.cpp">
       <DependentUpon>SettingsCard.idl</DependentUpon>
@@ -572,10 +555,6 @@
       <DependentUpon>Documentation.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Midl>
-    <Midl Include="Rendering.idl">
-      <DependentUpon>Rendering.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Midl>
     <Midl Include="SearchIndex.idl" />
     <Midl Include="MainPage.idl">
       <DependentUpon>MainPage.xaml</DependentUpon>
@@ -589,7 +568,6 @@
       <DependentUpon>Profiles.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Midl>
-    <Midl Include="RenderingViewModel.idl" />
     <Midl Include="InteractionViewModel.idl" />
     <Midl Include="GlobalAppearanceViewModel.idl" />
     <Midl Include="LaunchViewModel.idl" />

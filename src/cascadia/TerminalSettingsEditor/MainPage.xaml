@@ -285,10 +285,6 @@
                                      x:Uid="Nav_Appearance"
                                      Tag="GlobalAppearance_Nav" />
 
-            <muxc:NavigationViewItem x:Name="RenderingNavItem"
-                                     x:Uid="Nav_Rendering"
-                                     Tag="Rendering_Nav" />
-
             <muxc:NavigationViewItemHeader x:Uid="Nav_GroupCommands"
                                            Margin="0,12,0,0" />
 

@@ -98,7 +98,7 @@ thing. Three options, in preference order:
 | Setting | Notes |
 |---|---|
 | `compatibility.allowDECNKM` | bool |
-| `experimental.pixelShaderPath` | Path. `Rendering.xaml` is the natural home. |
+| `experimental.pixelShaderPath` | Path. The Rendering section of `Compatibility.xaml` is the natural home (upstream #20200 folded the Rendering page into it). |
 | `experimental.pixelShaderImagePath` | Path. |
 
 ## Confirmed false positives — do not re-report these

@@ -106,6 +106,7 @@ namespace winrt::Microsoft::Terminal::Settings
     void OpenDocumentationTopic(const Editor::IHostedInWindow& windowRoot, const winrt::hstring& topicElementName);
     Editor::KeyChordListener FindKeyChordListener(const winrt::Windows::UI::Xaml::DependencyObject& root);
     winrt::Windows::UI::Xaml::Controls::Control FindFirstFocusable(const winrt::Windows::UI::Xaml::DependencyObject& root);
+    winrt::Windows::UI::Xaml::Controls::Control ResolveFocusTarget(const winrt::Windows::UI::Xaml::Controls::Control& element);
 }
 
 // BODGY!
@@ -159,10 +160,14 @@ struct HasScrollViewer
             {
                 if (const auto& controlToFocus{ page->FindName(elementName).try_as<winrt::Windows::UI::Xaml::Controls::Control>() })
                 {
+                    // If the named element is a SettingsExpander/SettingsCard with an
+                    // interactive control in its Content, focus that inner control instead.
+                    const auto& target{ winrt::Microsoft::Terminal::Settings::ResolveFocusTarget(controlToFocus) };
+
                     // We need to wait for the page to be loaded
                     // or else the call to StartBringIntoView()
                     // will end up doing nothing.
-                    winrt::Microsoft::Terminal::Settings::ExpandAncestorsAndBringIntoView(page.template as<winrt::Windows::UI::Xaml::FrameworkElement>(), controlToFocus);
+                    winrt::Microsoft::Terminal::Settings::ExpandAncestorsAndBringIntoView(page.template as<winrt::Windows::UI::Xaml::FrameworkElement>(), target);
                 }
                 page->_loadedRevoker.revoke();
             }
