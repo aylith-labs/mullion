@@ -129,6 +129,9 @@ and never work around it.
   something I've customised, keep mine and note it in the merge commit.
 - Don't "clean up" divergence from upstream. Divergence is the point.
 - Nothing goes back — see "never open a pull request" above. Upstream is a source, not a destination.
+- `AGENTS.md` is upstream's AI policy for contributions to microsoft/terminal. It stays in the
+  tree untouched so merges stay clean, but this file deliberately does not import it (upstream's
+  `CLAUDE.md` is just `@AGENTS.md`): nothing here is a contribution to them.
 
 ### Remotes
 
