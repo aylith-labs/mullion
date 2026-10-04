@@ -133,6 +133,19 @@ namespace ControlUnitTests
     {
         // The incident's shape: a console client that hangs, with a child of
         // its own. cmd.exe stands in for wsl.exe, ping for whatever it runs.
+        //
+        // Children we already had are not the capture's, and must not be
+        // judged with it. A test host that allocated its own console (TAEF on
+        // the CI runner does) owns a conhost.exe for its whole lifetime; left
+        // in, it is "seen", never exits, and fails the test on a capture that
+        // killed everything it started.
+        std::vector<DWORD> preexisting;
+        {
+            std::vector<Descendant> before;
+            CollectChildren(GetCurrentProcessId(), Snapshot(), before);
+            std::transform(before.begin(), before.end(), std::back_inserter(preexisting), [](const auto& d) { return d.Pid; });
+        }
+
         std::vector<Descendant> seen;
         std::atomic<bool> stop{ false };
         std::thread watcher([&] {
@@ -144,6 +157,10 @@ namespace ControlUnitTests
                 const auto all = Snapshot();
                 std::vector<Descendant> now;
                 CollectChildren(GetCurrentProcessId(), all, now);
+                now.erase(std::remove_if(now.begin(), now.end(), [&](const auto& d) {
+                              return std::find(preexisting.begin(), preexisting.end(), d.Pid) != preexisting.end();
+                          }),
+                          now.end());
                 const auto hasConhost = std::any_of(now.begin(), now.end(), [](const auto& d) { return d.Name == L"conhost.exe"; });
                 const auto hasPing = std::any_of(now.begin(), now.end(), [](const auto& d) { return d.Name == L"ping.exe"; });
                 if (hasConhost && hasPing)
