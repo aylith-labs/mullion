@@ -5,357 +5,158 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Features — Mullion</title>
 <meta name="description" content="Every feature this Windows Terminal fork has that upstream doesn't, with dates, size, and links to the commits." />
-<style>
-  :root,
-  :root[data-theme="light"] {
-    --bg: #f3f3f3;
-    --card: #ffffff;
-    --control: #fbfbfb;
-    --control-hover: #f6f6f6;
-    --border: #e5e5e5;
-    --stroke-subtle: #ededed;
-    --text: #1b1b1b;
-    --muted: #5d5d5d;
-    --text-tertiary: #8c8c8c;
-    --accent: #005fb8;
-    --accent-hover: #196fbf;
-    --on-accent: #ffffff;
-    --accent-text: #005fb8;
-    --success: #0f7b0f;
-    --success-bg: #dff6dd;
-    --elevation-card: 0 0 2px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.09);
-    --elevation-flyout: 0 0 2px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.14);
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #202020; --card: #2d2d2d; --control: #363636; --control-hover: #3c3c3c;
-      --border: #3a3a3a; --stroke-subtle: #343434;
-      --text: #ffffff; --muted: #cccccc; --text-tertiary: #969696;
-      --accent: #60cdff; --accent-hover: #5ebce9; --on-accent: #000000; --accent-text: #99ebff;
-      --success: #6ccb5f; --success-bg: #393d1b;
-      --elevation-card: 0 0 2px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.2);
-      --elevation-flyout: 0 0 2px rgba(0, 0, 0, 0.24), 0 8px 16px rgba(0, 0, 0, 0.28);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #202020; --card: #2d2d2d; --control: #363636; --control-hover: #3c3c3c;
-    --border: #3a3a3a; --stroke-subtle: #343434;
-    --text: #ffffff; --muted: #cccccc; --text-tertiary: #969696;
-    --accent: #60cdff; --accent-hover: #5ebce9; --on-accent: #000000; --accent-text: #99ebff;
-    --success: #6ccb5f; --success-bg: #393d1b;
-    --elevation-card: 0 0 2px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.2);
-    --elevation-flyout: 0 0 2px rgba(0, 0, 0, 0.24), 0 8px 16px rgba(0, 0, 0, 0.28);
-    color-scheme: dark;
-  }
-
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Segoe UI Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-    line-height: 1.5;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-  }
-  a { color: var(--accent-text); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  code, .mono, .commit-link {
-    font-family: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
-  }
-  button, select, input { font-family: inherit; }
-
-  /* ---------- pinned toolbar + independently scrolling results ----------
-   * The toolbar is a flex sibling of <main>, not a sticky child of it, so it
-   * never scrolls out of view no matter how the results list is filtered or
-   * how tall it gets -- <main> is its own scroll container underneath it. */
-  .toolbar {
-    flex: 0 0 auto;
-    z-index: 20;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    padding: 0.85rem 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.6rem;
-  }
-  .toolbar .back {
-    font-size: 0.85rem;
-    color: var(--muted);
-    margin-right: 0.5rem;
-    white-space: nowrap;
-  }
-  .search-box {
-    position: relative;
-    flex: 1 1 14rem;
-    min-width: 10rem;
-  }
-  .search-box input {
-    width: 100%;
-    padding: 0.5rem 0.75rem 0.5rem 2rem;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--control);
-    color: var(--text);
-    font-size: 0.88rem;
-  }
-  .search-box input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-  .search-box::before {
-    content: "\1F50D";
-    position: absolute;
-    left: 0.6rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.8rem;
-    opacity: 0.5;
-  }
-  .chip-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-  .chip {
-    font-family: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
-    font-size: 0.75rem;
-    padding: 0.35rem 0.75rem;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    cursor: pointer;
-    background: var(--control);
-    white-space: nowrap;
-  }
-  .chip:hover { background: var(--control-hover); color: var(--text); }
-  .chip.active { border-color: var(--accent); color: var(--accent-text); background: var(--control); }
-
-  select.sort-select {
-    padding: 0.45rem 0.6rem;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--control);
-    color: var(--text);
-    font-size: 0.82rem;
-  }
-
-  .view-switch {
-    display: inline-flex;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-  .view-switch button {
-    border: none;
-    background: var(--control);
-    color: var(--muted);
-    padding: 0.45rem 0.8rem;
-    font-size: 0.82rem;
-    cursor: pointer;
-    border-left: 1px solid var(--border);
-  }
-  .view-switch button:first-child { border-left: none; }
-  .view-switch button:hover { background: var(--control-hover); color: var(--text); }
-  .view-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-
-  .theme-toggle { display: inline-flex; gap: 2px; border-radius: 4px; border: 1px solid var(--border); background: var(--control); padding: 2px; }
-  .theme-toggle button { border: none; background: none; color: var(--muted); padding: 0.4rem 0.5rem; border-radius: 3px; cursor: pointer; font-size: 0.85rem; line-height: 1; }
-  .theme-toggle button:hover { background: var(--control-hover); color: var(--text); }
-  .theme-toggle button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-
-  main {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    max-width: 78rem;
-    width: 100%;
-    margin: 0 auto;
-    padding: 1.75rem 1.5rem 5rem;
-  }
-  table.feature-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-  }
-  .result-count { color: var(--text-tertiary); font-size: 0.82rem; margin-bottom: 1rem; }
-
-  .kicker {
-    font-family: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--accent-text);
-  }
-  .meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 0.9rem;
-    font-size: 0.76rem;
-    color: var(--text-tertiary);
-  }
-  .meta-row .stat-add { color: var(--success); }
-  .meta-row .stat-del { color: var(--muted); }
-  .commit-link {
-    font-size: 0.72rem;
-    padding: 0.1rem 0.4rem;
-    border-radius: 3px;
-    background: var(--control);
-    border: 1px solid var(--border);
-    color: var(--accent-text);
-  }
-  .commit-link:hover { background: var(--control-hover); text-decoration: none; }
-  .demo-slot {
-    border: 1px dashed var(--border);
-    border-radius: 4px;
-    padding: 0.5rem 0.7rem;
-    font-family: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
-    font-size: 0.72rem;
-    color: var(--text-tertiary);
-  }
-
-  /* ---------- Cards view ---------- */
-  #view-cards.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
-    gap: 1rem;
-  }
-  #view-cards .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--elevation-card);
-    padding: 1.3rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-  }
-  #view-cards .card:hover { box-shadow: var(--elevation-flyout); }
-  #view-cards .card.standout { border-color: var(--accent); }
-  #view-cards .card h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
-  #view-cards .card p.desc { margin: 0; color: var(--muted); font-size: 0.87rem; flex-grow: 1; }
-
-  /* ---------- Preview view ---------- */
-  #view-preview.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
-    gap: 1.25rem;
-  }
-  #view-preview .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--elevation-card);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  #view-preview .card.standout { border-color: var(--accent); }
-  #view-preview .preview-visual {
-    height: 9rem;
-    background:
-      repeating-linear-gradient(135deg, var(--control) 0 10px, var(--card) 10px 20px);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-  }
-  #view-preview .body { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }
-  #view-preview h3 { margin: 0; font-size: 1.15rem; font-weight: 600; }
-  #view-preview p.desc { margin: 0; color: var(--muted); font-size: 0.88rem; }
-
-  /* ---------- Table view ---------- */
-  table.feature-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  table.feature-table th, table.feature-table td { padding: 0.65rem 0.9rem; text-align: left; border-bottom: 1px solid var(--stroke-subtle); }
-  table.feature-table th { background: var(--control); font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
-  table.feature-table th:hover { background: var(--control-hover); }
-  table.feature-table th .arrow { opacity: 0.5; font-size: 0.75rem; margin-left: 0.2rem; }
-  table.feature-table tr:last-child td { border-bottom: none; }
-  table.feature-table tr:hover td { background: var(--control-hover); }
-  table.feature-table td.desc-cell { color: var(--muted); max-width: 28rem; }
-  table.feature-table .table-commits { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-
-  [hidden] { display: none !important; }
-
-  /* A card is a link to the feature's own page; the commit links inside it
-   * keep their own destinations, so only the surrounding area opens it. */
-  .opens { cursor: pointer; }
-  .card.opens:hover { border-color: var(--accent); }
-  tr.opens:hover { background: var(--control-hover); }
-  .card h3 a, td strong a { color: inherit; }
-  .card h3 a:hover, td strong a:hover { color: var(--accent-text); text-decoration: none; }
-</style>
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="site.css" />
+<script src="site.js"></script>
 </head>
 <body>
 
-<div class="toolbar">
-  <a class="back" href="index.html">&larr; aylith-labs/mullion</a>
-  <div class="search-box">
-    <input type="text" id="search" placeholder="Search features..." autocomplete="off" />
+<a class="skip-link" href="#results">Skip to results</a>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="index.html" aria-label="Mullion home">
+      <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="frame" x="2" y="3" width="22" height="20" rx="4" stroke-width="1.6"/><rect class="bar" x="12" y="3" width="2" height="20"/><rect class="bar" x="2" y="8" width="22" height="1.6"/></svg>
+      Mullion
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="features.html" aria-current="page">Features</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub<svg class="ext" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    </nav>
+    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" title="Display settings" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
   </div>
-  <div class="chip-row" id="category-chips">
-    <button class="chip active" data-cat="all">All</button>
-    <button class="chip" data-cat="automation">Automation</button>
-    <button class="chip" data-cat="links">Links</button>
-    <button class="chip" data-cat="ui">UI &amp; theming</button>
-    <button class="chip" data-cat="deploy">Deploy system</button>
-  </div>
-  <select class="sort-select" id="sort-select">
-    <option value="date-desc">Newest first</option>
-    <option value="date-asc">Oldest first</option>
-    <option value="size-desc">Largest change</option>
-    <option value="size-asc">Smallest change</option>
-    <option value="alpha">A&ndash;Z</option>
-  </select>
-  <div class="view-switch" role="group" aria-label="View">
-    <button type="button" data-view="cards" aria-pressed="true">Cards</button>
-    <button type="button" data-view="preview" aria-pressed="false">Preview</button>
-    <button type="button" data-view="table" aria-pressed="false">Table</button>
-  </div>
-  <div class="theme-toggle" role="group" aria-label="Theme">
-    <button type="button" data-theme-choice="light" aria-pressed="false" title="Light">&#9728;</button>
-    <button type="button" data-theme-choice="system" aria-pressed="true" title="Match system">&#9680;</button>
-    <button type="button" data-theme-choice="dark" aria-pressed="false" title="Dark">&#9790;</button>
-  </div>
-</div>
+</header>
 
 <main>
-  <div class="result-count" id="result-count"></div>
-  <div class="grid" id="view-cards"></div>
-  <div class="grid" id="view-preview" hidden></div>
-  <table class="feature-table" id="view-table" hidden>
-    <thead>
-      <tr>
-        <th data-sort="alpha">Feature</th>
-        <th data-sort="cat">Category</th>
-        <th data-sort="date-desc">Added</th>
-        <th data-sort="size-desc">Changed</th>
-        <th>Commits</th>
-      </tr>
-    </thead>
-    <tbody id="table-body"></tbody>
-  </table>
+  <div class="container page-head">
+    <h1>Features</h1>
+    <p>Everything this fork has that upstream doesn't. Open one for what it does, why it exists, and how to try it.</p>
+  </div>
+
+  <div class="toolbar-wrap">
+    <div class="container toolbar" role="search">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <label class="visually-hidden" for="search">Search features</label>
+        <input type="search" id="search" placeholder="Search features" autocomplete="off" />
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+      <div class="chip-row" id="category-chips" role="group" aria-label="Category">
+        <button type="button" class="chip" data-cat="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-cat="automation" aria-pressed="false">Automation</button>
+        <button type="button" class="chip" data-cat="links" aria-pressed="false">Links</button>
+        <button type="button" class="chip" data-cat="ui" aria-pressed="false">UI &amp; theming</button>
+        <button type="button" class="chip" data-cat="deploy" aria-pressed="false">Deploy system</button>
+      </div>
+      <div class="toolbar-end">
+        <label class="visually-hidden" for="sort-select">Sort by</label>
+        <select class="select" id="sort-select">
+          <option value="date-desc">Newest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="size-desc">Largest change</option>
+          <option value="size-asc">Smallest change</option>
+          <option value="alpha">A&ndash;Z</option>
+          <option value="cat">Category</option>
+        </select>
+        <div class="view-switch" role="group" aria-label="Layout">
+          <button type="button" data-view="cards" aria-pressed="true">Cards</button>
+          <button type="button" data-view="preview" aria-pressed="false">Preview</button>
+          <button type="button" data-view="table" aria-pressed="false">Table</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="results" tabindex="-1">
+    <p class="result-count" id="result-count" aria-live="polite"></p>
+    <div class="feature-grid" id="view-cards"></div>
+    <div class="feature-grid preview" id="view-preview" hidden></div>
+    <div class="table-scroll" id="view-table" hidden>
+      <table class="feature-table">
+        <thead>
+          <tr>
+            <th scope="col" data-sort-col="alpha"><button type="button">Feature</button></th>
+            <th scope="col" data-sort-col="cat"><button type="button">Category</button></th>
+            <th scope="col" data-sort-col="date-desc"><button type="button">Added</button></th>
+            <th scope="col" data-sort-col="size-desc" data-section="stats"><button type="button">Changed</button></th>
+            <th scope="col" data-section="commits"><span class="plain">Commits</span></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty" hidden>
+      <p>No feature matches that search.</p>
+      <button type="button" class="btn btn-quiet btn-sm" id="clear-filters">Clear search and filters</button>
+    </div>
+  </div>
 </main>
 
+<footer class="site-footer">
+  <div class="container">
+    <span>Mullion, a fork of <a href="https://github.com/microsoft/terminal">microsoft/terminal</a>. MIT licensed.</span>
+    <nav aria-label="Footer">
+      <a href="index.html">Home</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub</a>
+      <a href="https://github.com/aylith-labs/mullion/blob/main/README.md">README</a>
+    </nav>
+  </div>
+</footer>
+
 <script src="features.js"></script>
+<script src="feature-details.js"></script>
 <script>
-  const REPO = "https://github.com/aylith-labs/mullion/commit/";
+(function () {
+  var REPO = "https://github.com/aylith-labs/mullion/commit/";
+  var FEATURES = window.FEATURES || [];
+  var DETAILS = window.FEATURE_DETAILS || {};
+  var VIEWS = ["cards", "preview", "table"];
+  var CATS = ["all", "automation", "links", "ui", "deploy"];
+  var SORTS = ["date-desc", "date-asc", "size-desc", "size-asc", "alpha", "cat"];
 
-  const FEATURES = window.FEATURES;
+  // Filters live in the URL, so a filtered list can be linked to (the home
+  // page links straight to ?cat=links) and survives back/forward.
+  function param(name) {
+    var m = new RegExp("[?&]" + name + "=([^&]*)").exec(window.location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : "";
+  }
+  var state = {
+    query: param("q"),
+    cat: CATS.indexOf(param("cat")) !== -1 ? param("cat") : "all",
+    sort: SORTS.indexOf(param("sort")) !== -1 ? param("sort") : "date-desc",
+    view: VIEWS.indexOf(param("view")) !== -1 ? param("view") : "cards"
+  };
+  // The layout is a per-visitor preference rather than part of a link.
+  if (!param("view")) {
+    try { var v = localStorage.getItem("mullion-features-view"); if (VIEWS.indexOf(v) !== -1) { state.view = v; } } catch (e) {}
+  }
 
-  const state = { query: "", cat: "all", sort: "date-desc", view: "cards" };
+  function writeUrl() {
+    var q = [];
+    if (state.query) { q.push("q=" + encodeURIComponent(state.query)); }
+    if (state.cat !== "all") { q.push("cat=" + state.cat); }
+    if (state.sort !== "date-desc") { q.push("sort=" + state.sort); }
+    var url = window.location.pathname + (q.length ? "?" + q.join("&") : "");
+    try { history.replaceState(null, "", url); } catch (e) {}
+  }
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function plain(html) { var d = document.createElement("div"); d.innerHTML = html; return d.textContent || ""; }
 
   function matches(f) {
-    if (state.cat !== "all" && f.cat !== state.cat) return false;
-    if (!state.query) return true;
-    const q = state.query.toLowerCase();
-    return f.title.toLowerCase().indexOf(q) !== -1 || f.desc.toLowerCase().indexOf(q) !== -1;
+    if (state.cat !== "all" && f.cat !== state.cat) { return false; }
+    if (!state.query) { return true; }
+    var q = state.query.toLowerCase();
+    return (f.title + " " + plain(f.desc) + " " + f.catLabel).toLowerCase().indexOf(q) !== -1;
   }
 
   function compare(a, b) {
     switch (state.sort) {
-      case "date-asc": return a.dateAdded.localeCompare(b.dateAdded);
-      case "date-desc": return b.dateAdded.localeCompare(a.dateAdded);
+      case "date-asc": return a.dateAdded.localeCompare(b.dateAdded) || a.title.localeCompare(b.title);
+      case "date-desc": return b.dateAdded.localeCompare(a.dateAdded) || a.title.localeCompare(b.title);
       case "size-desc": return (b.ins + b.del) - (a.ins + a.del);
       case "size-asc": return (a.ins + a.del) - (b.ins + b.del);
       case "alpha": return a.title.localeCompare(b.title);
@@ -364,150 +165,163 @@
     }
   }
 
+  function docHref(f) { return "feature.html?id=" + encodeURIComponent(f.id); }
+
   function commitLinks(f) {
     return f.commits.map(function (sha) {
-      return '<a class="commit-link" href="' + REPO + sha + '" target="_blank" rel="noopener">' + sha.slice(0, 7) + '</a>';
-    }).join(" ");
+      return '<a class="commit-link" href="' + REPO + sha + '" target="_blank" rel="noopener" aria-label="Commit ' + sha.slice(0, 7) + ' on GitHub">' + sha.slice(0, 7) + "</a>";
+    }).join("");
+  }
+
+  function stats(f) {
+    return '<span data-section="stats"><span class="stat-add">+' + f.ins.toLocaleString() + '</span> <span class="stat-del">&minus;' +
+      f.del.toLocaleString() + "</span> &middot; " + f.files + " files</span>";
   }
 
   function metaRow(f) {
-    return '<div class="meta-row">' +
-      '<span>' + f.dateAdded + '</span>' +
-      '<span><span class="stat-add">+' + f.ins + '</span> <span class="stat-del">&minus;' + f.del + '</span> &middot; ' + f.files + ' files</span>' +
-      '</div>';
+    return '<div class="meta-row"><span>Added ' + Mullion.timeTag(f.dateAdded) + "</span>" + stats(f) + "</div>";
   }
 
-  function docHref(f) { return "feature.html?id=" + encodeURIComponent(f.id); }
+  function badge(f) { return f.standout ? '<span class="tag tag-success">Standout</span>' : ""; }
 
-  function renderCards(list) {
-    const el = document.getElementById("view-cards");
-    el.innerHTML = list.map(function (f) {
-      return '<article class="card opens' + (f.standout ? ' standout' : '') + '" data-open="' + docHref(f) + '">' +
-        '<span class="kicker">' + f.catLabel + '</span>' +
-        '<h3><a href="' + docHref(f) + '">' + f.title + '</a></h3>' +
-        '<p class="desc">' + f.desc + '</p>' +
-        metaRow(f) +
-        '<div class="table-commits">' + commitLinks(f) + '</div>' +
-        '</article>';
-    }).join("");
+  function firstImage(f) {
+    var d = DETAILS[f.id];
+    if (!d || !d.media) { return null; }
+    for (var i = 0; i < d.media.length; i++) {
+      if (d.media[i].kind !== "video" && !/badge/.test(d.media[i].base)) { return d.media[i]; }
+    }
+    return null;
   }
 
-  function renderPreview(list) {
-    const el = document.getElementById("view-preview");
-    el.innerHTML = list.map(function (f) {
-      return '<article class="card opens' + (f.standout ? ' standout' : '') + '" data-open="' + docHref(f) + '">' +
-        '<div class="preview-visual">' + f.catLabel + '</div>' +
-        '<div class="body">' +
-        '<span class="kicker">' + f.catLabel + '</span>' +
-        '<h3><a href="' + docHref(f) + '">' + f.title + '</a></h3>' +
-        '<p class="desc">' + f.desc + '</p>' +
-        metaRow(f) +
-        '<div class="table-commits">' + commitLinks(f) + '</div>' +
-        '</div></article>';
-    }).join("");
+  function card(f, preview) {
+    var thumb = "";
+    if (preview) {
+      var img = firstImage(f);
+      thumb = img
+        ? '<div class="thumb"><picture><source srcset="media/' + img.base + '-dark.png" media="(prefers-color-scheme: dark)" data-theme-source="dark" />' +
+          '<img src="media/' + img.base + '-light.png" alt="" loading="lazy" /></picture></div>'
+        : '<div class="thumb" aria-hidden="true">No screenshot yet</div>';
+    }
+    return '<article class="fcard">' + thumb +
+      '<div class="card-top"><span class="kicker">' + esc(f.catLabel) + "</span>" + badge(f) + "</div>" +
+      '<h3><a href="' + docHref(f) + '">' + esc(f.title) + "</a></h3>" +
+      '<p class="desc">' + f.desc + "</p>" +
+      metaRow(f) +
+      '<div class="commit-row" data-section="commits">' + commitLinks(f) + "</div>" +
+      "</article>";
   }
 
-  function renderTable(list) {
-    const el = document.getElementById("table-body");
-    el.innerHTML = list.map(function (f) {
-      return '<tr class="opens" data-open="' + docHref(f) + '">' +
-        '<td><strong><a href="' + docHref(f) + '">' + f.title + '</a></strong></td>' +
-        '<td>' + f.catLabel + '</td>' +
-        '<td>' + f.dateAdded + '</td>' +
-        '<td><span class="stat-add">+' + f.ins + '</span> <span class="stat-del">&minus;' + f.del + '</span></td>' +
-        '<td class="table-commits">' + commitLinks(f) + '</td>' +
-        '</tr>';
-    }).join("");
+  function row(f) {
+    return "<tr>" +
+      '<td class="title-cell"><a href="' + docHref(f) + '">' + esc(f.title) + "</a>" + (f.standout ? " " + badge(f) : "") + "</td>" +
+      '<td class="nowrap">' + esc(f.catLabel) + "</td>" +
+      '<td class="nowrap">' + Mullion.timeTag(f.dateAdded) + "</td>" +
+      '<td class="nowrap" data-section="stats"><span class="stat-add">+' + f.ins.toLocaleString() + '</span> <span class="stat-del">&minus;' + f.del.toLocaleString() + "</span></td>" +
+      '<td data-section="commits"><div class="commit-row">' + commitLinks(f) + "</div></td>" +
+      "</tr>";
   }
 
-  function render() {
-    const list = FEATURES.filter(matches).sort(compare);
-    document.getElementById("result-count").textContent =
-      list.length + " of " + FEATURES.length + " features";
-    renderCards(list);
-    renderPreview(list);
-    renderTable(list);
-  }
-
-  // The whole card is a target, but the commit links inside it are their own
-  // destinations -- so a click that landed on any anchor is left alone, and
-  // only the surrounding area opens the feature's page.
-  document.addEventListener("click", function (e) {
-    if (e.target.closest("a")) { return; }
-    const opener = e.target.closest("[data-open]");
-    if (opener) { window.location.href = opener.getAttribute("data-open"); }
-  });
-
-  document.getElementById("search").addEventListener("input", function (e) {
-    state.query = e.target.value;
-    render();
-  });
-
-  document.querySelectorAll("#category-chips .chip").forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      document.querySelectorAll("#category-chips .chip").forEach(function (c) { c.classList.remove("active"); });
-      chip.classList.add("active");
-      state.cat = chip.dataset.cat;
-      render();
-    });
-  });
-
-  document.getElementById("sort-select").addEventListener("change", function (e) {
-    state.sort = e.target.value;
-    render();
-  });
-
-  const viewButtons = document.querySelectorAll(".view-switch button");
-  const viewEls = {
+  var els = {
     cards: document.getElementById("view-cards"),
     preview: document.getElementById("view-preview"),
     table: document.getElementById("view-table")
   };
-  viewButtons.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      viewButtons.forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
-      btn.setAttribute("aria-pressed", "true");
-      state.view = btn.dataset.view;
-      Object.keys(viewEls).forEach(function (key) {
-        viewEls[key].hidden = key !== state.view;
-      });
-    });
-  });
 
-  // Sortable table headers double as the same sort control.
-  document.querySelectorAll("th[data-sort]").forEach(function (th) {
-    th.addEventListener("click", function () {
-      state.sort = th.dataset.sort;
-      // No-ops harmlessly when the column (e.g. Category) has no matching
-      // <option> -- the dropdown just keeps showing whatever it last had.
-      document.getElementById("sort-select").value = state.sort;
-      render();
-    });
-  });
+  function render() {
+    var list = FEATURES.filter(matches).sort(compare);
+    document.getElementById("result-count").textContent =
+      list.length === FEATURES.length ? FEATURES.length + " features" : list.length + " of " + FEATURES.length + " features";
+    document.getElementById("empty").hidden = list.length !== 0;
 
-  (function () {
-    var root = document.documentElement;
-    var buttons = document.querySelectorAll("[data-theme-choice]");
-    var stored = null;
-    try { stored = localStorage.getItem("theme"); } catch (e) {}
-    function apply(choice) {
-      if (choice === "system") root.removeAttribute("data-theme");
-      else root.setAttribute("data-theme", choice);
-      buttons.forEach(function (btn) {
-        btn.setAttribute("aria-pressed", String(btn.dataset.themeChoice === choice));
-      });
+    // Only the visible layout is rendered; switching layouts re-renders.
+    for (var i = 0; i < VIEWS.length; i++) { els[VIEWS[i]].hidden = !list.length || VIEWS[i] !== state.view; }
+    if (state.view === "table") {
+      document.getElementById("table-body").innerHTML = list.map(row).join("");
+    } else {
+      els[state.view].innerHTML = list.map(function (f) { return card(f, state.view === "preview"); }).join("");
     }
-    buttons.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var choice = btn.dataset.themeChoice;
-        apply(choice);
-        try { localStorage.setItem("theme", choice); } catch (e) {}
-      });
-    });
-    apply(stored || "system");
-  })();
+    Mullion.formatDates(document.getElementById("results"));
+    Mullion.syncPictures(document.getElementById("results"));
+    syncControls();
+    writeUrl();
+  }
+
+  function syncControls() {
+    var chips = document.querySelectorAll("#category-chips .chip");
+    for (var i = 0; i < chips.length; i++) {
+      var cat = chips[i].getAttribute("data-cat");
+      chips[i].setAttribute("aria-pressed", String(cat === state.cat));
+      var n = cat === "all" ? FEATURES.length : FEATURES.filter(function (f) { return f.cat === cat; }).length;
+      var label = chips[i].getAttribute("data-label") || chips[i].textContent;
+      chips[i].setAttribute("data-label", label);
+      chips[i].innerHTML = esc(label) + ' <span class="count">' + n + "</span>";
+    }
+    var buttons = document.querySelectorAll(".view-switch button");
+    for (var j = 0; j < buttons.length; j++) {
+      buttons[j].setAttribute("aria-pressed", String(buttons[j].getAttribute("data-view") === state.view));
+    }
+    document.getElementById("sort-select").value = state.sort;
+    var ths = document.querySelectorAll("th[data-sort-col]");
+    for (var k = 0; k < ths.length; k++) {
+      var col = ths[k].getAttribute("data-sort-col");
+      var on = col === state.sort || (col === "date-desc" && state.sort === "date-asc") || (col === "size-desc" && state.sort === "size-asc");
+      if (on) { ths[k].setAttribute("aria-sort", /asc$|alpha|cat/.test(state.sort) ? "ascending" : "descending"); }
+      else { ths[k].removeAttribute("aria-sort"); }
+    }
+  }
+
+  var search = document.getElementById("search");
+  search.value = state.query;
+  search.addEventListener("input", function () { state.query = search.value.trim(); render(); });
+
+  document.getElementById("category-chips").addEventListener("click", function (e) {
+    var chip = e.target.closest(".chip");
+    if (!chip) { return; }
+    state.cat = chip.getAttribute("data-cat");
+    render();
+  });
+
+  document.getElementById("sort-select").addEventListener("change", function (e) { state.sort = e.target.value; render(); });
+
+  document.querySelector(".view-switch").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-view]");
+    if (!b) { return; }
+    state.view = b.getAttribute("data-view");
+    try { localStorage.setItem("mullion-features-view", state.view); } catch (err) {}
+    render();
+  });
+
+  // Column headers sort too; a second click on the same column reverses it.
+  document.querySelector(".feature-table thead").addEventListener("click", function (e) {
+    var th = e.target.closest("th[data-sort-col]");
+    if (!th) { return; }
+    var col = th.getAttribute("data-sort-col");
+    if (col === "date-desc") { state.sort = state.sort === "date-desc" ? "date-asc" : "date-desc"; }
+    else if (col === "size-desc") { state.sort = state.sort === "size-desc" ? "size-asc" : "size-desc"; }
+    else { state.sort = col; }
+    render();
+  });
+
+  document.getElementById("clear-filters").addEventListener("click", function () {
+    state.query = ""; state.cat = "all"; search.value = ""; render(); search.focus();
+  });
+
+  // "/" jumps to search, as on GitHub; Esc in the box clears it.
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      var t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) { return; }
+      e.preventDefault();
+      search.focus();
+      search.select();
+    }
+  });
+  search.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && search.value) { e.stopPropagation(); search.value = ""; state.query = ""; render(); }
+  });
 
   render();
+})();
 </script>
 
 </body>

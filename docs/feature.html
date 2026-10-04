@@ -5,217 +5,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Feature — Mullion</title>
 <meta name="description" content="What this feature does, why it exists, and how to try it in your own build." />
-<style>
-  :root,
-  :root[data-theme="light"] {
-    --bg: #f3f3f3;
-    --card: #ffffff;
-    --control: #fbfbfb;
-    --control-hover: #f6f6f6;
-    --border: #e5e5e5;
-    --stroke-subtle: #ededed;
-    --text: #1b1b1b;
-    --muted: #5d5d5d;
-    --text-tertiary: #8c8c8c;
-    --accent: #005fb8;
-    --on-accent: #ffffff;
-    --accent-text: #005fb8;
-    --success: #0f7b0f;
-    --success-bg: #dff6dd;
-    --elevation-card: 0 0 2px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.09);
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #202020; --card: #2d2d2d; --control: #363636; --control-hover: #3c3c3c;
-      --border: #3a3a3a; --stroke-subtle: #343434;
-      --text: #ffffff; --muted: #cccccc; --text-tertiary: #969696;
-      --accent: #60cdff; --on-accent: #000000; --accent-text: #99ebff;
-      --success: #6ccb5f; --success-bg: #393d1b;
-      --elevation-card: 0 0 2px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.2);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #202020; --card: #2d2d2d; --control: #363636; --control-hover: #3c3c3c;
-    --border: #3a3a3a; --stroke-subtle: #343434;
-    --text: #ffffff; --muted: #cccccc; --text-tertiary: #969696;
-    --accent: #60cdff; --on-accent: #000000; --accent-text: #99ebff;
-    --success: #6ccb5f; --success-bg: #393d1b;
-    --elevation-card: 0 0 2px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.2);
-    color-scheme: dark;
-  }
-
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Segoe UI Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-    line-height: 1.55;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-  }
-  a { color: var(--accent-text); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  code, .mono {
-    font-family: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
-    font-size: 0.92em;
-  }
-  code {
-    background: var(--control);
-    border: 1px solid var(--stroke-subtle);
-    border-radius: 4px;
-    padding: 0.05em 0.35em;
-  }
-
-  /* Pinned header, scrolling body — same structure as the catalogue page. */
-  .topbar {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 24px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-  }
-  .back {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px;
-    border: 1px solid var(--border); border-radius: 4px;
-    background: var(--control); color: var(--text);
-  }
-  .back:hover { background: var(--control-hover); text-decoration: none; }
-  .spacer { flex: 1 1 auto; }
-  .theme-toggle { display: flex; gap: 2px; background: var(--control); border: 1px solid var(--border); border-radius: 4px; padding: 2px; }
-  .theme-toggle button {
-    border: 0; background: transparent; color: var(--muted);
-    padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;
-  }
-  .theme-toggle button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: var(--elevation-card); }
-
-  main { flex: 1 1 auto; overflow-y: auto; }
-  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 24px 96px; }
-
-  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 10px; font-weight: 650; }
-  h2 { font-size: 19px; margin: 40px 0 12px; font-weight: 650; }
-  p { margin: 0 0 14px; }
-  .lede { font-size: 17px; color: var(--muted); margin-bottom: 22px; }
-
-  .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
-  .chip {
-    font-size: 12px; padding: 3px 10px; border-radius: 999px;
-    background: var(--control); border: 1px solid var(--border); color: var(--muted);
-  }
-  .chip.standout { background: var(--success-bg); color: var(--success); border-color: transparent; }
-
-  .stats { display: flex; flex-wrap: wrap; gap: 20px; padding: 14px 18px; margin: 0 0 8px;
-           background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--elevation-card); }
-  .stat .n { font-size: 18px; font-weight: 650; }
-  .stat .l { font-size: 12px; color: var(--text-tertiary); }
-  .add { color: var(--success); }
-
-  figure { margin: 0 0 20px; }
-  figure img { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--elevation-card); }
-  figure video { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 8px; }
-  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
-
-  /* Screenshots ship in both themes; show the one matching the page. */
-  .shot-dark { display: none; }
-  :root[data-theme="dark"] .shot-light { display: none; }
-  :root[data-theme="dark"] .shot-dark { display: block; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .shot-light { display: none; }
-    :root:not([data-theme="light"]) .shot-dark { display: block; }
-  }
-  /* A capture that exists in only one theme is shown in both rather than
-   * leaving the other blank -- the wrong background beats no picture. */
-  .absent { display: none !important; }
-  figure:has(.shot-light.absent) .shot-dark { display: block; }
-  figure:has(.shot-dark.absent) .shot-light { display: block; }
-
-  .pending {
-    padding: 28px; text-align: center; color: var(--text-tertiary); font-size: 13px;
-    background: var(--card); border: 1px dashed var(--border); border-radius: 8px;
-  }
-  /* The placeholder only appears once both captures have failed to load. */
-  figure[data-base] .pending { display: none; }
-  figure.no-media .pending { display: block; }
-  figure.no-media img { display: none !important; }
-
-  ol.steps { margin: 0 0 14px; padding-left: 22px; }
-  ol.steps li { margin-bottom: 8px; }
-  ul.notes { margin: 0 0 14px; padding-left: 22px; }
-  ul.notes li { margin-bottom: 8px; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--stroke-subtle); vertical-align: top; }
-  th { color: var(--text-tertiary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
-  .scroller { overflow-x: auto; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
-
-  .commits { display: flex; flex-wrap: wrap; gap: 8px; }
-  .commits a {
-    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 12px;
-    padding: 4px 10px; border-radius: 4px; background: var(--control); border: 1px solid var(--border);
-  }
-  .missing { padding: 60px 24px; text-align: center; color: var(--muted); }
-</style>
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="site.css" />
+<script src="site.js"></script>
 </head>
 <body>
 
-<div class="topbar">
-  <a class="back" href="features.html">&#8592;&nbsp;All features</a>
-  <div class="spacer"></div>
-  <div class="theme-toggle" role="group" aria-label="Theme">
-    <button type="button" data-theme-choice="light">Light</button>
-    <button type="button" data-theme-choice="system">System</button>
-    <button type="button" data-theme-choice="dark">Dark</button>
-  </div>
-</div>
+<a class="skip-link" href="#content">Skip to content</a>
 
-<main><div class="wrap" id="content"></div></main>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="index.html" aria-label="Mullion home">
+      <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="frame" x="2" y="3" width="22" height="20" rx="4" stroke-width="1.6"/><rect class="bar" x="12" y="3" width="2" height="20"/><rect class="bar" x="2" y="8" width="22" height="1.6"/></svg>
+      Mullion
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="features.html" aria-current="page">Features</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub<svg class="ext" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    </nav>
+    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" title="Display settings" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+</header>
+
+<main><article class="doc" id="content" tabindex="-1"></article></main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>Mullion, a fork of <a href="https://github.com/microsoft/terminal">microsoft/terminal</a>. MIT licensed.</span>
+    <nav aria-label="Footer">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub</a>
+    </nav>
+  </div>
+</footer>
 
 <script src="features.js"></script>
 <script src="feature-details.js"></script>
 <script>
 (function () {
-  // ---- theme, three-state, same contract as the other pages
-  var KEY = "wtfork-theme";
-  function applyTheme(choice) {
-    if (choice === "system") { document.documentElement.removeAttribute("data-theme"); }
-    else { document.documentElement.setAttribute("data-theme", choice); }
-    var buttons = document.querySelectorAll("[data-theme-choice]");
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].setAttribute("aria-pressed", String(buttons[i].dataset.themeChoice === choice));
-    }
-    try { localStorage.setItem(KEY, choice); } catch (e) { /* private mode */ }
-  }
-  var saved = "system";
-  try { saved = localStorage.getItem(KEY) || "system"; } catch (e) { /* private mode */ }
-  applyTheme(saved);
-  document.addEventListener("click", function (e) {
-    var b = e.target.closest ? e.target.closest("[data-theme-choice]") : null;
-    if (b) { applyTheme(b.dataset.themeChoice); }
-  });
-
   function esc(s) {
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
   function param(name) {
     var m = new RegExp("[?&]" + name + "=([^&]*)").exec(window.location.search);
     return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : "";
   }
 
+  var all = window.FEATURES || [];
   var id = param("id");
-  var feature = (window.FEATURES || []).filter(function (f) { return f.id === id; })[0];
+  var feature = all.filter(function (f) { return f.id === id; })[0];
   var host = document.getElementById("content");
 
   if (!feature) {
     host.innerHTML = '<div class="missing"><h1>No such feature</h1>' +
-      '<p>Nothing here is called <code>' + esc(id || "(nothing)") + '</code>.</p>' +
-      '<p><a href="features.html">Back to all features</a></p></div>';
+      "<p>Nothing here is called <code>" + esc(id || "(nothing)") + "</code>.</p>" +
+      '<p><a class="btn btn-secondary" href="features.html">Back to all features</a></p></div>';
     return;
   }
 
@@ -224,23 +72,33 @@
   var repo = "https://github.com/aylith-labs/mullion/commit/";
   var html = "";
 
-  html += '<div class="meta">' +
-    '<span class="chip">' + esc(feature.catLabel) + '</span>' +
-    (feature.standout ? '<span class="chip standout">Standout</span>' : '') +
-    '<span class="chip">Added ' + esc(feature.dateAdded) + '</span>' +
-    '</div>';
-  html += "<h1>" + esc(feature.title) + "</h1>";
-  html += '<p class="lede">' + esc(feature.desc) + "</p>";
+  // Every optional block is a <section data-section="<id>">, so the display
+  // settings can show or hide it without re-rendering (site.js + site.css).
+  function section(key, title, body) {
+    return '<section data-section="' + key + '" aria-labelledby="h-' + key + '"><h2 id="h-' + key + '">' + title + "</h2>" + body + "</section>";
+  }
 
-  html += '<div class="stats">' +
-    '<div class="stat"><div class="n add">+' + feature.ins.toLocaleString() + "</div><div class=\"l\">added</div></div>" +
-    '<div class="stat"><div class="n">&minus;' + feature.del.toLocaleString() + "</div><div class=\"l\">removed</div></div>" +
-    '<div class="stat"><div class="n">' + feature.files + "</div><div class=\"l\">files</div></div>" +
-    '<div class="stat"><div class="n">' + feature.commits.length + "</div><div class=\"l\">commits</div></div>" +
+  html += '<nav class="crumbs" aria-label="Breadcrumb">' +
+    '<a href="features.html">Features</a><span class="sep" aria-hidden="true">/</span>' +
+    '<a href="features.html?cat=' + encodeURIComponent(feature.cat) + '">' + esc(feature.catLabel) + "</a>" +
+    "</nav>";
+  html += '<div class="meta">' +
+    '<span class="tag tag-accent">' + esc(feature.catLabel) + "</span>" +
+    (feature.standout ? '<span class="tag tag-success">Standout</span>' : "") +
+    '<span class="tag">Added&nbsp;' + Mullion.timeTag(feature.dateAdded) + "</span>" +
+    "</div>";
+  html += "<h1>" + esc(feature.title) + "</h1>";
+  html += '<p class="lede">' + feature.desc + "</p>";
+
+  html += '<div class="stats" data-section="stats" role="group" aria-label="Change size">' +
+    '<div class="stat"><div class="n stat-add">+' + feature.ins.toLocaleString() + '</div><div class="l">lines added</div></div>' +
+    '<div class="stat"><div class="n">&minus;' + feature.del.toLocaleString() + '</div><div class="l">lines removed</div></div>' +
+    '<div class="stat"><div class="n">' + feature.files + '</div><div class="l">files</div></div>' +
+    '<div class="stat"><div class="n">' + feature.commits.length + '</div><div class="l">commit' + (feature.commits.length === 1 ? "" : "s") + "</div></div>" +
     "</div>";
 
   if (d && d.media && d.media.length) {
-    html += "<h2>What it looks like</h2>";
+    var figs = "";
     for (var m = 0; m < d.media.length; m++) {
       var item = d.media[m];
       var alt = esc(item.caption);
@@ -250,61 +108,75 @@
         // than something that demands to be started; controls stay available
         // for anyone who wants to scrub it.
         body =
-          '<video class="shot-light" src="media/' + item.base + '-light.mp4" ' +
+          '<video class="shot-light" src="media/' + item.base + '-light.mp4" aria-label="' + alt + '" ' +
           'autoplay loop muted playsinline controls preload="metadata"></video>' +
-          '<video class="shot-dark" src="media/' + item.base + '-dark.mp4" ' +
+          '<video class="shot-dark" src="media/' + item.base + '-dark.mp4" aria-label="' + alt + '" ' +
           'autoplay loop muted playsinline controls preload="metadata"></video>';
       } else {
         body =
           '<img class="shot-light" src="media/' + item.base + '-light.png" alt="' + alt + '" loading="lazy" />' +
           '<img class="shot-dark" src="media/' + item.base + '-dark.png" alt="' + alt + '" loading="lazy" />';
       }
-      html += '<figure data-base="' + esc(item.base) + '">' + body +
+      figs += '<figure data-base="' + esc(item.base) + '">' + body +
         '<div class="pending">Capture pending</div>' +
-        "<figcaption>" + alt + "</figcaption></figure>";
+        '<figcaption aria-hidden="true">' + alt + "</figcaption></figure>";
     }
+    html += section("media", "What it looks like", figs);
   }
 
-  if (d && d.problem) { html += "<h2>Why it exists</h2><p>" + d.problem + "</p>"; }
-  if (d && d.how) { html += "<h2>How it works</h2><p>" + d.how + "</p>"; }
+  if (d && d.problem) { html += section("problem", "Why it exists", "<p>" + d.problem + "</p>"); }
+  if (d && d.how) { html += section("how", "How it works", "<p>" + d.how + "</p>"); }
 
   if (d && d.steps && d.steps.length) {
-    html += "<h2>Try it</h2><ol class=\"steps\">";
-    for (var s = 0; s < d.steps.length; s++) { html += "<li>" + d.steps[s] + "</li>"; }
-    html += "</ol>";
+    var steps = '<ol class="steps">';
+    for (var s = 0; s < d.steps.length; s++) { steps += "<li>" + d.steps[s] + "</li>"; }
+    html += section("steps", "Try it", steps + "</ol>");
   }
 
   if (d && d.settings && d.settings.length) {
-    html += '<h2>Settings</h2><div class="scroller"><table><thead><tr>' +
-      "<th>Key</th><th>Default</th><th>What it does</th></tr></thead><tbody>";
+    var table = '<div class="table-scroll"><table><thead><tr>' +
+      '<th scope="col">Key</th><th scope="col">Default</th><th scope="col">What it does</th></tr></thead><tbody>';
     for (var t = 0; t < d.settings.length; t++) {
-      var row = d.settings[t];
-      html += "<tr><td><code>" + esc(row.key) + "</code></td><td><code>" + esc(row.def) + "</code></td><td>" + row.note + "</td></tr>";
+      var r = d.settings[t];
+      table += "<tr><td><code>" + esc(r.key) + "</code></td><td><code>" + esc(r.def) + "</code></td><td>" + r.note + "</td></tr>";
     }
-    html += "</tbody></table></div>";
+    html += section("settings", "Settings", table + "</tbody></table></div>");
   }
 
   if (d && d.notes && d.notes.length) {
-    html += '<h2>Worth knowing</h2><ul class="notes">';
-    for (var n = 0; n < d.notes.length; n++) { html += "<li>" + d.notes[n] + "</li>"; }
-    html += "</ul>";
+    var notes = '<ul class="notes">';
+    for (var n = 0; n < d.notes.length; n++) { notes += "<li>" + d.notes[n] + "</li>"; }
+    html += section("notes", "Worth knowing", notes + "</ul>");
   }
 
-  if (d && d.upstream) { html += "<h2>What upstream did</h2><p>" + d.upstream + "</p>"; }
+  if (d && d.upstream) { html += section("upstream", "What upstream did", "<p>" + d.upstream + "</p>"); }
 
   if (!d) {
-    html += '<h2>Documentation</h2><p class="pending" style="text-align:left">' +
-      "The long-form write-up for this one is still to be written. The summary above, the numbers, " +
-      "and the commits below are accurate in the meantime.</p>";
+    html += '<section aria-labelledby="h-doc"><h2 id="h-doc">Documentation</h2><div class="callout"><p>' +
+      "The long-form write-up for this one is still to be written. The summary above is accurate in the meantime." +
+      "</p></div></section>";
   }
 
-  html += '<h2>Commits</h2><div class="commits">';
+  var commits = '<div class="commits">';
   for (var c = 0; c < feature.commits.length; c++) {
-    html += '<a href="' + repo + feature.commits[c] + '" target="_blank" rel="noopener">' + esc(feature.commits[c]) + "</a>";
+    commits += '<a class="commit-link" href="' + repo + feature.commits[c] + '" target="_blank" rel="noopener">' + esc(feature.commits[c]) + "</a>";
   }
-  html += "</div>";
+  html += section("commits", "Commits", commits + "</div>");
+
+  // Previous / next in the catalogue's default order (newest first), so the
+  // pages can be read straight through.
+  var ordered = all.slice().sort(function (a, b) { return b.dateAdded.localeCompare(a.dateAdded) || a.title.localeCompare(b.title); });
+  var at = ordered.indexOf(feature);
+  var prev = ordered[at - 1], next = ordered[at + 1];
+  if (prev || next) {
+    html += '<nav class="pager" aria-label="More features">' +
+      (prev ? '<a class="prev" href="feature.html?id=' + encodeURIComponent(prev.id) + '"><span class="dir">&larr; Newer</span><span class="t">' + esc(prev.title) + "</span></a>" : "") +
+      (next ? '<a class="next" href="feature.html?id=' + encodeURIComponent(next.id) + '"><span class="dir">Older &rarr;</span><span class="t">' + esc(next.title) + "</span></a>" : "") +
+      "</nav>";
+  }
 
   host.innerHTML = html;
+  Mullion.formatDates(host);
 
   // A figure shows its placeholder until a real capture loads. Wiring this up
   // after insertion, rather than as an inline onerror attribute, keeps the
