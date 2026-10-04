@@ -1846,6 +1846,18 @@ std::wstring Utils::WslDistroForCommandline(std::wstring_view commandline, const
         exePath = argv.get()[0];
     }
 
+    // A Windows shell is never a WSL pane, whatever pathTranslationStyle says. That
+    // setting is a drag-and-drop preference, and putting it in profiles.defaults is a
+    // reasonable thing to do on a WSL-heavy machine -- at which point every PowerShell
+    // tab inherits it. Taken as a tell, it turned those tabs into "Ubuntu" panes: session
+    // resume looked for their programs inside the distro, found nothing, and never saved
+    // a resume command for them, and "~/" in their output resolved to the WSL home.
+    if (const auto launcher = _normalizedLauncherName(exePath);
+        launcher == L"cmd" || launcher == L"powershell" || launcher == L"pwsh")
+    {
+        return {};
+    }
+
     const auto launcherDistro = _wslDistroMatchingLauncher(exePath);
 
     // Is this pane WSL at all? Only then may a bare POSIX path be read as one of its own.

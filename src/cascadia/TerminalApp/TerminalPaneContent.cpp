@@ -144,6 +144,14 @@ namespace winrt::TerminalApp::implementation
             if (!_resumeCommand.empty())
             {
                 args.ResumeCommand(_resumeCommand);
+                // Restore the pane where the program was running, not where its shell
+                // started: `claude --resume <id>` and `--continue` both look up the
+                // conversation by directory, and a shell that never reported its cwd
+                // would otherwise come back in the profile's home.
+                if (::Microsoft::Console::Utils::IsValidDirectory(_resumeDirectory.c_str()))
+                {
+                    args.StartingDirectory(_resumeDirectory);
+                }
             }
             break;
         }

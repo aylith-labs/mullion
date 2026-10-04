@@ -37,6 +37,7 @@ class UtilsTests
     TEST_METHOD(TestResolveFileUriTarget);
     TEST_METHOD(TestStripUriFragment);
     TEST_METHOD(TestIsValidDirectory);
+    TEST_METHOD(TestWslDistroIgnoresWindowsShells);
 
     void _VerifyXTermColorResult(const std::wstring_view wstr, DWORD colorValue);
     void _VerifyXTermColorInvalid(const std::wstring_view wstr);
@@ -703,6 +704,18 @@ void UtilsTests::TestStripUriFragment()
 
     VERIFY_ARE_EQUAL(L"", strip(L""));
     VERIFY_ARE_EQUAL(L"", strip(L"#L1"));
+}
+
+void UtilsTests::TestWslDistroIgnoresWindowsShells()
+{
+    // pathTranslationStyle "wsl" set in profiles.defaults reaches every profile. A
+    // Windows shell must not become a WSL pane because of it: that cost PowerShell
+    // tabs their session resume, and sent "~/" in them to the WSL home.
+    VERIFY_ARE_EQUAL(std::wstring{}, WslDistroForCommandline(LR"("C:\Program Files\PowerShell\7\pwsh.exe")", true));
+    VERIFY_ARE_EQUAL(std::wstring{}, WslDistroForCommandline(LR"(%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo)", true));
+    VERIFY_ARE_EQUAL(std::wstring{}, WslDistroForCommandline(L"cmd.exe /k", true));
+    // An explicit WSL launch is still WSL, whatever the flag says.
+    VERIFY_ARE_EQUAL(std::wstring{ L"Debian" }, WslDistroForCommandline(L"wsl.exe -d Debian", false));
 }
 
 void UtilsTests::TestIsValidDirectory()

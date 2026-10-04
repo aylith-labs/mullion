@@ -210,6 +210,70 @@ namespace TerminalApp::SessionResume
             return commandLine;
         }
 
+        // The working directory of a running process, read from the same PEB. A pane's
+        // own cwd is only known when its shell reports one (OSC 7 / 9;9), and plain
+        // PowerShell does not -- so without this a claude started in a project came
+        // back in the profile's home, where --resume or --continue finds the wrong
+        // conversation or none.
+        //
+        // winternl.h hides CurrentDirectory inside RTL_USER_PROCESS_PARAMETERS's
+        // Reserved2. Its DosPath is the UNICODE_STRING after MaximumLength, Length,
+        // Flags, DebugFlags (16 bytes) and five pointer-sized fields (ConsoleHandle,
+        // ConsoleFlags, StandardInput, StandardOutput, StandardError): 0x38 on 64-bit,
+        // 0x24 on 32-bit. That layout has not moved since NT 3.1, and every debugger
+        // and process explorer reads it the same way. Same-bitness only, like
+        // CommandLineOf.
+        std::wstring CurrentDirectoryOf(DWORD pid)
+        {
+            wil::unique_handle process{ OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid) };
+            if (!process)
+            {
+                return {};
+            }
+
+            struct PROCESS_BASIC_INFORMATION
+            {
+                NTSTATUS ExitStatus;
+                PPEB PebBaseAddress;
+                ULONG_PTR AffinityMask;
+                KPRIORITY BasePriority;
+                ULONG_PTR UniqueProcessId;
+                ULONG_PTR InheritedFromUniqueProcessId;
+            } info{};
+
+            const auto status = NtQueryInformationProcess(process.get(), ProcessBasicInformation, &info, sizeof(info), nullptr);
+            if (status < 0 || !info.PebBaseAddress)
+            {
+                return {};
+            }
+
+            PEB peb{};
+            if (!ReadProcessMemory(process.get(), info.PebBaseAddress, &peb, sizeof(peb), nullptr) || !peb.ProcessParameters)
+            {
+                return {};
+            }
+
+            constexpr size_t currentDirectoryOffset = 16 + 5 * sizeof(void*);
+            UNICODE_STRING dosPath{};
+            const auto at = reinterpret_cast<const BYTE*>(peb.ProcessParameters) + currentDirectoryOffset;
+            if (!ReadProcessMemory(process.get(), at, &dosPath, sizeof(dosPath), nullptr) || !dosPath.Buffer || dosPath.Length == 0 || dosPath.Length > 32767 * sizeof(wchar_t))
+            {
+                return {};
+            }
+
+            std::wstring directory(dosPath.Length / sizeof(wchar_t), L'\0');
+            if (!ReadProcessMemory(process.get(), dosPath.Buffer, directory.data(), dosPath.Length, nullptr))
+            {
+                return {};
+            }
+            // Stored with a trailing separator ("C:\work\"). Keep it only for a root.
+            while (directory.size() > 3 && (directory.back() == L'\\' || directory.back() == L'/'))
+            {
+                directory.pop_back();
+            }
+            return directory;
+        }
+
         std::vector<std::wstring> SplitCommandLine(const std::wstring& commandLine)
         {
             std::vector<std::wstring> argv;
@@ -775,14 +839,14 @@ exit 0
         // Getting back into a multiplexer is an attach, not a re-launch.
         if (multiplexer)
         {
-            return ResumePlan{ MultiplexerResume(name, original), false };
+            return ResumePlan{ MultiplexerResume(name, original), false, captured.Cwd };
         }
 
         if (!agent || captured.AgentSessionId.empty())
         {
             // Replayed exactly as found, interpreter and all: we are not
             // rewriting a command we have no table row for.
-            return ResumePlan{ JoinArgv(original), false };
+            return ResumePlan{ JoinArgv(original), false, captured.Cwd };
         }
 
         auto argv = original;
@@ -822,7 +886,7 @@ exit 0
             break;
         }
 
-        return ResumePlan{ JoinArgv(rebuilt), true };
+        return ResumePlan{ JoinArgv(rebuilt), true, captured.Cwd };
     }
 
     CaptureOutput Capture(const std::vector<PaneProbe>& panes, bool urgent)
@@ -948,6 +1012,15 @@ exit 0
                 }
 
                 CapturedPane found{ pane.SessionId, std::move(argv), {}, {} };
+                // The program's own directory beats the pane's: it is what the
+                // program actually runs in, and it is known even when the shell
+                // never reported a cwd.
+                found.Cwd = CurrentDirectoryOf(*worker);
+                const auto cwd = found.Cwd.empty() ? pane.Cwd : found.Cwd;
+                if (found.Cwd.empty())
+                {
+                    found.Cwd = pane.Cwd;
+                }
 
                 auto name = BaseName(found.Argv[0]);
                 if (NameIn(name, ScriptHosts, std::size(ScriptHosts)) && found.Argv.size() > 1 && !found.Argv[1].starts_with(L'-'))
@@ -959,14 +1032,14 @@ exit 0
                 // recorded for this directory. Panes sharing a cwd take
                 // successive transcripts rather than all claiming the newest
                 // one -- still a guess, but not a guess that collides.
-                if (til::equals_insensitive_ascii(name, L"claude") && !pane.Cwd.empty())
+                if (til::equals_insensitive_ascii(name, L"claude") && !cwd.empty())
                 {
-                    const auto entry = transcriptsByCwd.find(pane.Cwd);
+                    const auto entry = transcriptsByCwd.find(cwd);
                     if (entry == transcriptsByCwd.end())
                     {
-                        transcriptsByCwd.emplace(pane.Cwd, TranscriptsForCwd(pane.Cwd));
+                        transcriptsByCwd.emplace(cwd, TranscriptsForCwd(cwd));
                     }
-                    auto& pool = transcriptsByCwd[pane.Cwd];
+                    auto& pool = transcriptsByCwd[cwd];
                     if (!pool.empty())
                     {
                         found.AgentSessionId = pool.front();

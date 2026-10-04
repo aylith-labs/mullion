@@ -153,7 +153,7 @@ namespace winrt::TerminalApp::implementation
     // Hand each plan back to the pane it came from. Re-walks rather than
     // holding pane pointers across the background hop, because a pane can be
     // closed while the probe is still running.
-    void TerminalPage::_applyResumeCommands(const std::map<std::wstring, winrt::hstring>& commands, const std::set<std::wstring>& unknown)
+    void TerminalPage::_applyResumeCommands(const std::map<std::wstring, std::pair<winrt::hstring, winrt::hstring>>& commands, const std::set<std::wstring>& unknown)
     {
         for (const auto& tab : _tabs)
         {
@@ -201,7 +201,8 @@ namespace winrt::TerminalApp::implementation
                 const auto impl = winrt::get_self<implementation::TerminalPaneContent>(termContent);
                 // A pane that no longer resolves to anything resumable is
                 // cleared, not left holding a stale command from last time.
-                impl->ResumeCommand(found == commands.end() ? winrt::hstring{} : found->second);
+                impl->ResumeCommand(found == commands.end() ? winrt::hstring{} : found->second.first);
+                impl->ResumeDirectory(found == commands.end() ? winrt::hstring{} : found->second.second);
             });
         }
     }
@@ -210,7 +211,7 @@ namespace winrt::TerminalApp::implementation
     {
         struct ResumeCapture
         {
-            std::map<std::wstring, winrt::hstring> Commands;
+            std::map<std::wstring, std::pair<winrt::hstring, winrt::hstring>> Commands;
             std::set<std::wstring> Unknown;
         };
     }
@@ -225,7 +226,7 @@ namespace winrt::TerminalApp::implementation
         {
             if (const auto plan = ::TerminalApp::SessionResume::BuildPlan(pane, policy))
             {
-                result.Commands.emplace(pane.SessionId, winrt::hstring{ plan->CommandLine });
+                result.Commands.emplace(pane.SessionId, std::pair{ winrt::hstring{ plan->CommandLine }, winrt::hstring{ plan->WorkingDirectory } });
             }
         }
         result.Unknown.insert(std::make_move_iterator(captured.Unknown.begin()), std::make_move_iterator(captured.Unknown.end()));

@@ -62,6 +62,9 @@ namespace winrt::TerminalApp::implementation
         // inside the distro -- far too slow to do while building args.
         void ResumeCommand(const winrt::hstring& command) { _resumeCommand = command; }
         winrt::hstring ResumeCommand() const noexcept { return _resumeCommand; }
+        // Where the resumed program was running, read from the program itself. Persisted
+        // as the pane's starting directory, so the command runs where it belongs.
+        void ResumeDirectory(const winrt::hstring& directory) { _resumeDirectory = directory; }
 
         winrt::hstring Title() { return _control.Title(); }
         uint64_t TaskbarState() { return _control.TaskbarState(); }
@@ -85,6 +88,7 @@ namespace winrt::TerminalApp::implementation
         std::shared_ptr<TerminalSettingsCache> _cache{};
         bool _isDefTermSession{ false };
         winrt::hstring _resumeCommand{};
+        winrt::hstring _resumeDirectory{};
 
         struct ControlEventTokens
         {

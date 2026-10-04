@@ -111,6 +111,10 @@ namespace TerminalApp::SessionResume
         std::vector<std::wstring> Argv; // foreground argv, flags included
         std::wstring AgentSessionId; // empty unless an agent session was found
         std::wstring TranscriptPath; // evidence the session is resumable
+        // Where the foreground program runs, when it could be read (native panes:
+        // from its PEB). The restored pane starts here, so the resume command runs
+        // in the directory its conversation belongs to.
+        std::wstring Cwd;
     };
 
     // What to type into the restored pane's shell.
@@ -122,6 +126,9 @@ namespace TerminalApp::SessionResume
         // saved scrollback: the agent redraws its own history, and showing
         // both leaves the pane with two copies of the same transcript.
         bool ResumesAgentSession{ false };
+        // Where to start the restored pane so CommandLine runs in the right place.
+        // Empty when unknown, which leaves the pane's own starting directory alone.
+        std::wstring WorkingDirectory;
     };
 
     // Which programs the user has allowed back.
