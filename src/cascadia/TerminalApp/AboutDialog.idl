@@ -13,9 +13,5 @@ namespace TerminalApp
         String BuildBranch { get; };
         String BuildTime { get; };
         String BuildExePath { get; };
-
-        Boolean CheckingForUpdates { get; };
-        Boolean UpdatesAvailable { get; };
-        String UpdateStatusText { get; };
     }
 }

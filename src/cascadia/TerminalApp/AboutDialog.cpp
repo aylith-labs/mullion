@@ -29,7 +29,10 @@ namespace winrt::TerminalApp::implementation
     AboutDialog::AboutDialog()
     {
         InitializeComponent();
-        _queueUpdateCheck();
+        // Set here rather than from the resources, whose PrimaryButtonText is still
+        // upstream's "Send feedback" in every locale.
+        PrimaryButtonText(RS_(L"AboutDialog_ReportIssueButton"));
+        _PopulateReleaseNotes();
     }
 
     winrt::hstring AboutDialog::ApplicationDisplayName()
@@ -77,114 +80,119 @@ namespace winrt::TerminalApp::implementation
         Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(package);
     }
 
-    void AboutDialog::_SendFeedbackOnClick(const IInspectable& /*sender*/, const Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs& /*eventArgs*/)
+    // The dialog's one button opens a new issue on Mullion's own tracker. Upstream's
+    // went to Microsoft's feedback pages, which know nothing about this fork.
+    void AboutDialog::_ReportIssueOnClick(const IInspectable& /*sender*/, const Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs& /*eventArgs*/)
     {
-#if defined(WT_BRANDING_RELEASE)
-        ShellExecute(nullptr, nullptr, L"https://go.microsoft.com/fwlink/?linkid=2125419", nullptr, nullptr, SW_SHOW);
-#else
-        ShellExecute(nullptr, nullptr, L"https://go.microsoft.com/fwlink/?linkid=2204904", nullptr, nullptr, SW_SHOW);
-#endif
+        ShellExecute(nullptr, nullptr, L"https://github.com/aylith-labs/mullion/issues/new", nullptr, nullptr, SW_SHOW);
     }
 
-    void AboutDialog::_ThirdPartyNoticesOnClick(const IInspectable& /*sender*/, const Windows::UI::Xaml::RoutedEventArgs& /*eventArgs*/)
+    // One collapsed group per CI build of main, newest first and the newest open,
+    // titled by how long ago it was built. The list is compiled in
+    // (TerminalBuildInfo.h, from tools/Write-ReleaseNotes.ps1); a build made
+    // anywhere but CI has none and says so instead.
+    void AboutDialog::_PopulateReleaseNotes()
     {
-        std::filesystem::path currentPath{ wil::GetModuleFileNameW<std::wstring>(nullptr) };
-        currentPath.replace_filename(L"NOTICE.html");
-        ShellExecute(nullptr, nullptr, currentPath.c_str(), nullptr, nullptr, SW_SHOW);
-    }
+        namespace WUXC = winrt::Windows::UI::Xaml::Controls;
+        namespace MUXC = winrt::Microsoft::UI::Xaml::Controls;
 
-    safe_void_coroutine AboutDialog::_queueUpdateCheck()
-    {
-        auto strongThis = get_strong();
-        auto now{ std::chrono::system_clock::now() };
-        if (now - _lastUpdateCheck < std::chrono::days{ 1 })
+        if (TerminalReleaseNoteBuildCount == 0 || TerminalReleaseNoteBuildList == nullptr)
         {
-            co_return;
-        }
-        _lastUpdateCheck = now;
-
-        if (!IsPackaged())
-        {
-            co_return;
+            ReleaseNotesEmpty().Visibility(WUX::Visibility::Visible);
+            return;
         }
 
-        co_await wil::resume_foreground(strongThis->Dispatcher());
-        UpdatesAvailable(false);
-        CheckingForUpdates(true);
+        const std::wstring_view runningCommit{ TERMINAL_BUILD_COMMIT_FULL };
+        const auto monospace = WUX::Media::FontFamily{ L"Cascadia Mono, Consolas, monospace" };
+        const auto list = ReleaseNotesList();
 
-        try
+        for (int i = 0; i < TerminalReleaseNoteBuildCount; ++i)
         {
-#ifdef WT_BRANDING_DEV
-            // **DEV BRANDING**: Always sleep for three seconds and then report that
-            // there is an update available. This lets us test the system.
-            co_await winrt::resume_after(std::chrono::seconds{ 3 });
-            co_await wil::resume_foreground(strongThis->Dispatcher());
-            UpdateStatusText(RS_(L"AboutDialog_UpdateSimulated"));
-            UpdatesAvailable(true);
-#else // release build, likely has a store context
-            bool packageManagerAnswered{ false };
+            const auto& build = TerminalReleaseNoteBuildList[i];
+            const std::wstring_view sha{ build.Sha };
+            const auto isRunning = !sha.empty() && runningCommit.starts_with(sha);
 
-            try
+            // "3 hours ago", with the absolute time on hover.
+            auto age = ::TerminalApp::BuildInfo::RelativeAge(build.BuiltAt);
+            if (!age.empty())
             {
-                if (auto currentPackage{ winrt::Windows::ApplicationModel::Package::Current() })
+                age[0] = static_cast<wchar_t>(towupper(age[0]));
+            }
+            std::wstring absolute;
+            {
+                std::tm utc{};
+                const auto seconds = static_cast<std::time_t>(build.BuiltAt);
+                if (gmtime_s(&utc, &seconds) == 0)
                 {
-                    // We need to look up our package in the Package Manager; we cannot use Current
-                    winrt::Windows::Management::Deployment::PackageManager pm;
-                    if (auto lookedUpPackage{ pm.FindPackageForUser(winrt::hstring{}, currentPackage.Id().FullName()) })
+                    wchar_t buffer[32]{};
+                    if (wcsftime(buffer, std::size(buffer), L"%Y-%m-%d %H:%M UTC", &utc) > 0)
                     {
-                        using winrt::Windows::ApplicationModel::PackageUpdateAvailability;
-                        auto availabilityResult = co_await lookedUpPackage.CheckUpdateAvailabilityAsync();
-                        co_await wil::resume_foreground(strongThis->Dispatcher());
-                        auto availability = availabilityResult.Availability();
-                        switch (availability)
-                        {
-                        case PackageUpdateAvailability::Available:
-                        case PackageUpdateAvailability::Required:
-                        case PackageUpdateAvailability::NoUpdates:
-                            UpdateStatusText(availability == PackageUpdateAvailability::Required ?
-                                                 RS_(L"AboutDialog_UpdateFromPackageRequired") :
-                                                 RS_(L"AboutDialog_UpdateFromPackage"));
-                            UpdatesAvailable(availability != PackageUpdateAvailability::NoUpdates);
-                            packageManagerAnswered = true;
-                            break;
-                        case PackageUpdateAvailability::Error:
-                        case PackageUpdateAvailability::Unknown:
-                        default:
-                            // Do not set packageManagerAnswered, which will trigger the store check.
-                            break;
-                        }
+                        absolute = buffer;
                     }
                 }
             }
-            catch (...)
-            {
-            } // Do nothing on failure
 
-            if (!packageManagerAnswered)
+            WUXC::StackPanel header;
+            header.Orientation(WUXC::Orientation::Vertical);
+            WUXC::TextBlock title;
+            title.Text(winrt::hstring{ isRunning ? fmt::format(FMT_COMPILE(L"{} \u00B7 {}"), age, std::wstring_view{ RS_(L"AboutDialog_ThisBuild") }) : age });
+            title.FontWeight(winrt::Windows::UI::Text::FontWeights::SemiBold());
+            if (!absolute.empty())
             {
-                if (auto storeContext{ winrt::Windows::Services::Store::StoreContext::GetDefault() })
-                {
-                    const auto updates = co_await storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
-                    co_await wil::resume_foreground(strongThis->Dispatcher());
-                    if (updates)
-                    {
-                        const auto numUpdates = updates.Size();
-                        if (numUpdates > 0)
-                        {
-                            UpdateStatusText(RS_(L"AboutDialog_UpdateFromStore"));
-                            UpdatesAvailable(true);
-                        }
-                    }
-                }
+                WUXC::ToolTipService::SetToolTip(title, winrt::box_value(winrt::hstring{ absolute }));
             }
-#endif
-        }
-        catch (...)
-        {
-            // do nothing on failure
-        }
+            header.Children().Append(title);
 
-        co_await wil::resume_foreground(strongThis->Dispatcher());
-        CheckingForUpdates(false);
+            WUXC::TextBlock detail;
+            detail.Text(winrt::hstring{ fmt::format(FMT_COMPILE(L"{} \u00B7 build #{} \u00B7 {} commit{}"),
+                                                    sha,
+                                                    build.RunNumber,
+                                                    build.CommitCount,
+                                                    build.CommitCount == 1 ? L"" : L"s") });
+            detail.FontSize(12);
+            detail.Opacity(0.7);
+            header.Children().Append(detail);
+
+            WUXC::StackPanel body;
+            body.Spacing(6);
+            for (int j = 0; j < build.CommitCount; ++j)
+            {
+                const auto& commit = build.Commits[j];
+                WUXC::Grid row;
+                WUXC::ColumnDefinition shaColumn;
+                shaColumn.Width(WUX::GridLengthHelper::Auto());
+                WUXC::ColumnDefinition subjectColumn;
+                subjectColumn.Width(WUX::GridLengthHelper::FromValueAndType(1, WUX::GridUnitType::Star));
+                row.ColumnDefinitions().Append(shaColumn);
+                row.ColumnDefinitions().Append(subjectColumn);
+                row.ColumnSpacing(10);
+
+                WUXC::TextBlock commitSha;
+                commitSha.Text(commit.Sha);
+                commitSha.FontFamily(monospace);
+                commitSha.Opacity(0.6);
+                commitSha.IsTextSelectionEnabled(true);
+                WUXC::Grid::SetColumn(commitSha, 0);
+
+                WUXC::TextBlock subject;
+                subject.Text(commit.Subject);
+                subject.TextWrapping(WUX::TextWrapping::Wrap);
+                subject.IsTextSelectionEnabled(true);
+                WUXC::Grid::SetColumn(subject, 1);
+
+                row.Children().Append(commitSha);
+                row.Children().Append(subject);
+                body.Children().Append(row);
+            }
+
+            MUXC::Expander expander;
+            expander.HorizontalAlignment(WUX::HorizontalAlignment::Stretch);
+            expander.HorizontalContentAlignment(WUX::HorizontalAlignment::Left);
+            expander.Header(header);
+            expander.Content(body);
+            expander.IsExpanded(i == 0);
+            WUX::Automation::AutomationProperties::SetName(expander, winrt::hstring{ fmt::format(FMT_COMPILE(L"{}, {}"), age, sha) });
+            list.Children().Append(expander);
+        }
     }
 }

@@ -69,3 +69,72 @@ function ConvertTo-CppLiteral {
 #define TERMINAL_BUILD_TIMESTAMP ${unix}LL
 #define TERMINAL_BUILD_TIMESTAMP_STRING L"$readable"
 "@
+
+# Release notes for the About dialog: one entry per CI build of main, written by
+# tools\Write-ReleaseNotes.ps1 into the file MULLION_RELEASE_NOTES names. Compiled
+# in rather than packaged, so there is no asset to forget to package. A build
+# without that file (any local one) gets an empty list, never a failure.
+#
+# Windows PowerShell 5.1 runs this (GenerateBuildInfo.proj), so no ?? or ternaries.
+function ConvertTo-CppWideLiteral {
+    Param([string]$Value)
+    $sb = [System.Text.StringBuilder]::new('L"')
+    foreach ($ch in $Value.ToCharArray()) {
+        $code = [int]$ch
+        if ($ch -eq '\') { [void]$sb.Append('\\') }
+        elseif ($ch -eq '"') { [void]$sb.Append('\"') }
+        elseif ($code -ge 0x20 -and $code -le 0x7E) { [void]$sb.Append($ch) }
+        else {
+            # A hex escape runs on through any hex digit that follows it, so close
+            # the literal after each one; adjacent literals concatenate.
+            [void]$sb.Append(('\x{0:X4}" L"' -f $code))
+        }
+    }
+    [void]$sb.Append('"')
+    return $sb.ToString()
+}
+
+$notes = @()
+if ($env:MULLION_RELEASE_NOTES -and (Test-Path -LiteralPath $env:MULLION_RELEASE_NOTES)) {
+    try {
+        # 5.1's ConvertFrom-Json emits a top-level array as ONE object; @() around it
+        # would make a one-element list holding the whole array. foreach unrolls it.
+        $parsed = Get-Content -LiteralPath $env:MULLION_RELEASE_NOTES -Raw -Encoding UTF8 | ConvertFrom-Json
+        foreach ($entry in $parsed) { $notes += $entry }
+    }
+    catch {
+        $notes = @()
+    }
+}
+
+''
+'// Release notes: one entry per CI build of main, newest first (tools/Write-ReleaseNotes.ps1).'
+'struct TerminalReleaseNoteCommit { const wchar_t* Sha; const wchar_t* Subject; };'
+'struct TerminalReleaseNoteBuild { const wchar_t* Sha; long long BuiltAt; int RunNumber; const TerminalReleaseNoteCommit* Commits; int CommitCount; };'
+$rows = @()
+for ($i = 0; $i -lt $notes.Count; $i++) {
+    $build = $notes[$i]
+    $commits = @($build.commits)
+    if ($commits.Count -gt 0) {
+        "inline constexpr TerminalReleaseNoteCommit TerminalReleaseNoteCommits_$i[] = {"
+        foreach ($commit in $commits) {
+            "    { $(ConvertTo-CppWideLiteral ([string]$commit.sha)), $(ConvertTo-CppWideLiteral ([string]$commit.subject)) },"
+        }
+        '};'
+        $list = "TerminalReleaseNoteCommits_$i"
+    }
+    else {
+        $list = 'nullptr'
+    }
+    $rows += "    { $(ConvertTo-CppWideLiteral ([string]$build.sha)), $([long]$build.builtAt)LL, $([int]$build.run), $list, $($commits.Count) },"
+}
+if ($rows.Count -gt 0) {
+    'inline constexpr TerminalReleaseNoteBuild TerminalReleaseNoteBuildArray[] = {'
+    $rows
+    '};'
+    'inline constexpr const TerminalReleaseNoteBuild* TerminalReleaseNoteBuildList = TerminalReleaseNoteBuildArray;'
+}
+else {
+    'inline constexpr const TerminalReleaseNoteBuild* TerminalReleaseNoteBuildList = nullptr;'
+}
+"inline constexpr int TerminalReleaseNoteBuildCount = $($rows.Count);"

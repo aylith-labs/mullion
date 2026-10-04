@@ -492,6 +492,26 @@
     <value>Third-Party notices</value>
     <comment>A hyperlink name for the Terminal's third-party notices</comment>
   </data>
+  <data name="AboutDialog_AboutTab.Header" xml:space="preserve">
+    <value>About</value>
+    <comment>Header of the About dialog's first tab: which build this is, and links.</comment>
+  </data>
+  <data name="AboutDialog_ReleaseNotesTab.Header" xml:space="preserve">
+    <value>Release notes</value>
+    <comment>Header of the About dialog's tab listing what each build changed.</comment>
+  </data>
+  <data name="AboutDialog_ReleaseNotesEmpty.Text" xml:space="preserve">
+    <value>No release notes in this build. They are compiled in by CI builds of main; a build made anywhere else has none.</value>
+    <comment>Shown in the Release notes tab when the build carries no release notes.</comment>
+  </data>
+  <data name="AboutDialog_ReportIssueButton" xml:space="preserve">
+    <value>Report an issue</value>
+    <comment>The About dialog's button that opens a new issue on Mullion's GitHub repository.</comment>
+  </data>
+  <data name="AboutDialog_ThisBuild" xml:space="preserve">
+    <value>this build</value>
+    <comment>Appended to the release-notes entry for the build that is running, e.g. "3 hours ago · this build".</comment>
+  </data>
   <data name="ConfirmCloseDialog_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>

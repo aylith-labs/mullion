@@ -27,6 +27,8 @@ concurrency:
 
 permissions:
   contents: read
+  # Release notes list this workflow's earlier successful runs (Write-ReleaseNotes.ps1).
+  actions: read
 
 jobs:
   build:
@@ -38,6 +40,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Enough first-parent history to list what each recent build brought
+          # (release notes); a full clone of upstream's history is not needed.
+          fetch-depth: 400
 
       # A second's worth of textual checks, so they run before the forty-minute
       # build rather than after it. This is the only gate that catches a missing
@@ -120,6 +126,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Process capture preflight did not compile' }
           & $captureTestExe
           if ($LASTEXITCODE -ne 0) { throw 'Process capture preflight failed' }
+
+      # The About dialog's release notes: one entry per successful build of main,
+      # compiled into TerminalBuildInfo.h by Generate-BuildInfoHeader.ps1. Written
+      # outside the checkout so the tree stays clean and the build is not "+dirty".
+      - name: Release notes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = Join-Path $env:RUNNER_TEMP 'release-notes.json'
+          .\tools\Write-ReleaseNotes.ps1 -OutFile $notes
+          "MULLION_RELEASE_NOTES=$notes" >> $env:GITHUB_ENV
+
       - name: Restore and build
         shell: pwsh
         run: |
