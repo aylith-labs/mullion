@@ -138,7 +138,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return winrt::make<implementation::ProfileViewModel>(profile, appSettings, windowSettings, dispatcher);
     }
 
-    static ProfileSubPage ProfileSubPageFromBreadcrumb(BreadcrumbSubPage subPage)
+    static ProfileSubPage ProfileSubPageFromBreadcrumb(BreadcrumbSubPage subPage, const Editor::ProfileViewModel& profile)
     {
         switch (subPage)
         {
@@ -146,6 +146,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             return ProfileSubPage::Base;
         case BreadcrumbSubPage::Profile_Appearance:
             return ProfileSubPage::Appearance;
+        case BreadcrumbSubPage::Profile_UnfocusedAppearance:
+            // If the profile has no unfocused appearance, fall back to the base page.
+            return profile.HasUnfocusedAppearance() ? ProfileSubPage::UnfocusedAppearance : ProfileSubPage::Base;
         case BreadcrumbSubPage::Profile_Terminal:
             return ProfileSubPage::Terminal;
         case BreadcrumbSubPage::Profile_Advanced:
@@ -868,6 +871,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         {
             navigate(xaml_typename<Editor::Profiles_Appearance>(), RS_(L"Profile_Appearance/Header"), BreadcrumbSubPage::Profile_Appearance);
         }
+        else if (page == ProfileSubPage::UnfocusedAppearance)
+        {
+            contentFrame().Navigate(xaml_typename<Editor::Profiles_UnfocusedAppearance>(), winrt::make<NavigateToPageArgs>(profile, *this, elementToFocus));
+            _breadcrumbs.Append(winrt::make<Breadcrumb>(breadcrumbTag, RS_(L"Profile_UnfocusedAppearanceTextBlock/Text"), BreadcrumbSubPage::Profile_UnfocusedAppearance));
+        }
         else if (page == ProfileSubPage::Terminal)
         {
             navigate(xaml_typename<Editor::Profiles_Terminal>(), RS_(L"Profile_Terminal/Header"), BreadcrumbSubPage::Profile_Terminal);
@@ -900,6 +908,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 _NavigateToProfileSubPage(profile, currentPage, breadcrumbTag, {});
             }
         });
+    }
+
+    void MainPage::_LazyLoadProfileDefaultsViewModel()
+    {
+        if (!_profileDefaultsVM)
+        {
+            _profileDefaultsVM = _viewModelForProfile(_settingsClone.ProfileDefaults(), _settingsClone, _windowSettingsClone, Dispatcher());
+            _profileDefaultsVM.SetupAppearances(_colorSchemesPageVM.AllColorSchemes());
+            _profileDefaultsVM.IsBaseLayer(true);
+        }
     }
 
     // Method Description:
@@ -1075,16 +1093,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             {
                 _AppendProfilesRootCrumb();
 
-                // lazy load profile defaults VM
-                if (!_profileDefaultsVM)
-                {
-                    _profileDefaultsVM = _viewModelForProfile(_settingsClone.ProfileDefaults(), _settingsClone, _windowSettingsClone, Dispatcher());
-                    _profileDefaultsVM.SetupAppearances(_colorSchemesPageVM.AllColorSchemes());
-                    _profileDefaultsVM.IsBaseLayer(true);
-                }
+                _LazyLoadProfileDefaultsViewModel();
 
                 // Set CurrentPage before registering the handler to avoid double-navigation
-                const ProfileSubPage profileSubPage = ProfileSubPageFromBreadcrumb(subPage);
+                const ProfileSubPage profileSubPage = ProfileSubPageFromBreadcrumb(subPage, _profileDefaultsVM);
                 _profileDefaultsVM.CurrentPage(profileSubPage);
 
                 // Navigate directly to the correct sub-page
@@ -1155,7 +1167,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             else
             {
                 // Set CurrentPage before registering the handler to avoid double-navigation
-                const ProfileSubPage profileSubPage = ProfileSubPageFromBreadcrumb(subPage);
+                const ProfileSubPage profileSubPage = ProfileSubPageFromBreadcrumb(subPage, profile);
                 profile.CurrentPage(profileSubPage);
 
                 // Navigate directly to the correct sub-page
@@ -2014,6 +2026,20 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto navigationArg{ searchResultImpl->NavigationArg() };
         const auto subpage{ indexEntry.Entry->SubPage };
         const hstring elementToFocus{ indexEntry.Entry->ElementName };
+
+        // User explicitly wants to see the unfocused appearance, so create it if it doesn't exist yet.
+        if (subpage == BreadcrumbSubPage::Profile_UnfocusedAppearance)
+        {
+            if (const auto& profileVM{ navigationArg.try_as<Editor::ProfileViewModel>() })
+            {
+                profileVM.CreateUnfocusedAppearance();
+            }
+            else if (const auto& navTag{ navigationArg.try_as<hstring>() }; navTag && *navTag == globalProfileTag)
+            {
+                _LazyLoadProfileDefaultsViewModel();
+                _profileDefaultsVM.CreateUnfocusedAppearance();
+            }
+        }
 
         // Reset the search box before navigating
         // LOAD-BEARING: closing the suggestion list moves focus back to the search box,

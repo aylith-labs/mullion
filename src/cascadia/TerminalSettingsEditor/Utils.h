@@ -97,6 +97,8 @@ namespace winrt::Microsoft::Terminal::Settings
 {
     winrt::hstring GetSelectedItemTag(const winrt::Windows::Foundation::IInspectable& comboBoxAsInspectable);
     winrt::hstring LocalizedNameForEnumName(const std::wstring_view sectionAndType, const std::wstring_view enumValue, const std::wstring_view propertyType);
+    winrt::hstring ColorToHexString(const winrt::Windows::UI::Color& color);
+    winrt::hstring FormatAccessibleName(const std::wstring_view headerResourceKey, const std::wstring_view value);
     safe_void_coroutine ExpandAncestorsAndBringIntoView(winrt::Windows::UI::Xaml::FrameworkElement root, winrt::Windows::UI::Xaml::Controls::Control control);
     // Sends the editor to one topic on the Documentation page, named by the x:Name of
     // its card. Three pages need this -- Shortcuts, Extensions and the Dropdown Menu,

@@ -234,19 +234,19 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
             else if (viewModelProperty == L"Foreground")
             {
-                _NotifyChanges(L"ForegroundPreview");
+                _NotifyChanges(L"ForegroundPreview", L"ForegroundAccessibleName");
             }
             else if (viewModelProperty == L"Background")
             {
-                _NotifyChanges(L"BackgroundPreview");
+                _NotifyChanges(L"BackgroundPreview", L"BackgroundAccessibleName");
             }
             else if (viewModelProperty == L"SelectionBackground")
             {
-                _NotifyChanges(L"SelectionBackgroundPreview");
+                _NotifyChanges(L"SelectionBackgroundPreview", L"SelectionBackgroundAccessibleName");
             }
             else if (viewModelProperty == L"CursorColor")
             {
-                _NotifyChanges(L"CursorColorPreview");
+                _NotifyChanges(L"CursorColorPreview", L"CursorColorAccessibleName");
             }
             else if (viewModelProperty == L"DarkColorSchemeName" || viewModelProperty == L"LightColorSchemeName")
             {
@@ -258,7 +258,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 {
                     UseSeparateLightColorScheme(true);
                 }
-                _NotifyChanges(L"CurrentColorScheme", L"CurrentDarkColorScheme", L"CurrentLightColorScheme", L"HasColorScheme");
+                // "ColorScheme" is the name the reset button watches (see HasSetting).
+                _NotifyChanges(L"CurrentColorScheme", L"CurrentDarkColorScheme", L"CurrentLightColorScheme", L"ColorScheme", L"HasColorScheme");
             }
             else if (viewModelProperty == L"UseSeparateLightColorScheme")
             {
@@ -283,7 +284,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
             else if (viewModelProperty == L"CurrentColorScheme")
             {
-                _NotifyChanges(L"ForegroundPreview", L"BackgroundPreview", L"SelectionBackgroundPreview", L"CursorColorPreview");
+                _NotifyChanges(L"ForegroundPreview", L"BackgroundPreview", L"SelectionBackgroundPreview", L"CursorColorPreview", L"ForegroundAccessibleName", L"BackgroundAccessibleName", L"SelectionBackgroundAccessibleName", L"CursorColorAccessibleName");
             }
         });
 
@@ -1046,8 +1047,80 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         ClearLightColorSchemeName();
         _suppressSchemeDivergenceCheck = false;
         UseSeparateLightColorScheme(DarkColorSchemeName() != LightColorSchemeName());
-        _NotifyChanges(L"CurrentColorScheme", L"CurrentDarkColorScheme", L"CurrentLightColorScheme", L"HasColorScheme");
+        _NotifyChanges(L"CurrentColorScheme", L"CurrentDarkColorScheme", L"CurrentLightColorScheme", L"ColorScheme", L"HasColorScheme");
     }
+
+    bool AppearanceViewModel::HasSetting(const hstring& name)
+    {
+        const std::wstring_view n{ name };
+        if (n == L"ColorScheme")
+        {
+            return HasDarkColorSchemeName() || HasLightColorSchemeName();
+        }
+#define HANDLE(Setting)        \
+    if (n == L## #Setting)     \
+    {                          \
+        return Has##Setting(); \
+    }
+#define HANDLE_PROJECTED(target, Setting) HANDLE(Setting)
+        APPEARANCE_INHERITABLE_SETTINGS(HANDLE_PROJECTED, HANDLE)
+#undef HANDLE_PROJECTED
+#undef HANDLE
+        return false;
+    }
+
+    void AppearanceViewModel::ClearSetting(const hstring& name)
+    {
+        const std::wstring_view n{ name };
+        if (n == L"ColorScheme")
+        {
+            ClearColorScheme();
+            return;
+        }
+#define HANDLE(Setting)    \
+    if (n == L## #Setting) \
+    {                      \
+        Clear##Setting();  \
+        return;            \
+    }
+#define HANDLE_PROJECTED(target, Setting) HANDLE(Setting)
+        APPEARANCE_INHERITABLE_SETTINGS(HANDLE_PROJECTED, HANDLE)
+#undef HANDLE_PROJECTED
+#undef HANDLE
+    }
+
+    Windows::Foundation::IInspectable AppearanceViewModel::SettingOverrideSource(const hstring& name)
+    {
+        const std::wstring_view n{ name };
+        if (n == L"ColorScheme")
+        {
+            return DarkColorSchemeNameOverrideSource();
+        }
+#define HANDLE(Setting)                   \
+    if (n == L## #Setting)                \
+    {                                     \
+        return Setting##OverrideSource(); \
+    }
+#define HANDLE_PROJECTED(target, Setting) HANDLE(Setting)
+        APPEARANCE_INHERITABLE_SETTINGS(HANDLE_PROJECTED, HANDLE)
+#undef HANDLE_PROJECTED
+#undef HANDLE
+        return nullptr;
+    }
+
+    // Every inheritable setting must ALSO be projected in Appearances.idl and
+    // given a reset button in the relevant *.xaml, neither of which is
+    // generated here. If you add or remove a setting, this count changes and
+    // forces you to revisit those places before bumping it.
+#define APPEARANCE_COUNT(target, name) +1
+#define APPEARANCE_COUNT_CUSTOM(name) +1
+    static_assert(0 APPEARANCE_INHERITABLE_SETTINGS(APPEARANCE_COUNT, APPEARANCE_COUNT_CUSTOM) == 24,
+                  "The set of inheritable appearance settings changed. Update this count, then make "
+                  "sure the new/removed setting is also reflected in Appearances.idl and in the XAML "
+                  "reset buttons.");
+#undef APPEARANCE_COUNT
+#undef APPEARANCE_COUNT_CUSTOM
+#undef APPEARANCE_INHERITABLE_SETTINGS
 
     Editor::ColorSchemeViewModel AppearanceViewModel::_schemeWithName(const winrt::hstring& schemeName) const
     {
@@ -1156,6 +1229,26 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return _getColorPreview(_appearance.CursorColor(), CurrentColorScheme().CursorColor().Color());
     }
 
+    hstring AppearanceViewModel::ForegroundAccessibleName() const
+    {
+        return FormatAccessibleName(USES_RESOURCE(L"Profile_Foreground/Header"), ColorToHexString(ForegroundPreview()));
+    }
+
+    hstring AppearanceViewModel::BackgroundAccessibleName() const
+    {
+        return FormatAccessibleName(USES_RESOURCE(L"Profile_Background/Header"), ColorToHexString(BackgroundPreview()));
+    }
+
+    hstring AppearanceViewModel::SelectionBackgroundAccessibleName() const
+    {
+        return FormatAccessibleName(USES_RESOURCE(L"Profile_SelectionBackground/Header"), ColorToHexString(SelectionBackgroundPreview()));
+    }
+
+    hstring AppearanceViewModel::CursorColorAccessibleName() const
+    {
+        return FormatAccessibleName(USES_RESOURCE(L"Profile_CursorColor/Header"), ColorToHexString(CursorColorPreview()));
+    }
+
     DependencyProperty Appearances::_AppearanceProperty{ nullptr };
 
     Appearances::Appearances()
@@ -1214,11 +1307,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             Automation::AutomationProperties::SetName(biButton, unbox_value<hstring>(tooltip));
         }
 
-        const auto showAllFontsCheckboxTooltip{ ToolTipService::GetToolTip(ShowAllFontsCheckbox()) };
-        Automation::AutomationProperties::SetFullDescription(ShowAllFontsCheckbox(), unbox_value<hstring>(showAllFontsCheckboxTooltip));
-
-        const auto backgroundImgCheckboxTooltip{ ToolTipService::GetToolTip(UseDesktopImageCheckBox()) };
-        Automation::AutomationProperties::SetFullDescription(UseDesktopImageCheckBox(), unbox_value<hstring>(backgroundImgCheckboxTooltip));
+        Automation::AutomationProperties::SetFullDescription(ShowAllFontsCheckbox(), RS_(L"Profile_FontFaceShowAllFonts/[using:Windows.UI.Xaml.Controls]ToolTipService/ToolTip"));
+        Automation::AutomationProperties::SetFullDescription(UseDesktopImageCheckBox(), RS_(L"Profile_UseDesktopImage/[using:Windows.UI.Xaml.Controls]ToolTipService/ToolTip"));
+        Automation::AutomationProperties::SetName(BackgroundImageBrowse(), RS_(L"Profile_BackgroundImageBrowse/[using:Windows.UI.Xaml.Controls]ToolTipService/ToolTip"));
 
         INITIALIZE_BINDABLE_ENUM_SETTING(IntenseTextStyle, IntenseTextStyle, winrt::Microsoft::Terminal::Settings::Model::IntenseStyle, L"Appearance_IntenseTextStyle", L"Content");
     }
