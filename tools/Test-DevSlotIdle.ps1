@@ -1,4 +1,4 @@
-# Read-only check for the narrow auto-promote exception in CLAUDE.md ("The two slots").
+# Read-only check for the narrow auto-promote exception in AGENTS.md ("The two slots").
 #
 # Answers one question: is it safe to run Promote-DevSlot.ps1 without asking first?
 # Safe means either nothing is running under the Dev payload, or exactly one window

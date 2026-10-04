@@ -268,7 +268,7 @@ cr=$(tr -cd '\r' < "$f" | wc -c); lf=$(tr -cd '\n' < "$f" | wc -c)   # cr==lf me
 `mult` is the only slot to launch, attach to, or kill. Identify by executable
 path (`C:\TerminalSlots\test\...`) - every Terminal built from this repo shares
 the process name, including the one the session is running in. See the repo
-`CLAUDE.md`; nothing here overrides it.
+`AGENTS.md`; nothing here overrides it.
 
 Killing cdb while it is attached takes the debuggee with it. Use `.detach` if
 the window needs to survive the capture.

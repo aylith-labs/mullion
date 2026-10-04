@@ -108,7 +108,7 @@ namespace TerminalUtils
         // CREATE_NO_WINDOW matters on a machine where Windows Terminal is the
         // registered default terminal host: a console child launched without it
         // gets a Terminal window created for it before any hide request could
-        // apply. See "Every hidden background launch" in the repo's CLAUDE.md.
+        // apply. See "Every hidden background launch" in the repo's AGENTS.md.
         //
         // CREATE_SUSPENDED so the child is in the job before it runs a single
         // instruction -- and so before it creates its console host.

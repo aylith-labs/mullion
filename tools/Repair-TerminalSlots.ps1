@@ -25,7 +25,7 @@
 #
 # Reports by default and changes nothing. -Force clears the Test slot; the Dev slot
 # additionally needs -IncludeDev, because a windowless Dev process can still hold a
-# live shell you cannot reach, and per CLAUDE.md that is your call, not a script's.
+# live shell you cannot reach, and per AGENTS.md that is your call, not a script's.
 
 [CmdletBinding()]
 Param(

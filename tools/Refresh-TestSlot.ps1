@@ -1,7 +1,7 @@
 # Register the Test slot from the newest build Fetch-CIBuild.ps1 has staged.
 #
 # The Test-slot counterpart to Promote-DevSlot.ps1, and much simpler: mult is the
-# one slot CLAUDE.md says may be registered, launched, restarted or replaced with
+# one slot AGENTS.md says may be registered, launched, restarted or replaced with
 # no confirmation needed, so there is no idle check, no waiting for a window to
 # close on its own, no "ask first". If mult is open, this closes it -- Windows will
 # not re-register a package identity from a different folder while it is running,

@@ -1,7 +1,7 @@
 # Troubleshooting a locally built Terminal
 
 Failures specific to *this* fork's two-slot dev loop, written down because each
-one cost real time and none of them says what it means. See `CLAUDE.md` for the
+one cost real time and none of them says what it means. See `AGENTS.md` for the
 slot doctrine itself; this file is only about diagnosing things that break.
 
 ## A slot starts and vanishes without ever showing a window
@@ -430,7 +430,7 @@ DLLs into the payload and the names appear.
 
 **Pipeline exit codes.** `& msbuild.exe ... | Select-String ...` leaves
 `$LASTEXITCODE` set by `Select-String`, so a failed build reports success. This
-is the same trap `CLAUDE.md` records for `tail`. Redirect to a file, read
+is the same trap `AGENTS.md` records for `tail`. Redirect to a file, read
 `$LASTEXITCODE` on the very next line, then grep the file.
 
 **`api-ms-win-*.dll` "missing".** Those are API sets resolved by the loader, not
@@ -444,7 +444,7 @@ projections, so coming back to `main` leaves `Microsoft.Terminal.Settings.Model.
 without fork-only members and the next build fails with
 `error C2039: 'HyperlinkClickable': is not a member of ...`. Recover with a
 full solution build. Bisect in a separate worktree at a short path instead (see
-`CLAUDE.md` on `MAX_PATH` and on WSL and `git worktree prune`).
+`AGENTS.md` on `MAX_PATH` and on WSL and `git worktree prune`).
 
 ## Builds that die on memory, not on code
 
@@ -482,7 +482,7 @@ for starting the registered slot.
 
 ## Local build traps, retained for reference
 
-Builds happen in CI now (see the build section of `CLAUDE.md`), so none of these
+Builds happen in CI now (see the build section of `AGENTS.md`), so none of these
 should bite in day-to-day work. They are kept because they each cost a real
 investigation, and because a one-off local build — bisecting, or reproducing
 something CI cannot — will meet them again.
