@@ -13,6 +13,12 @@
 #include <shlwapi.h>
 #include <icu.h>
 
+#include <filesystem>
+#include <fstream>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
+
 using namespace Microsoft::Console;
 
 // Routine Description:
@@ -1566,6 +1572,189 @@ std::wstring Utils::DefaultWslDistro()
 
     const auto defaultGuid = _readRegString(lxssKey.get(), L"DefaultDistribution");
     return defaultGuid.empty() ? std::wstring{} : Utils::WslDistroById(defaultGuid);
+}
+
+// The uid a distribution logs in as, from its registration. A registration without a
+// DefaultUid logs in as root, which is uid 0.
+static std::optional<DWORD> _wslDefaultUid(std::wstring_view distro)
+{
+    wil::unique_hkey lxssKey;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, LxssKeyPath.data(), 0, KEY_READ, &lxssKey) != ERROR_SUCCESS)
+    {
+        return std::nullopt;
+    }
+    for (DWORD i = 0; i < 32; ++i)
+    {
+        wchar_t subKey[64]{};
+        DWORD size = static_cast<DWORD>(std::size(subKey));
+        if (RegEnumKeyExW(lxssKey.get(), i, subKey, &size, nullptr, nullptr, nullptr, nullptr) != ERROR_SUCCESS)
+        {
+            break;
+        }
+        wil::unique_hkey distroKey;
+        if (RegOpenKeyExW(lxssKey.get(), subKey, 0, KEY_READ, &distroKey) != ERROR_SUCCESS)
+        {
+            continue;
+        }
+        const auto name = _readRegString(distroKey.get(), L"DistributionName");
+        if (!til::equals_insensitive_ascii(std::wstring_view{ name }, distro))
+        {
+            continue;
+        }
+        DWORD uid = 0;
+        DWORD bytes = sizeof(uid);
+        if (RegQueryValueExW(distroKey.get(), L"DefaultUid", nullptr, nullptr, reinterpret_cast<BYTE*>(&uid), &bytes) != ERROR_SUCCESS)
+        {
+            uid = 0;
+        }
+        return uid;
+    }
+    return std::nullopt;
+}
+
+// That uid's home field in the distribution's /etc/passwd ("name:x:uid:gid:gecos:home:shell").
+static std::wstring _wslHomeFromPasswd(std::wstring_view distro, DWORD uid)
+{
+    std::ifstream passwd{ std::filesystem::path{ L"\\\\wsl.localhost\\" + std::wstring{ distro } + L"\\etc\\passwd" }, std::ios::binary };
+    const auto wantedUid = std::to_string(uid);
+    std::string line;
+    while (passwd && std::getline(passwd, line))
+    {
+        if (!line.empty() && line.back() == '\r')
+        {
+            line.pop_back();
+        }
+        std::vector<std::string_view> fields;
+        std::string_view rest{ line };
+        for (size_t colon; (colon = rest.find(':')) != std::string_view::npos; rest = rest.substr(colon + 1))
+        {
+            fields.push_back(rest.substr(0, colon));
+        }
+        fields.push_back(rest);
+        if (fields.size() < 6 || fields[2] != wantedUid || !fields[5].starts_with('/'))
+        {
+            continue;
+        }
+        const auto& home = fields[5];
+        const auto length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, home.data(), gsl::narrow<int>(home.size()), nullptr, 0);
+        if (length <= 0)
+        {
+            return {};
+        }
+        std::wstring result(length, L'\0');
+        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, home.data(), gsl::narrow<int>(home.size()), result.data(), length);
+        return result;
+    }
+    return {};
+}
+
+namespace
+{
+    // Keyed by the lowercased distribution name. Only successes are cached: a read that
+    // failed (the distribution was mid-start, the share was slow) is tried again later.
+    struct WslHomeCache
+    {
+        std::mutex lock;
+        std::unordered_map<std::wstring, std::wstring> homes;
+        std::unordered_set<std::wstring> reading;
+    };
+    WslHomeCache& _wslHomeCache()
+    {
+        static WslHomeCache cache;
+        return cache;
+    }
+    std::wstring _wslHomeKey(std::wstring_view distro)
+    {
+        std::wstring key{ distro };
+        std::transform(key.begin(), key.end(), key.begin(), [](wchar_t ch) { return static_cast<wchar_t>(towlower(ch)); });
+        return key;
+    }
+}
+
+std::wstring Utils::WslHomeDirectory(std::wstring_view distro, const bool mayTouchFileSystem)
+{
+    if (distro.empty())
+    {
+        return {};
+    }
+    auto& cache = _wslHomeCache();
+    const auto key = _wslHomeKey(distro);
+    {
+        std::lock_guard guard{ cache.lock };
+        if (const auto found = cache.homes.find(key); found != cache.homes.end())
+        {
+            return found->second;
+        }
+    }
+    if (!mayTouchFileSystem)
+    {
+        return {};
+    }
+    const auto uid = _wslDefaultUid(distro);
+    if (!uid)
+    {
+        return {};
+    }
+    auto home = _wslHomeFromPasswd(distro, *uid);
+    if (!home.empty())
+    {
+        std::lock_guard guard{ cache.lock };
+        cache.homes.insert_or_assign(key, home);
+    }
+    return home;
+}
+
+void Utils::PrewarmWslHomeDirectory(std::wstring_view distro)
+{
+    if (distro.empty())
+    {
+        return;
+    }
+    auto& cache = _wslHomeCache();
+    auto key = _wslHomeKey(distro);
+    {
+        std::lock_guard guard{ cache.lock };
+        if (cache.homes.contains(key) || !cache.reading.insert(key).second)
+        {
+            return;
+        }
+    }
+    struct Work
+    {
+        std::wstring distro;
+        std::wstring key;
+    };
+    auto work = std::make_unique<Work>(Work{ std::wstring{ distro }, std::move(key) });
+    const auto submitted = TrySubmitThreadpoolCallback(
+        [](PTP_CALLBACK_INSTANCE, PVOID context) {
+            std::unique_ptr<Work> work{ static_cast<Work*>(context) };
+            try
+            {
+                Utils::WslHomeDirectory(work->distro, true);
+            }
+            CATCH_LOG();
+            auto& cache = _wslHomeCache();
+            std::lock_guard guard{ cache.lock };
+            cache.reading.erase(work->key);
+        },
+        work.get(),
+        nullptr);
+    if (submitted)
+    {
+        work.release();
+    }
+    else
+    {
+        std::lock_guard guard{ cache.lock };
+        cache.reading.erase(work->key);
+    }
+}
+
+std::wstring Utils::WindowsHomeDirectory()
+{
+    wchar_t buffer[MAX_PATH]{};
+    const auto length = GetEnvironmentVariableW(L"USERPROFILE", buffer, static_cast<DWORD>(std::size(buffer)));
+    return length > 0 && length < std::size(buffer) ? std::wstring{ buffer, length } : std::wstring{};
 }
 
 // ...\ubuntu.exe -> "ubuntu". Lowercased and stripped of the separators distro names are

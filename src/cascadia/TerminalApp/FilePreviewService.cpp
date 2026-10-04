@@ -7,6 +7,7 @@
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include "FilePreviewReader.h"
 #include "../../inc/LintelPaths.h"
+#include "../../inc/LintelHomes.h"
 #include "../../types/inc/utils.hpp"
 #include <filesystem>
 #include <fstream>
@@ -49,8 +50,9 @@ namespace winrt::TerminalApp::implementation
             {
                 const auto distro = ::Microsoft::Console::Utils::WslDistroForCommandline(settings.Commandline(), settings.PathTranslationStyle() == Control::PathTranslationStyle::WSL);
                 const auto plain = std::wstring_view{ text }.starts_with(L"file://") ? ::Microsoft::Console::Utils::ResolveFileUriTarget(std::wstring_view{ text }, distro) : std::wstring{ text };
-                const auto candidates = Lintel::PathCandidates(plain, true, distro, ::Microsoft::Console::Utils::RegisteredWslDistros());
                 co_await resume_background();
+                // Off the UI thread, so a "~/..." path may read the distribution's home.
+                const auto candidates = Lintel::PathCandidates(plain, true, distro, ::Microsoft::Console::Utils::RegisteredWslDistros(), Mullion::PathHomesFor(distro, true));
                 std::vector<bool> exists;
                 for (const auto& candidate : candidates) { std::error_code error; exists.push_back(std::filesystem::exists(candidate.path, error)); }
                 const auto selected = Lintel::SelectPathCandidate(candidates, exists);
@@ -112,7 +114,7 @@ namespace winrt::TerminalApp::implementation
                 if (std::wstring_view{ text }.starts_with(L"file://")) path = ::Microsoft::Console::Utils::ResolveFileUriTarget(std::wstring_view{ text }, distro);
                 else
                 {
-                    const auto candidates = Lintel::PathCandidates(std::wstring_view{ text }, true, distro);
+                    const auto candidates = Lintel::PathCandidates(std::wstring_view{ text }, true, distro, {}, Mullion::PathHomesFor(distro, false));
                     path = candidates.empty() ? std::wstring{ text } : candidates.front().path;
                 }
             }

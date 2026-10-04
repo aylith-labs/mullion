@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "../inc/PreviewPresentation.h"
 #include "../../inc/LintelPaths.h"
+#include "../../inc/LintelHomes.h"
 #include "TermControl.h"
 
 #include <DefaultSettings.h>
@@ -964,6 +965,14 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         // settings might be out-of-proc in the future
         auto settings{ _core.Settings() };
+
+        // Learn this pane's WSL home before anyone hovers a "~/..." path in it. Hovering
+        // resolves on this thread and so only reads the cache; the read itself goes to
+        // the thread pool. The distribution is already running -- this pane runs in it --
+        // so reading its /etc/passwd starts nothing.
+        ::Microsoft::Console::Utils::PrewarmWslHomeDirectory(::Microsoft::Console::Utils::WslDistroForCommandline(
+            settings.Commandline(),
+            settings.PathTranslationStyle() == PathTranslationStyle::WSL));
 
         // Apply padding as swapChainPanel's margin
         const auto newMargin = StringToXamlThickness(settings.Padding());
@@ -3864,7 +3873,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return std::wstring{ hovered };
         }
         const auto isFileUri = til::starts_with_insensitive_ascii(hovered, L"file:");
-        const auto isBarePosixPath = hovered[0] == L'/';
+        const auto isBarePosixPath = hovered[0] == L'/' || hovered.starts_with(L"~/");
         if (!isFileUri && !isBarePosixPath)
         {
             return {};
@@ -3882,7 +3891,14 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         if (!isFileUri)
         {
-            const auto candidates = Lintel::PathCandidates(hovered, true, distro);
+            // UI thread, so a WSL home is only what is cached; _ApplyUISettings warms it.
+            const auto candidates = Lintel::PathCandidates(hovered, true, distro, {}, Mullion::PathHomesFor(distro, false));
+            if (candidates.empty() && Lintel::ClassifyPath(hovered) == Lintel::PathKind::Home)
+            {
+                // Home not known yet. Better no target than "/.claude/..." resolved
+                // against the distribution's root, which is what this used to show.
+                return {};
+            }
             // An unknown distribution is resolved asynchronously by the file provider.
             return candidates.empty() ? std::wstring{ hovered } : candidates.front().path;
         }
@@ -3906,7 +3922,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (Lintel::ClassifyPath(std::wstring_view{ _hoveredUri }) != Lintel::PathKind::None)
         {
             const auto path = _resolvedHyperlinkTarget();
-            if (Lintel::ClassifyPath(path) == Lintel::PathKind::Posix) return {}; // Still unresolved or ambiguous.
+            const auto kind = Lintel::ClassifyPath(path);
+            if (path.empty() || kind == Lintel::PathKind::Posix || kind == Lintel::PathKind::Home) return {}; // Still unresolved or ambiguous.
             return winrt::hstring{ ::Microsoft::Console::Utils::FilePathToUri(path) };
         }
 

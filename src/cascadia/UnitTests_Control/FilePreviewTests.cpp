@@ -311,6 +311,21 @@ void ControlUnitTests::FilePreviewTests::SharedPathResolution()
     VERIFY_ARE_EQUAL(std::wstring{ LR"(C:\Users\steve\a.md)" }, mount.front().path);
     const auto literal = Lintel::PathCandidates(L"/tmp/a%23b#c.md", false, {});
     VERIFY_ARE_EQUAL(std::wstring{ L"/tmp/a%23b#c.md" }, literal.front().path);
+
+    // "~/..." is the home of whoever printed it, never the distribution's root.
+    VERIFY_IS_TRUE(Lintel::ClassifyPath(L"~/.claude/x.md") == Lintel::PathKind::Home);
+    const std::vector<Lintel::PathHome> homes{ { L"", LR"(C:\Users\steve)" }, { L"Ubuntu", L"/home/stevenp/" } };
+    const auto wslHome = Lintel::PathCandidates(L"~/.claude/plans/notes-tui-handoff-prompt.md", true, L"Ubuntu", { L"Debian" }, homes);
+    VERIFY_ARE_EQUAL(size_t{ 1 }, wslHome.size());
+    VERIFY_ARE_EQUAL(std::wstring{ LR"(\\wsl.localhost\Ubuntu\home\stevenp\.claude\plans\notes-tui-handoff-prompt.md)" }, wslHome.front().path);
+    VERIFY_ARE_EQUAL(std::wstring{ L"Ubuntu" }, wslHome.front().distro);
+    // Home not known yet: nothing, rather than a guess or another distribution's home.
+    VERIFY_IS_TRUE(Lintel::PathCandidates(L"~/.bashrc", true, L"Debian", { L"Ubuntu" }, homes).empty());
+    // A non-WSL shell's "~" is the Windows profile.
+    const auto windowsHome = Lintel::PathCandidates(L"~/.claude/settings.json", true, {}, { L"Ubuntu" }, homes);
+    VERIFY_ARE_EQUAL(std::wstring{ LR"(C:\Users\steve\.claude\settings.json)" }, windowsHome.front().path);
+    const auto rootHome = Lintel::PathCandidates(L"~/x", true, L"Debian", {}, { { L"Debian", L"/" } });
+    VERIFY_ARE_EQUAL(std::wstring{ LR"(\\wsl.localhost\Debian\x)" }, rootHome.front().path);
 }
 
 #ifdef FILE_PREVIEW_STANDALONE

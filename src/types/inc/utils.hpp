@@ -151,6 +151,19 @@ namespace Microsoft::Console::Utils
     std::wstring DefaultWslDistro();
     std::vector<std::wstring> RegisteredWslDistros();
 
+    // The home directory of a WSL distribution's default user, as a POSIX path, for
+    // expanding "~/..." in what that distribution printed. Read from the registration's
+    // DefaultUid and the distribution's /etc/passwd over \\wsl.localhost -- never by
+    // starting a shell -- and cached. With mayTouchFileSystem false only the cache is
+    // consulted, which is what a caller on the UI thread must pass; an empty result then
+    // means "not known yet", and PrewarmWslHomeDirectory is how it becomes known.
+    std::wstring WslHomeDirectory(std::wstring_view distro, const bool mayTouchFileSystem);
+    // Fills WslHomeDirectory's cache for this distribution on the thread pool. Cheap to
+    // call repeatedly: a distribution already known or already being read is skipped.
+    void PrewarmWslHomeDirectory(std::wstring_view distro);
+    // The Windows user profile directory, which is what "~" means to a non-WSL shell.
+    std::wstring WindowsHomeDirectory();
+
     bool IsWindows11() noexcept;
 
     bool IsLikelyToBeEmojiOrSymbolIcon(std::wstring_view text) noexcept;

@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "../../inc/LintelPaths.h"
+#include "../../inc/LintelHomes.h"
 #include "TerminalPage.h"
 
 #include <TerminalCore/ControlKeyStates.hpp>
@@ -4386,9 +4387,11 @@ namespace winrt::TerminalApp::implementation
                 uriString = winrt::hstring{ Utils::ResolveFileUriTarget(std::wstring_view{ uriString }, _GetWslDistroForControl(sender)) };
             if (Lintel::ClassifyPath(std::wstring_view{ uriString }) != Lintel::PathKind::None)
             {
-                const auto candidates = Lintel::PathCandidates(std::wstring_view{ uriString }, true, _GetWslDistroForControl(sender), Utils::RegisteredWslDistros());
+                const auto distro = _GetWslDistroForControl(sender);
                 const auto dispatcher = Dispatcher();
                 co_await winrt::resume_background();
+                // Off the UI thread, so a "~/..." path may read the distribution's home.
+                const auto candidates = Lintel::PathCandidates(std::wstring_view{ uriString }, true, distro, Utils::RegisteredWslDistros(), Mullion::PathHomesFor(distro, true));
                 std::vector<bool> exists;
                 for (const auto& candidate : candidates)
                 {
