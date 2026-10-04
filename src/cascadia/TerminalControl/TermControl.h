@@ -107,7 +107,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         TerminalConnection::ConnectionState ConnectionState() const;
 
         int ScrollOffset() const;
-        int ViewHeight() const;
+        Core::Size ViewportSize() const;
         int BufferHeight() const;
 
         bool HasSelection() const;
@@ -430,6 +430,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void _hideHyperlinkHtml();
         void _setHyperlinkHtmlHeight(int32_t height);
         RECT _htmlHostRect();
+        std::optional<SafeDispatcherTimer> _resizeOverlayTimer;
+        Core::Size _lastResizeOverlaySize{};
+        void _ShowResizeOverlay();
 
         bool _isBackgroundLight{ false };
         bool _detached{ false };
