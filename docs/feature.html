@@ -104,21 +104,27 @@
       var alt = esc(item.caption);
       var body;
       if (item.kind === "video") {
+        var lightPoster = item.base === "resume-restore" ? ' poster="media/resume-toast-light.png"' : "";
+        var darkPoster = item.base === "resume-restore" ? ' poster="media/resume-toast-dark.png"' : "";
         // Muted + playsinline + loop so it behaves like an animation rather
         // than something that demands to be started; controls stay available
         // for anyone who wants to scrub it.
         body =
           '<video class="shot-light" src="media/' + item.base + '-light.mp4" aria-label="' + alt + '" ' +
-          'autoplay loop muted playsinline controls preload="metadata"></video>' +
+          'autoplay loop muted playsinline controls preload="metadata"' + lightPoster + '></video>' +
           '<video class="shot-dark" src="media/' + item.base + '-dark.mp4" aria-label="' + alt + '" ' +
-          'autoplay loop muted playsinline controls preload="metadata"></video>';
+          'autoplay loop muted playsinline controls preload="metadata"' + darkPoster + '></video>';
       } else {
         body =
           '<img class="shot-light" src="media/' + item.base + '-light.png" alt="' + alt + '" loading="lazy" />' +
           '<img class="shot-dark" src="media/' + item.base + '-dark.png" alt="' + alt + '" loading="lazy" />';
       }
+      var ext = item.kind === "video" ? ".mp4" : ".png";
+      var label = item.kind === "video" ? "recording" : "image";
       figs += '<figure data-base="' + esc(item.base) + '">' + body +
-        '<div class="pending">Capture pending</div>' +
+        '<div class="pending"><button type="button" data-retry-media>Retry ' + label + '</button> · Open the ' + label + ': ' +
+        '<a download href="media/' + esc(item.base) + '-light' + ext + '">Light version</a> · ' +
+        '<a download href="media/' + esc(item.base) + '-dark' + ext + '">Dark version</a></div>' +
         '<figcaption aria-hidden="true">' + alt + "</figcaption></figure>";
     }
     html += section("media", "What it looks like", figs);
@@ -178,7 +184,7 @@
   host.innerHTML = html;
   Mullion.formatDates(host);
 
-  // A figure shows its placeholder until a real capture loads. Wiring this up
+  // A figure offers the original files if neither theme loads. Wiring this up
   // after insertion, rather than as an inline onerror attribute, keeps the
   // quoting out of an HTML attribute nested inside a JS string -- which is
   // three levels of escaping and exactly the kind of thing that breaks
@@ -187,16 +193,33 @@
   for (var i = 0; i < figures.length; i++) {
     (function (fig) {
       var shots = fig.querySelectorAll("img, video");
-      var missing = 0;
+      function refresh() {
+        var missing = 0;
+        for (var n = 0; n < shots.length; n++) {
+          if (shots[n].classList.contains("absent")) { missing++; }
+        }
+        fig.classList.toggle("no-media", missing === shots.length);
+      }
+      fig.querySelector("[data-retry-media]").addEventListener("click", function () {
+        for (var n = 0; n < shots.length; n++) {
+          shots[n].classList.remove("absent");
+          if (shots[n].tagName === "VIDEO") { shots[n].load(); }
+          else { shots[n].src = shots[n].getAttribute("src"); }
+        }
+        refresh();
+      });
       for (var j = 0; j < shots.length; j++) {
         shots[j].addEventListener("error", function () {
           // A video reports failure on its own element, not by bubbling, so
           // both node types are listened to the same way.
           this.classList.add("absent");
-          missing++;
-          // Only give up once neither theme's capture is available.
-          if (missing >= shots.length) { fig.classList.add("no-media"); }
+          refresh();
         });
+        var recovered = function () {
+          this.classList.remove("absent");
+          refresh();
+        };
+        shots[j].addEventListener(shots[j].tagName === "VIDEO" ? "loadeddata" : "load", recovered);
       }
     })(figures[i]);
   }

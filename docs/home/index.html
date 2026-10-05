@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<base href="../">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mullion — Windows Terminal, with more in it</title>
+<meta name="description" content="A personal Windows Terminal fork: script it from outside the process, bring back what your panes were running after a restart, and links, previews and windows that behave the way you'd expect." />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="site.css" />
+<script src="site.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="home/#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="index.html" aria-label="Mullion home">
+      <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="frame" x="2" y="3" width="22" height="20" rx="4" stroke-width="1.6"/><rect class="bar" x="12" y="3" width="2" height="20"/><rect class="bar" x="2" y="8" width="22" height="1.6"/></svg>
+      Mullion
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="features.html">Features</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub<svg class="ext" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    </nav>
+    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" title="Display settings" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="container hero-grid">
+      <div>
+        <span class="tag tag-accent">Personal fork of microsoft/terminal</span>
+        <h1 id="hero-title">Windows Terminal, <span class="accent">with more in it.</span></h1>
+        <p class="lede">
+          Mullion is a fork of Microsoft's Windows Terminal that evolves on its own terms.
+          Script it from outside the process, get back what your panes were running after a
+          restart, and have links, previews and windows behave the way you'd expect.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="features.html">
+            <span>Explore <span data-feature-count>the</span> features</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn btn-secondary" href="https://github.com/aylith-labs/mullion">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
+            Source on GitHub
+          </a>
+        </div>
+        <ul class="hero-facts">
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>MIT licensed, like upstream</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Built and tested in CI on every push</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Upstream fixes merged in</li>
+        </ul>
+      </div>
+      <figure class="hero-figure">
+        <picture>
+          <source srcset="media/control-pipe-list-dark.png" media="(prefers-color-scheme: dark)" data-theme-source="dark" />
+          <img class="shot" src="media/control-pipe-list-light.png" width="1168" height="704"
+               alt="A Mullion window with two tabs. A script connected to the control pipe has pinged the terminal and listed both panes, with the program and title of each, without simulating a keystroke." />
+        </picture>
+        <figcaption>
+          A script listing every pane over the <a href="feature.html?id=control-pipe">control pipe</a>:
+          no simulated keystrokes, and no window needed focus.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="spotlight-title">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="kicker">Highlights</span>
+          <h2 id="spotlight-title">The parts worth switching for</h2>
+        </div>
+      </div>
+
+      <div class="spotlights">
+        <article class="spotlight">
+          <div class="spotlight-text">
+            <span class="kicker">Automation</span>
+            <h3>Drive it from outside the process</h3>
+            <p>
+              Every window opens a local pipe another program can talk to: ask what tabs and
+              panes exist, read back exactly what one of them printed, or type into a specific
+              pane. No simulated keystrokes, no guessing which window is focused. Microsoft
+              looked at this exact idea twice and passed on it; their own automation surface
+              can't reach a pane running inside WSL.
+            </p>
+            <a class="more-link" href="feature.html?id=control-pipe">How the control pipe works<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+          <figure class="code-figure">
+            <pre class="code-block" aria-label="Example requests sent to the control pipe"><span class="c"># \\.\pipe\wt-control-&lt;pid&gt;, one JSON object per line</span>
+<span class="p">&rarr;</span> {"op":"list-panes"}
+<span class="p">&rarr;</span> {"op":"capture-pane","pane":"1.0.0","lines":20}
+<span class="p">&rarr;</span> {"op":"send-input","pane":"1.1.0","text":"git status",
+   "requireContains":"PS C:\\"}
+<span class="p r">&larr;</span> {"ok":false,"error":"needle-gone"}
+<span class="c">  # the prompt moved: nothing was written</span></pre>
+            <figcaption>The pipe names the pane, so a write never lands in whichever window happens to have focus.</figcaption>
+          </figure>
+        </article>
+
+        <article class="spotlight flip">
+          <div class="spotlight-text">
+            <span class="kicker">Session restore</span>
+            <h3>Bring back what was actually running</h3>
+            <p>
+              Reopening the terminal puts back the programs the panes were running, not just the
+              shells. A coding agent returns to the same conversation; tmux, screen, zellij,
+              herdr and shefrd reattach to the session their server is still holding. Panes
+              that resume nothing repaint their saved scrollback, so a crash costs you the
+              process, not the history.
+            </p>
+            <a class="more-link" href="feature.html?id=session-resume">See it come back<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+          <picture>
+            <source srcset="media/resume-toast-dark.png" media="(prefers-color-scheme: dark)" data-theme-source="dark" />
+            <img class="shot" src="media/resume-toast-light.png" width="1168" height="609" loading="lazy"
+                 alt="After a restart, a notice in the terminal names the tmux session that was resumed, using its attach command." />
+          </picture>
+        </article>
+
+        <article class="spotlight">
+          <div class="spotlight-text">
+            <span class="kicker">Links</span>
+            <h3>Links that behave like you'd expect</h3>
+            <p>
+              Click a link without holding Ctrl, even inside tmux. Hover it and a card says what
+              a click will do and where it really goes, with Open, Copy and Show in Explorer
+              buttons, landing wherever there's room instead of running off the window's edge.
+              A WSL file link opens the real file, not an error.
+            </p>
+            <a class="more-link" href="features.html?cat=links">All link features<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+          <picture>
+            <source srcset="media/link-card-dark.png" media="(prefers-color-scheme: dark)" data-theme-source="dark" />
+            <img class="shot" src="media/link-card-light.png" width="920" height="280" loading="lazy"
+                 alt="The link card over a WSL file link: the URL, a hint that a click follows it, the Windows path it resolves to, and Open, Copy link, Copy path and Show in Explorer buttons." />
+          </picture>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="groups-title">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="kicker">What it adds</span>
+          <h2 id="groups-title">Everything upstream doesn't have</h2>
+          <p>Grouped the way you'd go looking for it. Each group links to the documented features behind it.</p>
+        </div>
+        <a class="more-link" href="features.html">Browse the full catalogue<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+
+      <div class="groups">
+        <article class="group">
+          <span class="group-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>
+          <h3>Links that do something</h3>
+          <ul>
+            <li><strong>Paths are links</strong>: Windows, UNC and POSIX paths, resolved in the right WSL distribution.</li>
+            <li><strong>Click without Ctrl</strong>, even inside tmux and other mouse-mode apps.</li>
+            <li><strong>A link card</strong> with actions, Markdown, and file previews.</li>
+            <li><strong>Integrations</strong> for GitHub, Jira and Slack, plus your own regex rules.</li>
+          </ul>
+          <a class="more-link" href="features.html?cat=links">Link features<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </article>
+
+        <article class="group">
+          <span class="group-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M12 9v11"/></svg></span>
+          <h3>Tabs, windows and panes</h3>
+          <ul>
+            <li><strong>Tab strip on any edge</strong>, with tab numbers and per-window overrides.</li>
+            <li><strong>Each window reopens where it was</strong>, or docks to a screen edge.</li>
+            <li><strong>Pane title bars</strong> with draggable dividers.</li>
+            <li><strong>Light and dark colour schemes in pairs</strong> that follow the OS.</li>
+          </ul>
+          <a class="more-link" href="features.html?cat=ui">UI &amp; theming features<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </article>
+
+        <article class="group">
+          <span class="group-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></span>
+          <h3>Coming back to where you were</h3>
+          <ul>
+            <li><strong>Session restore that resumes work</strong>: agents and multiplexers come back attached.</li>
+            <li><strong>Pane contents saved on a clock</strong>, not only at exit.</li>
+            <li>A notice names exactly what was brought back.</li>
+          </ul>
+          <a class="more-link" href="feature.html?id=session-resume">Session restore<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </article>
+
+        <article class="group">
+          <span class="group-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-5-6-5M12 19h8"/></svg></span>
+          <h3>Scriptable from outside</h3>
+          <ul>
+            <li><strong>Control pipe</strong>: list panes, capture their text, send input, focus one.</li>
+            <li>Restricted to the current user, and can be switched off.</li>
+            <li><strong>Activity log</strong> of what the Terminal started and was handed.</li>
+          </ul>
+          <a class="more-link" href="features.html?cat=automation">Automation features<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </article>
+
+        <article class="group">
+          <span class="group-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>
+          <h3>A Settings UI that knows what changed</h3>
+          <ul>
+            <li><strong>New pages</strong>: Link Tooltip, Integrations, Session Restore, Activity, Documentation.</li>
+            <li><strong>Hover Save or Discard</strong> to see exactly what would change.</li>
+            <li><strong>Fork marks</strong> on every setting this fork adds.</li>
+          </ul>
+        </article>
+
+        <article class="group">
+          <span class="group-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg></span>
+          <h3>A live build and a throwaway one</h3>
+          <ul>
+            <li><strong>Two installs side by side</strong>: one you live in, one that's safe to break.</li>
+            <li>Updates are fetched in the background; the live one changes only when you say so.</li>
+            <li><strong>A badge</strong> always says which build and commit is running.</li>
+          </ul>
+          <a class="more-link" href="features.html?cat=deploy">Deploy features<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="recent-title" id="recent-section" hidden>
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="kicker">Changelog</span>
+          <h2 id="recent-title">Recently added</h2>
+        </div>
+        <a class="more-link" href="features.html">All features, newest first<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+      <ul class="recent" id="recent-list"></ul>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="upstream-title">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="kicker">How it's run</span>
+          <h2 id="upstream-title">A fork on its own terms</h2>
+        </div>
+      </div>
+      <div class="pair">
+        <article class="panel">
+          <h3>Relationship to upstream</h3>
+          <p>
+            Features land here because they belong in this terminal, whether or not
+            microsoft/terminal would ever take them. Upstream is merged in, never rebased onto,
+            for its bug and security fixes, and its issues and pull requests are read before
+            anything here is built.
+          </p>
+          <p>
+            Nothing goes back: conflicts resolve in favour of this fork's behaviour, and the
+            divergence is the point. The name is the upright bar between window panes.
+          </p>
+        </article>
+        <article class="panel">
+          <h3>Two slots, one machine</h3>
+          <table class="slot-table">
+            <thead><tr><th scope="col">Slot</th><th scope="col">What it is</th></tr></thead>
+            <tbody>
+              <tr><td>Dev <code>muld</code></td><td>The one you live in. It changes only when you press promote inside it.</td></tr>
+              <tr><td>Test <code>mult</code></td><td>Disposable. Refreshed on demand to verify a build in a window of its own.</td></tr>
+            </tbody>
+          </table>
+          <p>Every push to <code>main</code> builds, tests and packages both in CI; a background poller stages the newest build.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>Mullion, a fork of <a href="https://github.com/microsoft/terminal">microsoft/terminal</a>. MIT licensed.</span>
+    <nav aria-label="Footer">
+      <a href="features.html">Features</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub</a>
+      <a href="https://github.com/aylith-labs/mullion/blob/main/README.md">README</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="features.js"></script>
+<script>
+(function () {
+  var features = window.FEATURES || [];
+  if (!features.length) { return; }
+
+  var counts = document.querySelectorAll("[data-feature-count]");
+  for (var i = 0; i < counts.length; i++) { counts[i].textContent = "all " + features.length; }
+
+  // The catalogue's descriptions are trusted, hand-written HTML (some carry
+  // entities); titles are plain text.
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  var recent = features.slice().sort(function (a, b) { return b.dateAdded.localeCompare(a.dateAdded); }).slice(0, 5);
+  var html = "";
+  for (var j = 0; j < recent.length; j++) {
+    var f = recent[j];
+    html += '<li><a href="feature.html?id=' + encodeURIComponent(f.id) + '">' +
+      '<span class="recent-title">' + esc(f.title) + "</span>" +
+      '<span class="recent-meta">' + esc(f.catLabel) + " &middot; Added " + Mullion.timeTag(f.dateAdded) + "</span>" +
+      '<span class="recent-desc">' + f.desc + "</span>" +
+      "</a></li>";
+  }
+  var list = document.getElementById("recent-list");
+  list.innerHTML = html;
+  document.getElementById("recent-section").hidden = false;
+  Mullion.formatDates(list);
+})();
+</script>
+
+</body>
+</html>

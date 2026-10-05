@@ -6,6 +6,7 @@ description: >-
   cards, sessions that come back after a crash, a control pipe for outside
   automation, and a Settings UI grouped into sections.
 category: developer-tools
+websiteUrl: https://mullion.aylith.com/
 status: building
 features:
   - 'Brings back what was actually running: agents and multiplexers resume after a crash or close'
