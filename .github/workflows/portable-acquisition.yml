@@ -1,0 +1,105 @@
+name: Portable customer acquisition
+on:
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Successful main Build run to package
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: mullion-portable-acquisition
+  cancel-in-progress: false
+jobs:
+  portable:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Verify genuine native build
+        id: build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN: ${{ inputs.build_run }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:BUILD_RUN -notmatch '^[0-9]+$') { throw 'Invalid run ID' }
+          $run = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:BUILD_RUN" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read build run' }
+          if ($run.name -ne 'Build' -or $run.head_branch -ne 'main' -or $run.status -ne 'completed' -or $run.conclusion -ne 'success' -or $run.repository.full_name -ne $env:GITHUB_REPOSITORY -or $run.head_sha -notmatch '^[0-9a-f]{40}$') { throw 'Not a successful owning main build' }
+          $jobs = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:BUILD_RUN/jobs" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read build steps' }
+          $tests = @($jobs.jobs.steps | Where-Object { $_.name -eq 'Unit tests' -and $_.conclusion -eq 'success' })
+          if ($tests.Count -ne 1) { throw 'Native unit suites did not pass' }
+          "sha=$($run.head_sha)" >> $env:GITHUB_OUTPUT
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.build.outputs.sha }}
+          persist-credentials: false
+      - name: Download exact existing build artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN: ${{ inputs.build_run }}
+        run: |
+          gh run download $env:BUILD_RUN --repo $env:GITHUB_REPOSITORY --name dev-payload --dir "$env:RUNNER_TEMP/native-artifact"
+          if ($LASTEXITCODE -ne 0) { throw 'Native artifact download failed' }
+      - name: Produce and verify portable customer layout
+        shell: pwsh
+        env:
+          BUILD_SHA: ${{ steps.build.outputs.sha }}
+          BUILD_RUN: ${{ inputs.build_run }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $artifact = Join-Path $env:RUNNER_TEMP 'native-artifact'
+          $layout = Join-Path $artifact 'test-staged'
+          if (-not (Test-Path "$layout/AppxManifest.xml")) { throw 'Missing actual Test build' }
+          if (@(Get-ChildItem $artifact -Recurse -Force | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) { throw 'Unexpected native artifact link' }
+          $marker = Get-Content "$artifact/dev-pending.json" -Raw | ConvertFrom-Json
+          if ($marker.commitFull -ne $env:BUILD_SHA -or $marker.dirty) { throw 'Artifact source identity mismatch' }
+          $version = ([xml](Get-Content dep/nuget/packages.config)).packages.package | Where-Object id -eq 'Microsoft.UI.Xaml' | Select-Object -ExpandProperty version
+          if ($version -ne '2.8.4') { throw 'Unexpected pinned XAML version' }
+          $package = Join-Path $env:RUNNER_TEMP 'xaml.nupkg'
+          Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/microsoft.ui.xaml/$version/microsoft.ui.xaml.$version.nupkg" -OutFile $package
+          $xaml = Join-Path $env:RUNNER_TEMP 'xaml-package'
+          New-Item -ItemType Directory $xaml | Out-Null
+          tar -xf $package -C $xaml
+          if ($LASTEXITCODE -ne 0) { throw 'XAML extraction failed' }
+          $portable = & ./build/scripts/New-UnpackagedTerminalDistribution.ps1 -TerminalLayout $layout -XamlAppX "$xaml/tools/AppX/x64/Release/Microsoft.UI.Xaml.2.8.appx" -PortableMode
+          $portable = $portable.FullName
+          if ($portable -notlike "$env:TEMP*" -and $portable -notlike "$env:RUNNER_TEMP*") { throw 'Unexpected producer output location' }
+          foreach ($file in 'mullion.exe','Microsoft.UI.Xaml.dll','resources.pri','.portable') {
+            if (-not (Test-Path (Join-Path $portable $file))) { throw "Portable dependency missing: $file" }
+          }
+          Copy-Item LICENSE,NOTICE.md -Destination $portable
+          Copy-Item "$xaml/license.txt" -Destination "$portable/Microsoft.UI.Xaml-LICENSE.txt"
+          $output = Join-Path $env:RUNNER_TEMP 'portable-output'
+          New-Item -ItemType Directory $output | Out-Null
+          $zip = Join-Path $output 'mullion-windows-x64-portable.zip'
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::CreateFromDirectory($portable, $zip)
+          $fresh = Join-Path $env:RUNNER_TEMP 'portable-customer-check'
+          Expand-Archive $zip -DestinationPath $fresh
+          $arguments = "new-tab -d `"$fresh`" -- cmd.exe /d /c `"echo mullion-portable-session>session-proof.txt & ping -n 60 127.0.0.1 >nul`""
+          $process = Start-Process "$fresh/mullion.exe" -ArgumentList $arguments -WorkingDirectory $fresh -PassThru
+          try {
+            $deadline = (Get-Date).AddSeconds(45)
+            do { Start-Sleep -Milliseconds 500; $process.Refresh() } while (-not $process.HasExited -and (-not $process.MainWindowHandle -or -not (Test-Path "$fresh/session-proof.txt") -or -not (Test-Path "$fresh/settings/settings.json")) -and (Get-Date) -lt $deadline)
+            if ($process.HasExited -or -not $process.MainWindowHandle) { throw 'Actual portable native window did not appear' }
+            if (-not (Test-Path "$fresh/settings/settings.json")) { throw 'Actual portable settings were not created' }
+            if ((Get-Content "$fresh/session-proof.txt" -Raw).Trim() -ne 'mullion-portable-session') { throw 'Actual terminal shell command did not run' }
+          } finally {
+            if (-not $process.HasExited) { $null = $process.CloseMainWindow(); if (-not $process.WaitForExit(5000)) { Stop-Process -Id $process.Id } }
+          }
+          $proof = @{source=$env:BUILD_SHA; run=$env:BUILD_RUN; xamlVersion=$version; xamlPackageSHA256=(Get-FileHash $package).Hash.ToLower(); zipSHA256=(Get-FileHash $zip).Hash.ToLower(); nativeWindow=$true; portableSettings=$true; terminalShell=$true}
+          $proof | ConvertTo-Json | Set-Content "$output/PROVENANCE.json" -Encoding utf8
+          @(Get-ChildItem $portable -File -Recurse -Force | Sort-Object FullName | ForEach-Object { @{path=[IO.Path]::GetRelativePath($portable,$_.FullName); size=$_.Length; sha256=(Get-FileHash $_.FullName).Hash.ToLower()} }) | ConvertTo-Json -Depth 5 | Set-Content "$output/PAYLOAD.json" -Encoding utf8
+          "$($proof.zipSHA256)  mullion-windows-x64-portable.zip" | Set-Content "$output/SHA256SUMS" -Encoding utf8
+      - uses: actions/upload-artifact@v7
+        with:
+          name: portable-customer-verified
+          path: ${{ runner.temp }}/portable-output
+          if-no-files-found: error
+          retention-days: 14
