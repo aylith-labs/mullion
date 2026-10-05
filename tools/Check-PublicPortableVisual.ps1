@@ -34,7 +34,7 @@ function Capture-Owned([IntPtr]$handle, [string]$path) {
   $bitmap.Save($path,[Drawing.Imaging.ImageFormat]::Png)
  } finally { $graphics.Dispose();$bitmap.Dispose() }
 }
-$arguments = "-w new new-tab -d `"$fresh`" -- cmd.exe /d /c `"echo public-mullion-shell>session-proof.txt & ping -n 90 127.0.0.1 >nul`""
+$arguments = "-w new new-tab -d `"$fresh`" -- cmd.exe /d /c `"echo public-mullion-shell>session-proof.txt & echo visible-mullion-terminal & ping -n 90 127.0.0.1 >nul`""
 $process = Start-Process "$fresh/mullion.exe" -ArgumentList $arguments -WorkingDirectory $fresh -PassThru
 $output = Join-Path $env:RUNNER_TEMP 'mullion-visual-proof'
 New-Item -ItemType Directory $output | Out-Null
