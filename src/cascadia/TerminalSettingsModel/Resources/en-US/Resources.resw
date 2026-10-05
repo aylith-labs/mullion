@@ -135,11 +135,11 @@
     <comment>This will open a pane listing the programs the terminal has started, and the console programs handed to it, so the user can see where an unexpected window came from</comment>
   </data>
   <data name="ApplicationDisplayNamePortable" xml:space="preserve">
-    <value>Terminal (Portable)</value>
+    <value>Mullion (Portable)</value>
     <comment>This display name is used when the Terminal application is running in a "portable" mode, where settings are not stored in a shared location.</comment>
   </data>
   <data name="ApplicationDisplayNameUnpackaged" xml:space="preserve">
-    <value>Terminal (Unpackaged)</value>
+    <value>Mullion (Unpackaged)</value>
     <comment>This display name is used when the application's name cannot be determined</comment>
   </data>
   <data name="ApplicationVersionUnknown" xml:space="preserve">
