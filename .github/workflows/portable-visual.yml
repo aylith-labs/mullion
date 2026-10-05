@@ -1,0 +1,24 @@
+name: Public portable visual acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mullion-public-portable-visual
+  cancel-in-progress: false
+jobs:
+  visual:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Exercise actual public customer archive in disposable portable profile
+        shell: pwsh
+        run: ./tools/Check-PublicPortableVisual.ps1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: public-portable-visual
+          path: ${{ runner.temp }}/mullion-visual-proof
+          if-no-files-found: error
