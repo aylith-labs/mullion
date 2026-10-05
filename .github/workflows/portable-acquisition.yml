@@ -68,8 +68,13 @@ jobs:
           tar -xf $package -C $xaml
           if ($LASTEXITCODE -ne 0) { throw 'XAML extraction failed' }
           $portable = & ./build/scripts/New-UnpackagedTerminalDistribution.ps1 -TerminalLayout $layout -XamlAppX "$xaml/tools/AppX/x64/Release/Microsoft.UI.Xaml.2.8.appx" -PortableMode
-          $portable = $portable.FullName
-          if ($portable -notlike "$env:TEMP*" -and $portable -notlike "$env:RUNNER_TEMP*") { throw 'Unexpected producer output location' }
+          $directories = @($portable | Where-Object { $_ -is [IO.DirectoryInfo] })
+          if ($directories.Count -ne 1) { throw 'Unexpected producer output type' }
+          if ($directories[0].Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Unexpected producer directory link' }
+          $portable = [IO.Path]::GetFullPath($directories[0].FullName)
+          $producerRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+          if (-not $portable.StartsWith($producerRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected producer output location' }
+          if (@(Get-ChildItem $portable -Recurse -Force | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) { throw 'Unexpected portable output link' }
           foreach ($file in 'mullion.exe','Microsoft.UI.Xaml.dll','resources.pri','.portable') {
             if (-not (Test-Path (Join-Path $portable $file))) { throw "Portable dependency missing: $file" }
           }
