@@ -42,6 +42,12 @@ namespace winrt::TerminalApp::implementation
 
     winrt::hstring AboutDialog::ApplicationVersion()
     {
+        if (CascadiaSettings::IsPortableMode())
+        {
+            // Portable builds have no package version. Identify the actual compiled
+            // source with the same generated build producer used by the Commit row.
+            return winrt::hstring{ fmt::format(FMT_COMPILE(L"source {}"), ::TerminalApp::BuildInfo::Commit()) };
+        }
         return CascadiaSettings::ApplicationVersion();
     }
 
