@@ -150,5 +150,6 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_PROFILE_SETTING(String, DragDropDelimiter);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, AllowVtClipboardWrite);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, AllowOscNotifications);
+        OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, NotifyWhenFocused);
     }
 }

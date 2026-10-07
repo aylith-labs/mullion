@@ -865,6 +865,14 @@
     <value>When enabled, applications can send the OSC 777 escape sequence to trigger a desktop notification with a custom title and body.</value>
     <comment>{Locked="OSC 777"}Help text for the OSC 777 desktop notification toggle.</comment>
   </data>
+  <data name="Profile_NotifyWhenFocused.Header" xml:space="preserve">
+    <value>Show notifications from the pane you are looking at</value>
+    <comment>Header for a control to toggle showing desktop notifications even when the window is focused and the pane that sent them is the active one.</comment>
+  </data>
+  <data name="Profile_NotifyWhenFocused.Description" xml:space="preserve">
+    <value>Off, a notification from the active pane of a focused window is dropped. Turn this on for a pane running a multiplexer such as tmux or shefrd, whose notifications are about panes this window cannot show.</value>
+    <comment>{Locked="tmux"}{Locked="shefrd"}Help text for the toggle that shows desktop notifications from the focused pane.</comment>
+  </data>
   <data name="Globals_AllowHeadless.Header" xml:space="preserve">
     <value>Allow Windows Terminal to run in the background</value>
     <comment>Header for a control to toggle support for Windows Terminal to run in the background.</comment>

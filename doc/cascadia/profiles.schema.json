@@ -3278,6 +3278,11 @@
           "description": "When set to true, applications can send OSC 777 escape sequences to trigger desktop toast notifications with a custom title and body.",
           "type": "boolean"
         },
+        "compatibility.notifyWhenFocused": {
+          "default": false,
+          "description": "When set to true, a desktop notification from this profile's pane is shown even while the window is focused and that pane is the active one. Off, it is dropped, since you are looking at the pane; turn it on for a multiplexer whose notifications are about panes the window cannot show.",
+          "type": "boolean"
+        },
         "unfocusedAppearance": {
           "$ref": "#/$defs/AppearanceConfig",
           "description": "Sets the appearance of the terminal when it is unfocused.",

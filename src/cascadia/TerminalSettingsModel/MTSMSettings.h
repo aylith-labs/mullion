@@ -176,6 +176,7 @@ Author(s):
     X(bool, AllowVtChecksumReport, "compatibility.allowDECRQCRA", false)                                                                                       \
     X(bool, AllowVtClipboardWrite, "compatibility.allowOSC52", true)                                                                                           \
     X(bool, AllowOscNotifications, "compatibility.allowOSC777", false)                                                                                         \
+    X(bool, NotifyWhenFocused, "compatibility.notifyWhenFocused", false)                                                                                       \
     X(bool, AllowKeypadMode, "compatibility.allowDECNKM", false)                                                                                               \
     X(hstring, DragDropDelimiter, "dragDropDelimiter", L" ")                                                                                                   \
     X(Microsoft::Terminal::Control::PathTranslationStyle, PathTranslationStyle, "pathTranslationStyle", Microsoft::Terminal::Control::PathTranslationStyle::None)

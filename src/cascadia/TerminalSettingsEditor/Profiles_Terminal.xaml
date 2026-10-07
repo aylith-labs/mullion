@@ -103,6 +103,19 @@
                 </StackPanel>
             </local:SettingsCard>
 
+            <!--  Notify Even When The Sending Pane Is Focused  -->
+            <local:SettingsCard x:Name="NotifyWhenFocused"
+                                x:Uid="Profile_NotifyWhenFocused"
+                                IsForkFeature="True">
+                <StackPanel Style="{StaticResource SettingControlStackStyle}">
+                    <ToggleSwitch VerticalAlignment="Center"
+                                  IsOn="{x:Bind Profile.NotifyWhenFocused, Mode=TwoWay}"
+                                  Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                    <local:SettingResetButton SettingName="NotifyWhenFocused"
+                                              Target="{x:Bind Profile}" />
+                </StackPanel>
+            </local:SettingsCard>
+
             <!--  Answerback Message  -->
             <local:SettingsCard x:Name="AnswerbackMessage"
                                 x:Uid="Profile_AnswerbackMessage">

@@ -1421,8 +1421,14 @@ namespace winrt::TerminalApp::implementation
     void TerminalPage::_SendDesktopNotification(const winrt::hstring& tabTitle, const winrt::hstring& body, const winrt::com_ptr<Tab>& tab, const winrt::TerminalApp::IPaneContent& content)
     {
         // Don't send a notification if the window is focused and the requesting
-        // pane is the active pane. The user is already looking at it.
-        if (_activated && tab == _GetFocusedTabImpl())
+        // pane is the active pane. The user is already looking at it - unless
+        // the pane's profile sets compatibility.notifyWhenFocused, for a pane
+        // hosting something that has views of its own (a multiplexer) and
+        // means its notifications for panes the window cannot show.
+        const auto terminalContent{ content.try_as<winrt::TerminalApp::TerminalPaneContent>() };
+        const auto profile{ terminalContent ? terminalContent.GetProfile() : nullptr };
+        const auto notifyWhenFocused{ profile && profile.NotifyWhenFocused() };
+        if (_activated && !notifyWhenFocused && tab == _GetFocusedTabImpl())
         {
             if (const auto activePane{ tab->GetActivePane() })
             {

@@ -182,6 +182,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     X(_profile, AllowVtChecksumReport)          \
     X(_profile, AllowVtClipboardWrite)          \
     X(_profile, AllowOscNotifications)          \
+    X(_profile, NotifyWhenFocused)              \
     X(_profile, AnswerbackMessage)              \
     X(_profile, RainbowSuggestions)             \
     X(_profile, PathTranslationStyle)           \
