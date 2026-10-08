@@ -126,7 +126,7 @@ Author(s):
     X(bool, DisableAnimations, "disableAnimations", false)                                                                                                                                            \
     X(hstring, StartupActions, "startupActions", L"")                                                                                                                                                 \
     X(bool, MinimizeToNotificationArea, "minimizeToNotificationArea", false)                                                                                                                          \
-    X(winrt::Windows::Foundation::Collections::IVector<winrt::hstring>, SafeUriSchemes, "safeUriSchemes", nullptr)                                                                                    \
+    X(winrt::Windows::Foundation::Collections::IVector<winrt::hstring>, SafeUriSchemes, "safeUriSchemes", winrt::single_threaded_vector<winrt::hstring>({ L"stith" }))                                \
     X(bool, ShowAdminShield, "showAdminShield", true)                                                                                                                                                 \
     X(bool, TrimPaste, "trimPaste", true)                                                                                                                                                             \
     X(bool, EnableShellCompletionMenu, "experimental.enableShellCompletionMenu", false)                                                                                                               \

@@ -2838,7 +2838,8 @@
           "type": "array"
         },
         "safeUriSchemes": {
-          "description": "Specifies a list of URI schemes that are considered safe. No confirmation will be required to open URIs with these schemes.",
+          "description": "Specifies a list of URI schemes that are considered safe. No confirmation will be required to open URIs with these schemes. Defaults to [\"stith\"]; setting this replaces the default rather than adding to it, and an empty list confirms every scheme.",
+          "default": [ "stith" ],
           "items": {
             "type": "string"
           },

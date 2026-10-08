@@ -1886,18 +1886,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
     void LinkTooltipViewModel::SafeUriSchemes(const winrt::hstring& value)
     {
-        auto schemes = _splitCommaList(value);
-
-        // An empty box clears the setting rather than storing an empty list, so the JSON
-        // goes back to not mentioning it at all and the default applies again.
-        if (schemes.empty())
-        {
-            _WindowSettings.ClearSafeUriSchemes();
-        }
-        else
-        {
-            _WindowSettings.SafeUriSchemes(winrt::single_threaded_vector<winrt::hstring>(std::move(schemes)));
-        }
+        // An empty box stores an empty list rather than clearing the setting. The default
+        // is not empty (it lists "stith"), so clearing would put the default back and the
+        // box would refill the moment it was emptied -- and the card promises that an
+        // empty box confirms every scheme.
+        _WindowSettings.SafeUriSchemes(winrt::single_threaded_vector<winrt::hstring>(_splitCommaList(value)));
 
         _NotifyChanges(L"SafeUriSchemes");
     }
