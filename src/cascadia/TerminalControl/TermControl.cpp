@@ -11,6 +11,8 @@
 #include <inputpaneinterop.h>
 // For the mandatory-integrity label an elevated window's buffer file needs.
 #include <sddl.h>
+#include <winnetwk.h>
+#pragma comment(lib, "mpr.lib") // WNetGetConnectionW, for WSL-mapped drives in dropped paths
 
 #include <regex>
 #include <til/regex.h>
@@ -102,6 +104,37 @@ static Microsoft::Console::TSF::Handle& GetTSFHandle()
 
 namespace winrt::Microsoft::Terminal::Control::implementation
 {
+    // A drive letter mapped to a WSL share (Z: -> \\wsl.localhost\Ubuntu) would otherwise
+    // translate to /mnt/z/..., which does not exist inside WSL. Expand it to the share so the
+    // UNC branch of _translatePathInPlace strips it to the distro's own path.
+    static void _expandWslMappedDrive(std::wstring& fullPath)
+    {
+        if (fullPath.size() < 2 || fullPath.at(1) != L':')
+        {
+            return;
+        }
+
+        const wchar_t drive[]{ fullPath.at(0), L':', L'\0' };
+        wchar_t remote[MAX_PATH];
+        DWORD remoteLength = ARRAYSIZE(remote);
+        if (WNetGetConnectionW(&drive[0], &remote[0], &remoteLength) != NO_ERROR)
+        {
+            return;
+        }
+
+        // The UNC branch matches its prefixes case-sensitively, so substitute the canonical spelling.
+        static constexpr std::wstring_view wslSharePrefixes[] = { L"\\\\wsl.localhost\\", L"\\\\wsl$\\" };
+        const std::wstring_view share{ &remote[0] };
+        for (const auto prefix : wslSharePrefixes)
+        {
+            if (til::starts_with_insensitive_ascii(share, prefix))
+            {
+                fullPath.replace(0, 2, std::wstring{ prefix }.append(share.substr(prefix.size())));
+                return;
+            }
+        }
+    }
+
     static void _translatePathInPlace(std::wstring& fullPath, PathTranslationStyle translationStyle)
     {
         static constexpr wil::zwstring_view s_pathPrefixes[] = {
@@ -117,6 +150,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (translationStyle == PathTranslationStyle::None)
         {
             return;
+        }
+
+        if (translationStyle == PathTranslationStyle::WSL)
+        {
+            _expandWslMappedDrive(fullPath);
         }
 
         // All of the other path translation modes current result in /-delimited paths
