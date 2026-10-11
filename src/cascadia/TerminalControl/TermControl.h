@@ -410,14 +410,22 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void _HyperlinkRuleInfoClick(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
         void _raiseShowHyperlinkPreviewRequested(bool hover = false, bool createPane = true);
 
-        // A preview whose integration returned rendered HTML is drawn by a WebView2
-        // parented to the owning window rather than by the field list. It is created
-        // lazily and only when HyperlinkHtmlHost::IsAvailable() -- which needs both
-        // Feature_HyperlinkPreviewHtml and a WebView2Loader.dll that no build ships yet --
-        // so in every build today this pointer stays null and every path below it is a
-        // null test that falls through to the field list exactly as before.
+        // A preview whose integration returned rendered HTML, or whose embeddable view the
+        // user asked for with Details, is drawn by a WebView2 parented to the owning window
+        // rather than by the field list. It is created lazily and only when
+        // HyperlinkHtmlHost::IsAvailable() -- the feature flag, plus WebView2Loader.dll and a
+        // runtime -- so without them this pointer stays null and every path below it is a
+        // null test that falls through to the field list.
         std::unique_ptr<HyperlinkHtmlHost> _hyperlinkHtmlHost;
         int32_t _hyperlinkHtmlHeight{ 120 };
+        // Details is showing: the card holds the integration's embed page, is sized for it,
+        // and stays up until Esc, a click outside it, or the button again. The pointer
+        // leaving the card cannot be the signal here -- the WebView2 is its own HWND, so
+        // XAML reports the pointer as gone the moment it moves onto the page.
+        bool _hyperlinkEmbedOpen{ false };
+        void _HyperlinkEmbedClick(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
+        void _enterHyperlinkEmbed();
+        void _leaveHyperlinkEmbed();
         void _ensureHyperlinkHtmlHost();
         void _hideHyperlinkHtml();
         void _setHyperlinkHtmlHeight(int32_t height);

@@ -173,6 +173,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         WINRT_PROPERTY(bool, IsBuiltIn, false);
         WINRT_PROPERTY(int32_t, CacheSeconds, 300);
         WINRT_PROPERTY(hstring, Html);
+        WINRT_PROPERTY(hstring, Embed);
         WINRT_PROPERTY(hstring, AccountProvider);
 
         WINRT_PROPERTY(Windows::Foundation::Collections::IVector<Model::IntegrationField>, Settings);

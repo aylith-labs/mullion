@@ -218,6 +218,14 @@
     <value>Show in pane</value>
     <comment>Label of a button on the link tooltip that opens the same preview in a larger pane beside the terminal.</comment>
   </data>
+  <data name="HyperlinkEmbedButton.Content" xml:space="preserve">
+    <value>Details</value>
+    <comment>Label of a button on the link tooltip that shows the integration's own full page for the link inside the tooltip.</comment>
+  </data>
+  <data name="HyperlinkEmbedButtonClose" xml:space="preserve">
+    <value>Close details</value>
+    <comment>Label of the same button while the integration's full page is showing; pressing it returns to the summary.</comment>
+  </data>
   <data name="HyperlinkRuleMatchedPrefix" xml:space="preserve">
     <value>Matched by</value>
     <comment>Prefix on the link tooltip naming the rule that decided how the tooltip looks. Followed by the rule's name, e.g. "Matched by Jira: Issue links (URL)". Clicking it opens that rule's settings.</comment>

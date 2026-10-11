@@ -392,7 +392,8 @@ parse is skipped and logged, never fatal.
         { "key": "transition", "label": "Move to", "kind": "choice", "optionsPath": "transitions:/transitions", /* … */ }
     ]
 
-    // "html": "…" — off by default in this build; see "HTML representation" below.
+    // "html": "…" — see "HTML representation" below.
+    // "embed": "{{settings.baseUrl}}/embed/s/{{id}}" — see "Embed pages (Details)" below.
 }
 ```
 
@@ -416,7 +417,8 @@ Top-level keys:
 | `tabs` | array of [tab](#tabs) | Secondary content — a description, a comment list — shown behind a tab strip. |
 | `actions` | array of [action](#actions) | Things the card can do to the thing behind the link. |
 | `detectPatterns` | array of ICU regex | Patterns the terminal scans plain output for while this plugin is enabled, so text it owns becomes hoverable without OSC 8. See [detectPatterns](#detectpatterns). |
-| `html` | string | A full HTML document string, rendered in place of `fields`. Compiled in but off by default in this build; see [HTML representation](#html-representation-preview-off-by-default). |
+| `html` | string | A full HTML document string, rendered in place of `fields`. See [HTML representation](#html-representation). |
+| `embed` | string | URL template of the service's own page for the matched thing, offered on the card as **Details**. See [Embed pages (Details)](#embed-pages-details). |
 
 #### Settings / credentials fields
 
@@ -911,7 +913,7 @@ cached briefly too, so a broken credential doesn't retry on every hover.
 Running an [action](#actions) refreshes that entry rather than reading it, so a status the user just
 changed is never served stale from the cache.
 
-## HTML representation (preview, off by default)
+## HTML representation
 
 A manifest's `html` key is a full HTML document, given inline as a string (there is no
 file-reference form). When the feature is enabled, the card renders this document in a WebView2
@@ -938,11 +940,31 @@ Because the host applies its color scheme from the app theme, an `html` page sho
 "html": "<!doctype html><html><head><meta charset='utf-8'><style>:root{color-scheme:light dark}body{font:12px system-ui;margin:6px}</style></head><body><div id='s'></div><script>const d=window.__data.issue.fields;document.getElementById('s').textContent=d.summary+' — '+d.status.name;function report(){chrome.webview.postMessage({height:document.body.scrollHeight})}window.addEventListener('load',report);new ResizeObserver(report).observe(document.body);document.body.addEventListener('click',e=>{if(e.target.tagName==='A'){e.preventDefault();chrome.webview.postMessage({open:e.target.href})}});</script></body></html>"
 ```
 
-**In this build, `html` is compiled in but disabled.** Rendering it requires both the
-`Feature_HyperlinkPreviewHtml` feature flag (`src/features.xml`) to be enabled and
-`WebView2Loader.dll`, plus the WebView2 Runtime, to be present next to the app. Neither is true
-today, so every plugin that sets `html` falls back to its `fields` list — don't rely on `html`
-being rendered yet.
+Rendering it requires the `Feature_HyperlinkPreviewHtml` feature flag (`src/features.xml`),
+`WebView2Loader.dll` next to the app (packaged by `src/cascadia/CascadiaResources.build.items`), and
+an installed WebView2 Runtime. Without any of them the card falls back to the `fields` list.
+
+## Embed pages (Details)
+
+A manifest's `embed` key is a URL template, expanded with the same values as a matcher's `link`
+(`{{settings.*}}`, the matcher's named groups such as `{{id}}`). When it is set, the card shows a
+**Details** button. Pressing it grows the card to fit the pane and loads that page in the same
+WebView2 host, appending `theme=dark` or `theme=light` to the query string.
+
+Unlike `html`, this is a live page with its own routing:
+
+- Navigation **within the page's origin** is allowed, so the page's own tabs and links work.
+  Navigation to any other origin, and anything that asks for a new window (`target=_blank`,
+  `window.open`), is cancelled and opened through the Terminal's normal link handling instead.
+- A certificate error is accepted **only for the page's own origin**, matching what
+  `allowUntrustedCertificate` does for fetch steps.
+- Showing Details again for the same URL keeps the page as it was left; nothing reloads it.
+- The card stays up while Details is open: the WebView2 is its own window, so pointer-leave cannot
+  be the signal. **Esc** (in the page or the terminal), a click on the terminal, **Close details**,
+  a resize of the pane, or switching tabs puts it away.
+
+Stith's manifest uses `"{{settings.baseUrl}}/embed/s/{{id}}?host=mullion"`, its chromeless
+session view.
 
 ## Adding a third-party plugin
 

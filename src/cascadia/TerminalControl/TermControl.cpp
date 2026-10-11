@@ -448,6 +448,16 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _revokers.coreScrollPositionChanged = _core.ScrollPositionChanged(winrt::auto_revoke, { get_weak(), &TermControl::_ScrollPositionChanged });
         _revokers.WarningBell = _core.WarningBell(winrt::auto_revoke, { get_weak(), &TermControl::_coreWarningBell });
 
+        // The card's WebView2 is a window of its own, not part of this control's visual
+        // tree, so it does not disappear with the control: switching tabs would leave the
+        // page floating over whatever tab came next. Take the card down with the control.
+        Unloaded([weakThis = get_weak()](auto&&, auto&&) {
+            if (const auto self = weakThis.get(); self && self->_hyperlinkHtmlHost)
+            {
+                self->_hideHyperlinkCard();
+            }
+        });
+
         _ApplyUISettings();
 
         _originalPrimaryElements = winrt::single_threaded_observable_vector<Controls::ICommandBarElement>();
@@ -1654,6 +1664,13 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return false;
         }
 
+        // Esc puts Details away -- and only that: the shell never sees it.
+        if (keyDown && vkey == VK_ESCAPE && _hyperlinkEmbedOpen && HyperlinkCard().Visibility() == Visibility::Visible)
+        {
+            _hideHyperlinkCard();
+            return true;
+        }
+
         // GH#11076:
         // For some weird reason we sometimes receive a WM_KEYDOWN
         // message without vkey or scanCode if a user drags a tab.
@@ -2044,6 +2061,16 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return;
         }
 
+        // A click on the terminal while Details is open dismisses it, the way a click
+        // outside any popup does, and does nothing else -- no selection, no link opened.
+        // Clicks on the card itself never get here; the card swallows its own.
+        if (_hyperlinkEmbedOpen && HyperlinkCard().Visibility() == Visibility::Visible)
+        {
+            _hideHyperlinkCard();
+            args.Handled(true);
+            return;
+        }
+
         RestorePointerCursor.raise(*this, nullptr);
 
         _CapturePointer(sender, args);
@@ -2411,6 +2438,13 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return;
         }
 
+        // A pane that moves or resizes takes the card with it, but not the WebView2 window
+        // laid over the card: put Details away rather than leave it misplaced.
+        if (_hyperlinkEmbedOpen)
+        {
+            _hideHyperlinkCard();
+        }
+
         const auto newSize = e.NewSize();
         if (newSize.Width <= 0 || newSize.Height <= 0)
         {
@@ -2720,6 +2754,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             }
 
             RestorePointerCursor.raise(*this, nullptr);
+
+            // The WebView2 is a child of the window, which outlives this pane.
+            if (_hyperlinkHtmlHost)
+            {
+                _hyperlinkHtmlHost->Hide();
+            }
 
             _revokers = {};
 
@@ -3669,6 +3709,14 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     void TermControl::_hoveredHyperlinkChanged(const IInspectable& /*sender*/, const IInspectable& /*args*/)
     {
+        // Details is open: the card is something the user is reading, not a hover, and
+        // the pointer wandering over other links -- or off this one, onto the page --
+        // must not replace or dismiss it. Esc or a click outside does that.
+        if (_hyperlinkEmbedOpen && HyperlinkCard().Visibility() == Visibility::Visible)
+        {
+            return;
+        }
+
         const auto lastHoveredCell = _core.HoveredCell();
         auto uriText = lastHoveredCell ? _core.HoveredUriText() : hstring{};
         if (uriText.empty())
@@ -3822,6 +3870,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // Show in pane needs somewhere to send the request and something worth
         // sending: a link nobody can preview would open an empty pane.
         HyperlinkShowInPaneButton().Visibility(_currentHyperlinkTooltipSettings.showInPane ? Visibility::Visible : Visibility::Collapsed);
+        // Details waits for the preview: only an integration knows its embed URL.
+        HyperlinkEmbedButton().Visibility(Visibility::Collapsed);
 
         // Before _applyActionPlacement, which decides whether either host has anything
         // in it worth showing and so needs the rule line's visibility settled first.
@@ -4207,6 +4257,14 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _hideHyperlinkHtml();
         }
 
+        // Details: the integration's own full page for this link, shown in the card on
+        // demand. A refreshed preview (after an action) for the same link keeps it open.
+        HyperlinkEmbedButton().Visibility(!preview.EmbedUrl().empty() && HyperlinkHtmlHost::IsAvailable() ? Visibility::Visible : Visibility::Collapsed);
+        if (_hyperlinkEmbedOpen && !preview.EmbedUrl().empty() && HyperlinkHtmlHost::IsAvailable())
+        {
+            _enterHyperlinkEmbed();
+        }
+
         // A text match's link only exists once an integration has resolved it, so the target
         // line and the two buttons that need a link have been waiting for this moment.
         if (_currentHyperlinkTooltipSettings.isTextMatch && !preview.ResolvedUri().empty())
@@ -4269,6 +4327,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 self->_setHyperlinkHtmlHeight(height);
             }
         };
+        _hyperlinkHtmlHost->OnEscape = [weakThis = get_weak()]() {
+            if (const auto self = weakThis.get(); self && !self->_IsClosing() && self->_hyperlinkEmbedOpen)
+            {
+                self->_hideHyperlinkCard();
+            }
+        };
         _hyperlinkHtmlHost->OnOpenLink = [weakThis = get_weak()](winrt::hstring uri) {
             if (const auto self = weakThis.get(); self && !self->_IsClosing())
             {
@@ -4296,10 +4360,135 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         HyperlinkCardFieldsScroll().Visibility(_hyperlinkSelectedTab < 0 ? Visibility::Visible : Visibility::Collapsed);
     }
 
+    void TermControl::_HyperlinkEmbedClick(const IInspectable& /*sender*/, const RoutedEventArgs& /*e*/)
+    {
+        if (_hyperlinkEmbedOpen)
+        {
+            _leaveHyperlinkEmbed();
+        }
+        else
+        {
+            _enterHyperlinkEmbed();
+        }
+    }
+
+    // Swaps the card's body for the integration's own page and grows the card to fit it.
+    // Positioned from where the card already is rather than through _showHyperlinkCard,
+    // which anchors to the hovered cell -- and by the time anyone clicks Details the
+    // pointer is on the card, so there is no hovered cell left to anchor to.
+    void TermControl::_enterHyperlinkEmbed()
+    {
+        const auto preview = _currentHyperlinkPreview;
+        if (!preview || preview.EmbedUrl().empty() || !HyperlinkHtmlHost::IsAvailable())
+        {
+            return;
+        }
+
+        const auto card = HyperlinkCard();
+        const auto swapChain = SwapChainPanel();
+        const auto viewportWidth = swapChain ? swapChain.ActualWidth() : ActualWidth();
+        const auto viewportHeight = swapChain ? swapChain.ActualHeight() : ActualHeight();
+        if (viewportWidth <= 0 || viewportHeight <= 0)
+        {
+            return;
+        }
+
+        _ensureHyperlinkHtmlHost();
+        _hyperlinkEmbedOpen = true;
+        _hyperlinkHideTimer.Stop();
+
+        HyperlinkCardTabStripBorder().Visibility(Visibility::Collapsed);
+        HyperlinkCardFieldsScroll().Visibility(Visibility::Collapsed);
+        HyperlinkCardBodyScroll().Visibility(Visibility::Collapsed);
+        HyperlinkCardCommentsScroll().Visibility(Visibility::Collapsed);
+        HyperlinkEmbedButton().Content(winrt::box_value(RS_(L"HyperlinkEmbedButtonClose")));
+
+        // As large as the page is comfortable at, never larger than the pane. The
+        // allowance leaves room for the card's header, its button row and its padding,
+        // so the outer scroller never has to scroll a page that cannot scroll with it.
+        constexpr auto chromeAllowance = 150.0;
+        const auto pageWidth = std::max(240.0, std::min(900.0, viewportWidth - 24.0));
+        const auto pageHeight = std::max(120.0, std::min(680.0, viewportHeight - chromeAllowance));
+        const auto host = HyperlinkCardHtmlHost();
+        host.Width(pageWidth);
+        host.MinWidth(pageWidth);
+        host.Height(pageHeight);
+        host.Visibility(Visibility::Visible);
+        _hyperlinkHtmlHeight = static_cast<int32_t>(pageHeight);
+
+        card.MaxWidth(viewportWidth);
+        card.MaxHeight(viewportHeight);
+        HyperlinkCardScroll().MaxHeight(std::max(1.0, viewportHeight - 20));
+
+        // Grown in place, then pulled back inside the pane wherever it now overhangs.
+        card.UpdateLayout();
+        const auto width = card.ActualWidth();
+        const auto height = card.ActualHeight();
+        Controls::Canvas::SetLeft(card, std::clamp(Controls::Canvas::GetLeft(card), 0.0, std::max(0.0, viewportWidth - width)));
+        Controls::Canvas::SetTop(card, std::clamp(Controls::Canvas::GetTop(card), 0.0, std::max(0.0, viewportHeight - height)));
+        card.UpdateLayout();
+
+        // The page picks its theme from the query string as well as from the colour
+        // scheme the host reports; both say the same thing.
+        std::wstring url{ preview.EmbedUrl() };
+        url += url.find(L'?') == std::wstring::npos ? L'?' : L'&';
+        url += ActualTheme() == ElementTheme::Dark ? L"theme=dark" : L"theme=light";
+
+        _hyperlinkHtmlHost->ShowUrl(reinterpret_cast<HWND>(OwningHwnd()),
+                                    _htmlHostRect(),
+                                    winrt::hstring{ url },
+                                    ActualTheme() == ElementTheme::Dark);
+    }
+
+    // Back to the summary the card was showing before Details.
+    void TermControl::_leaveHyperlinkEmbed()
+    {
+        _hyperlinkEmbedOpen = false;
+        HyperlinkEmbedButton().Content(winrt::box_value(RS_(L"HyperlinkEmbedButton/Content")));
+
+        const auto host = HyperlinkCardHtmlHost();
+        host.ClearValue(FrameworkElement::WidthProperty());
+        host.MinWidth(240);
+        if (_hyperlinkHtmlHost)
+        {
+            _hyperlinkHtmlHost->Hide();
+        }
+        host.Visibility(Visibility::Collapsed);
+
+        // Rebuilding the strip also shows its first tab, which is where the card started.
+        if (_currentHyperlinkPreview)
+        {
+            _rebuildHyperlinkTabStrip(_currentHyperlinkPreview);
+        }
+        else
+        {
+            _showHyperlinkTab(-1);
+        }
+
+        // Shrinking the card can leave the pointer outside it with nothing to take it
+        // down; the usual grace period then applies, as for any card.
+        const auto swapChain = SwapChainPanel();
+        const auto viewportWidth = swapChain ? swapChain.ActualWidth() : ActualWidth();
+        const auto viewportHeight = swapChain ? swapChain.ActualHeight() : ActualHeight();
+        const auto configuredMaxWidth = static_cast<double>(_currentHyperlinkTooltipSettings.maxWidth);
+        const auto card = HyperlinkCard();
+        card.MaxWidth(configuredMaxWidth > 0 ? std::min(configuredMaxWidth, viewportWidth) : viewportWidth);
+        const auto maxHeight = _core.Settings().HyperlinkTooltipMaxHeight();
+        const auto heightLimit = maxHeight > 0 ? std::min(static_cast<double>(maxHeight), viewportHeight) : viewportHeight;
+        card.MaxHeight(heightLimit);
+        HyperlinkCardScroll().MaxHeight(std::max(1.0, heightLimit - 20));
+    }
+
     // The page measured itself and said how tall it wants to be. Clamped, because a card is
     // a hover affordance: a plugin that asks for a thousand pixels does not get the pane.
     void TermControl::_setHyperlinkHtmlHeight(int32_t height)
     {
+        // Details sizes its page to the pane, not to what the page asks for.
+        if (_hyperlinkEmbedOpen)
+        {
+            return;
+        }
+
         const auto clamped = std::clamp(height, 40, 320);
         if (clamped == _hyperlinkHtmlHeight)
         {
@@ -4390,10 +4579,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // where the setting is +inf) must still be able to fit the card
         // entirely inside it, or the position clamp below has nothing left to
         // clamp to and the card overflows the pane regardless of where it sits.
-        const auto configuredMaxWidth = static_cast<double>(_currentHyperlinkTooltipSettings.maxWidth);
+        // Details is a page, not a tooltip: the configured tooltip limits are for the
+        // summary, and the embed gets whatever the pane has room for.
+        const auto configuredMaxWidth = _hyperlinkEmbedOpen ? 0.0 : static_cast<double>(_currentHyperlinkTooltipSettings.maxWidth);
         card.MaxWidth(configuredMaxWidth > 0 ? std::min(configuredMaxWidth, viewportWidth) : viewportWidth);
         card.MinWidth(std::min(200.0, viewportWidth));
-        const auto maxHeight = _core.Settings().HyperlinkTooltipMaxHeight();
+        const auto maxHeight = _hyperlinkEmbedOpen ? 0 : _core.Settings().HyperlinkTooltipMaxHeight();
         const auto heightLimit = maxHeight > 0 ? std::min(static_cast<double>(maxHeight), viewportHeight) : viewportHeight;
         card.MaxHeight(heightLimit);
         HyperlinkCardScroll().MaxHeight(std::max(1.0, heightLimit - 20));
@@ -4494,6 +4685,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         HyperlinkCardFilePreview().Content(nullptr);
         HyperlinkCardLeftIcon().Content(nullptr);
         HyperlinkCardPreviewIcon().Content(nullptr);
+        if (_hyperlinkEmbedOpen)
+        {
+            // Puts the button label and the host's size back for the next card.
+            _leaveHyperlinkEmbed();
+        }
         _hideHyperlinkHtml();
         HyperlinkCard().Visibility(Visibility::Collapsed);
     }
@@ -4502,7 +4698,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     {
         _hyperlinkShowTimer.Stop();
 
-        if (_pointerInHyperlinkCard || _hyperlinkActionDropDownOpen || HyperlinkCard().Visibility() != Visibility::Visible)
+        if (_hyperlinkEmbedOpen || _pointerInHyperlinkCard || _hyperlinkActionDropDownOpen || HyperlinkCard().Visibility() != Visibility::Visible)
         {
             return;
         }

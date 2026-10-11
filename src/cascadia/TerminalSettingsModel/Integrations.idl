@@ -249,6 +249,9 @@ namespace Microsoft.Terminal.Settings.Model
         Int32 CacheSeconds;
         // Optional HTML/CSS/JS representation; empty means "use Fields".
         String Html;
+        // Optional URL template of a page that shows the linked thing in full -- the
+        // integration's own embeddable view. Offered on the card as "Details".
+        String Embed;
         String AccountProvider;
 
         Windows.Foundation.Collections.IVector<IntegrationField> Settings;

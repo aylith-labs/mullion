@@ -137,6 +137,9 @@ namespace Microsoft.Terminal.Control
         // The raw JSON the integration's steps produced, handed to an HTML representation
         // as window.__data so a plugin can render from the data instead of from Fields.
         String DataJson;
+        // The integration's full, embeddable view of the linked thing, already expanded.
+        // Non-empty puts a "Details" button on the card that shows it in a WebView2.
+        String EmbedUrl;
         // Non-empty when the fetch failed; shown in place of the fields.
         String Error;
         // For text matches: the URL the match resolves to.

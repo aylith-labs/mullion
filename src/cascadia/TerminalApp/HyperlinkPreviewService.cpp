@@ -170,6 +170,8 @@ namespace winrt::TerminalApp::implementation
             std::wstring Name;
             std::wstring Icon;
             std::wstring Html;
+            // URL template of the integration's embeddable full view; see Integrations.idl.
+            std::wstring Embed;
             int32_t CacheSeconds{ 300 };
             // Every required setting has a value and every credential is
             // present. Nothing is ever fetched for an integration that isn't.
@@ -1894,6 +1896,13 @@ namespace
         BuildTabs(plugin, reader, preview);
         BuildActions(plugin, reader, preview);
 
+        // Not escaped: the template is a whole URL whose settings (the server) must
+        // survive intact, and the groups it draws on are the matcher's own captures.
+        if (!plugin.Embed.empty())
+        {
+            preview.EmbedUrl(winrt::hstring{ Expand(plugin.Embed, context, Escape::None) });
+        }
+
         if (!plugin.Html.empty())
         {
             // Handed over untouched: what to do with it is the control's call.
@@ -2278,6 +2287,7 @@ namespace winrt::TerminalApp::implementation
                 plugin->Name = std::wstring{ manifest.Name() };
                 plugin->Icon = std::wstring{ manifest.Icon() };
                 plugin->Html = std::wstring{ manifest.Html() };
+                plugin->Embed = std::wstring{ manifest.Embed() };
                 plugin->CacheSeconds = manifest.CacheSeconds();
 
                 if (const auto settingFields = manifest.Settings())

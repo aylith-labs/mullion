@@ -82,6 +82,7 @@ namespace
     constexpr std::string_view VersionKey{ "version" };
     constexpr std::string_view CacheSecondsKey{ "cacheSeconds" };
     constexpr std::string_view HtmlKey{ "html" };
+    constexpr std::string_view EmbedKey{ "embed" };
     constexpr std::string_view SettingsKey{ "settings" };
     constexpr std::string_view CredentialsKey{ "credentials" };
     constexpr std::string_view MatchersKey{ "matchers" };
@@ -311,6 +312,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         JsonUtils::GetValueForKey(json, VersionKey, manifest->_Version);
         JsonUtils::GetValueForKey(json, CacheSecondsKey, manifest->_CacheSeconds);
         JsonUtils::GetValueForKey(json, HtmlKey, manifest->_Html);
+        JsonUtils::GetValueForKey(json, EmbedKey, manifest->_Embed);
         if (json.isMember("account") && json["account"].isObject() && json["account"]["provider"].isString())
         {
             manifest->_AccountProvider = to_hstring(json["account"]["provider"].asString());

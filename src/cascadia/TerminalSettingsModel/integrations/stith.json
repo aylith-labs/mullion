@@ -4,6 +4,7 @@
     "icon": "ms-appx:///IntegrationIcons/aylith.png",
     "version": 1,
     "cacheSeconds": 30,
+    "embed": "{{settings.baseUrl}}/embed/s/{{id}}?host=mullion",
     "settings": [
         {
             "key": "baseUrl",

@@ -1757,6 +1757,13 @@
                                                 Margin="0,0,4,0"
                                                 AllowFocusOnInteraction="False"
                                                 Click="_HyperlinkShowInPaneClick" />
+                                        <!--  The integration's own full page, in the card. Shown only when it has an embed URL and WebView2 is available.  -->
+                                        <Button x:Name="HyperlinkEmbedButton"
+                                                x:Uid="HyperlinkEmbedButton"
+                                                Margin="0,0,4,0"
+                                                AllowFocusOnInteraction="False"
+                                                Click="_HyperlinkEmbedClick"
+                                                Visibility="Collapsed" />
 
                                         <!--
                                             A rule's custom actions (see HyperlinkTooltipRule), populated per-hover

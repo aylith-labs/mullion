@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- Keep the version in step with WebView2PackageRoot in src\common.nugetversions.targets. -->
+    <MullionWebView2Arch>$(Platform.ToLowerInvariant())</MullionWebView2Arch>
+    <MullionWebView2Arch Condition="'$(MullionWebView2Arch)'=='win32'">x86</MullionWebView2Arch>
+    <MullionWebView2Loader>$(OpenConsoleDir)packages\Microsoft.Web.WebView2.1.0.1661.34\build\native\$(MullionWebView2Arch)\WebView2Loader.dll</MullionWebView2Loader>
+  </PropertyGroup>
+  <Target Name="MullionCheckWebView2Loader" BeforeTargets="Build">
+    <Error Condition="!Exists('$(MullionWebView2Loader)')" Text="WebView2Loader.dll not found at $(MullionWebView2Loader); the link card's Details page would silently never appear. Was dep\nuget\packages.config restored?" />
+  </Target>
   <ItemGroup>
     <!-- License Info -->
     <Content Include="$(OpenConsoleDir)src\cascadia\CascadiaPackage\NOTICE.html">
@@ -38,6 +47,14 @@
     <Content Include="$(OpenConsoleDir)src\cascadia\CascadiaPackage\Docs\**\*">
       <DeploymentContent>true</DeploymentContent>
       <Link>Docs\%(RecursiveDir)%(FileName)%(Extension)</Link>
+    </Content>
+    <!-- WebView2's loader, beside the binaries, for the link card's HTML host and its
+         Details page (HyperlinkHtmlHost). It is loaded by name at runtime -- nothing
+         links it -- so a package without it still runs, it just never offers Details.
+         That makes a miss here silent, hence the explicit check target below. -->
+    <Content Include="$(MullionWebView2Loader)">
+      <DeploymentContent>true</DeploymentContent>
+      <Link>%(FileName)%(Extension)</Link>
     </Content>
     <!-- Default Settings -->
     <Content Include="$(OpenConsoleDir)src\cascadia\TerminalSettingsModel\defaults.json">
