@@ -49,8 +49,8 @@
       <Link>Docs\%(RecursiveDir)%(FileName)%(Extension)</Link>
     </Content>
     <!-- WebView2's loader, beside the binaries, for the link card's HTML host and its
-         Details page (HyperlinkHtmlHost). It is loaded by name at runtime -- nothing
-         links it -- so a package without it still runs, it just never offers Details.
+         Details page (HyperlinkHtmlHost). It is loaded by name at runtime (nothing
+         links it), so a package without it still runs, it just never offers Details.
          That makes a miss here silent, hence the explicit check target below. -->
     <Content Include="$(MullionWebView2Loader)">
       <DeploymentContent>true</DeploymentContent>
