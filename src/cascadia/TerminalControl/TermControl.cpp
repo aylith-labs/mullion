@@ -448,11 +448,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _revokers.coreScrollPositionChanged = _core.ScrollPositionChanged(winrt::auto_revoke, { get_weak(), &TermControl::_ScrollPositionChanged });
         _revokers.WarningBell = _core.WarningBell(winrt::auto_revoke, { get_weak(), &TermControl::_coreWarningBell });
 
-        // The card's WebView2 is a window of its own, not part of this control's visual
-        // tree, so it does not disappear with the control: switching tabs would leave the
-        // page floating over whatever tab came next. Take the card down with the control.
+        // A card holding an integration's page is something being read; when the control
+        // leaves the tree (another tab, a pane rearranged) it comes down, so the page is
+        // not still holding keyboard focus behind a tab nobody is looking at.
         Unloaded([weakThis = get_weak()](auto&&, auto&&) {
-            if (const auto self = weakThis.get(); self && self->_hyperlinkHtmlHost)
+            if (const auto self = weakThis.get(); self && self->_hyperlinkEmbedOpen)
             {
                 self->_hideHyperlinkCard();
             }
@@ -2438,8 +2438,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return;
         }
 
-        // A pane that moves or resizes takes the card with it, but not the WebView2 window
-        // laid over the card: put Details away rather than leave it misplaced.
+        // The integration's page was sized for the pane as it was; rather than leave a
+        // card larger than the pane now is, put it away.
         if (_hyperlinkEmbedOpen)
         {
             _hideHyperlinkCard();
@@ -2755,10 +2755,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
             RestorePointerCursor.raise(*this, nullptr);
 
-            // The WebView2 is a child of the window, which outlives this pane.
-            if (_hyperlinkHtmlHost)
+            // The page's browser process outlives nothing it does not have to.
+            if (_hyperlinkEmbedHost)
             {
-                _hyperlinkHtmlHost->Hide();
+                _hyperlinkEmbedHost.Close();
+                _hyperlinkEmbedHost = nullptr;
             }
 
             _revokers = {};
@@ -4257,10 +4258,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _hideHyperlinkHtml();
         }
 
-        // Details: the integration's own full page for this link, shown in the card on
-        // demand. A refreshed preview (after an action) for the same link keeps it open.
-        HyperlinkEmbedButton().Visibility(!preview.EmbedUrl().empty() && HyperlinkHtmlHost::IsAvailable() ? Visibility::Visible : Visibility::Collapsed);
-        if (_hyperlinkEmbedOpen && !preview.EmbedUrl().empty() && HyperlinkHtmlHost::IsAvailable())
+        // "Show <integration> page": the integration's own page for this link, in the
+        // card on demand. A refreshed preview (after an action) keeps it open.
+        const auto canEmbed = !preview.EmbedUrl().empty() && Control::WebEmbedHost::IsAvailable();
+        HyperlinkEmbedButton().Visibility(canEmbed ? Visibility::Visible : Visibility::Collapsed);
+        HyperlinkEmbedButton().Content(winrt::box_value(_hyperlinkEmbedButtonLabel(_hyperlinkEmbedOpen)));
+        if (_hyperlinkEmbedOpen && canEmbed)
         {
             _enterHyperlinkEmbed();
         }
@@ -4327,12 +4330,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 self->_setHyperlinkHtmlHeight(height);
             }
         };
-        _hyperlinkHtmlHost->OnEscape = [weakThis = get_weak()]() {
-            if (const auto self = weakThis.get(); self && !self->_IsClosing() && self->_hyperlinkEmbedOpen)
-            {
-                self->_hideHyperlinkCard();
-            }
-        };
         _hyperlinkHtmlHost->OnOpenLink = [weakThis = get_weak()](winrt::hstring uri) {
             if (const auto self = weakThis.get(); self && !self->_IsClosing())
             {
@@ -4372,14 +4369,24 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         }
     }
 
+    // "Show Stith page" / "Hide Stith page": named for what it does, and for whose page,
+    // because the card already has an Open (the browser) and a pane already has a
+    // Details tab (the field list).
+    winrt::hstring TermControl::_hyperlinkEmbedButtonLabel(bool open) const
+    {
+        const auto name = _currentHyperlinkPreview ? _currentHyperlinkPreview.IntegrationName() : winrt::hstring{};
+        return winrt::hstring{ fmt::format(fmt::runtime(std::wstring_view{ RS_(open ? L"HyperlinkEmbedButtonHide" : L"HyperlinkEmbedButtonShow") }),
+                                           std::wstring_view{ name }) };
+    }
+
     // Swaps the card's body for the integration's own page and grows the card to fit it.
     // Positioned from where the card already is rather than through _showHyperlinkCard,
-    // which anchors to the hovered cell -- and by the time anyone clicks Details the
+    // which anchors to the hovered cell -- and by the time anyone clicks the button the
     // pointer is on the card, so there is no hovered cell left to anchor to.
     void TermControl::_enterHyperlinkEmbed()
     {
         const auto preview = _currentHyperlinkPreview;
-        if (!preview || preview.EmbedUrl().empty() || !HyperlinkHtmlHost::IsAvailable())
+        if (!preview || preview.EmbedUrl().empty() || !Control::WebEmbedHost::IsAvailable())
         {
             return;
         }
@@ -4393,15 +4400,15 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return;
         }
 
-        _ensureHyperlinkHtmlHost();
         _hyperlinkEmbedOpen = true;
         _hyperlinkHideTimer.Stop();
 
+        _hideHyperlinkHtml();
         HyperlinkCardTabStripBorder().Visibility(Visibility::Collapsed);
         HyperlinkCardFieldsScroll().Visibility(Visibility::Collapsed);
         HyperlinkCardBodyScroll().Visibility(Visibility::Collapsed);
         HyperlinkCardCommentsScroll().Visibility(Visibility::Collapsed);
-        HyperlinkEmbedButton().Content(winrt::box_value(RS_(L"HyperlinkEmbedButtonClose")));
+        HyperlinkEmbedButton().Content(winrt::box_value(_hyperlinkEmbedButtonLabel(true)));
 
         // As large as the page is comfortable at, never larger than the pane. The
         // allowance leaves room for the card's header, its button row and its padding,
@@ -4409,12 +4416,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         constexpr auto chromeAllowance = 150.0;
         const auto pageWidth = std::max(240.0, std::min(900.0, viewportWidth - 24.0));
         const auto pageHeight = std::max(120.0, std::min(680.0, viewportHeight - chromeAllowance));
-        const auto host = HyperlinkCardHtmlHost();
+        const auto host = HyperlinkCardEmbedHost();
         host.Width(pageWidth);
-        host.MinWidth(pageWidth);
         host.Height(pageHeight);
         host.Visibility(Visibility::Visible);
-        _hyperlinkHtmlHeight = static_cast<int32_t>(pageHeight);
 
         card.MaxWidth(viewportWidth);
         card.MaxHeight(viewportHeight);
@@ -4434,26 +4439,39 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         url += url.find(L'?') == std::wstring::npos ? L'?' : L'&';
         url += ActualTheme() == ElementTheme::Dark ? L"theme=dark" : L"theme=light";
 
-        _hyperlinkHtmlHost->ShowUrl(reinterpret_cast<HWND>(OwningHwnd()),
-                                    _htmlHostRect(),
-                                    winrt::hstring{ url },
-                                    ActualTheme() == ElementTheme::Dark);
+        if (!_hyperlinkEmbedHost)
+        {
+            _hyperlinkEmbedHost = Control::WebEmbedHost{ host, OwningHwnd() };
+            // Links leaving the page go down the same path the card's own Open button
+            // takes, so the unsafe-URL prompt in TerminalPage still applies to them.
+            _hyperlinkEmbedHost.OpenLinkRequested([weakThis = get_weak()](auto&&, const winrt::hstring& uri) {
+                if (const auto self = weakThis.get(); self && !self->_IsClosing())
+                {
+                    self->_hideHyperlinkCard();
+                    self->OpenHyperlink.raise(*self, winrt::make<OpenHyperlinkEventArgs>(uri));
+                }
+            });
+            _hyperlinkEmbedHost.EscapePressed([weakThis = get_weak()](auto&&, auto&&) {
+                if (const auto self = weakThis.get(); self && !self->_IsClosing() && self->_hyperlinkEmbedOpen)
+                {
+                    self->_hideHyperlinkCard();
+                }
+            });
+        }
+        _hyperlinkEmbedHost.Show(winrt::hstring{ url }, ActualTheme() == ElementTheme::Dark);
     }
 
-    // Back to the summary the card was showing before Details.
+    // Back to the summary the card was showing before the page.
     void TermControl::_leaveHyperlinkEmbed()
     {
         _hyperlinkEmbedOpen = false;
-        HyperlinkEmbedButton().Content(winrt::box_value(RS_(L"HyperlinkEmbedButton/Content")));
+        HyperlinkEmbedButton().Content(winrt::box_value(_hyperlinkEmbedButtonLabel(false)));
 
-        const auto host = HyperlinkCardHtmlHost();
-        host.ClearValue(FrameworkElement::WidthProperty());
-        host.MinWidth(240);
-        if (_hyperlinkHtmlHost)
+        if (_hyperlinkEmbedHost)
         {
-            _hyperlinkHtmlHost->Hide();
+            _hyperlinkEmbedHost.Hide();
         }
-        host.Visibility(Visibility::Collapsed);
+        HyperlinkCardEmbedHost().Visibility(Visibility::Collapsed);
 
         // Rebuilding the strip also shows its first tab, which is where the card started.
         if (_currentHyperlinkPreview)
@@ -4483,12 +4501,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     // a hover affordance: a plugin that asks for a thousand pixels does not get the pane.
     void TermControl::_setHyperlinkHtmlHeight(int32_t height)
     {
-        // Details sizes its page to the pane, not to what the page asks for.
-        if (_hyperlinkEmbedOpen)
-        {
-            return;
-        }
-
         const auto clamped = std::clamp(height, 40, 320);
         if (clamped == _hyperlinkHtmlHeight)
         {

@@ -52,6 +52,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <ContentControl x:Name="HeaderIcon"
@@ -74,9 +75,15 @@
                               IsActive="False"
                               Visibility="Collapsed" />
 
+            <!--  "Show <integration> page": labelled from code with the integration's name, and only shown when it has a page to show.  -->
+            <Button x:Name="EmbedButton"
+                    Grid.Column="3"
+                    Padding="8,2"
+                    Click="_embedClick"
+                    Visibility="Collapsed" />
             <Button x:Name="RefreshButton"
                     x:Uid="LinkPreviewRefreshButton"
-                    Grid.Column="3"
+                    Grid.Column="4"
                     Padding="6,2"
                     Click="_refreshClick">
                 <FontIcon FontFamily="Segoe UI, Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -85,7 +92,7 @@
             </Button>
             <Button x:Name="CloseButton"
                     x:Uid="LinkPreviewCloseButton"
-                    Grid.Column="4"
+                    Grid.Column="5"
                     Padding="6,2"
                     Click="_closeClick">
                 <FontIcon FontFamily="Segoe UI, Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -209,7 +216,8 @@
                     Spacing="2"
                     Visibility="Collapsed" />
 
-        <ScrollViewer Grid.Row="4"
+        <ScrollViewer x:Name="ContentScroll"
+                      Grid.Row="4"
                       HorizontalScrollBarVisibility="Disabled"
                       HorizontalScrollMode="Disabled"
                       IsTabStop="False"
@@ -225,6 +233,18 @@
                             Visibility="Collapsed" />
             </StackPanel>
         </ScrollViewer>
+
+        <!--
+            The integration's own page, in place of the summary while it is showing.
+            Microsoft.Terminal.Control.WebEmbedHost draws it as a composition visual of
+            this Grid and forwards the Grid's pointer input to it, which is why it needs
+            a Background: without one it is not hit-testable.
+        -->
+        <Grid x:Name="EmbedHost"
+              Grid.Row="3"
+              Grid.RowSpan="2"
+              Background="Transparent"
+              Visibility="Collapsed" />
 
 
 

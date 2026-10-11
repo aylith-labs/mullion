@@ -393,7 +393,7 @@ parse is skipped and logged, never fatal.
     ]
 
     // "html": "…" — see "HTML representation" below.
-    // "embed": "{{settings.baseUrl}}/embed/s/{{id}}" — see "Embed pages (Details)" below.
+    // "embed": "{{settings.baseUrl}}/embed/s/{{id}}" — see "Embed pages" below.
 }
 ```
 
@@ -418,7 +418,7 @@ Top-level keys:
 | `actions` | array of [action](#actions) | Things the card can do to the thing behind the link. |
 | `detectPatterns` | array of ICU regex | Patterns the terminal scans plain output for while this plugin is enabled, so text it owns becomes hoverable without OSC 8. See [detectPatterns](#detectpatterns). |
 | `html` | string | A full HTML document string, rendered in place of `fields`. See [HTML representation](#html-representation). |
-| `embed` | string | URL template of the service's own page for the matched thing, offered on the card as **Details**. See [Embed pages (Details)](#embed-pages-details). |
+| `embed` | string | URL template of the service's own page for the matched thing, offered on the card and in the pane as **Show *name* page**. See [Embed pages](#embed-pages-show-name-page). |
 
 #### Settings / credentials fields
 
@@ -944,12 +944,24 @@ Rendering it requires the `Feature_HyperlinkPreviewHtml` feature flag (`src/feat
 `WebView2Loader.dll` next to the app (packaged by `src/cascadia/CascadiaResources.build.items`), and
 an installed WebView2 Runtime. Without any of them the card falls back to the `fields` list.
 
-## Embed pages (Details)
+**Known limit: an `html` page does not show yet.** Its host (`HyperlinkHtmlHost`) parents a WebView2
+*window* to the Terminal's top-level window, which is `WS_EX_NOREDIRECTIONBITMAP` with a XAML island
+that does not clip siblings — the page loads and is never seen. Embed pages below use
+`WebEmbedHost`, a composition-hosted WebView2, which does show; `html` should move onto it.
+
+## Embed pages (Show *name* page)
 
 A manifest's `embed` key is a URL template, expanded with the same values as a matcher's `link`
-(`{{settings.*}}`, the matcher's named groups such as `{{id}}`). When it is set, the card shows a
-**Details** button. Pressing it grows the card to fit the pane and loads that page in the same
-WebView2 host, appending `theme=dark` or `theme=light` to the query string.
+(`{{settings.*}}`, the matcher's named groups such as `{{id}}`). When it is set, the card and the
+link preview pane both show a **Show *name* page** button (**Show Stith page**). In the card it
+grows the card to fit the pane; in the pane it replaces the summary and tab strip. Either way the
+page is loaded with `theme=dark` or `theme=light` appended to the query string.
+
+The page is hosted by `Microsoft.Terminal.Control.WebEmbedHost`: a WebView2
+`CoreWebView2CompositionController` whose root visual is a child visual of a XAML `Grid`, so it is
+drawn by XAML's compositor and clips, scrolls and layers with the card or pane. Pointer input on
+that `Grid` is forwarded to the page by hand (`SendMouseInput`), which is why the `Grid` needs a
+`Background`.
 
 Unlike `html`, this is a live page with its own routing:
 
@@ -958,10 +970,11 @@ Unlike `html`, this is a live page with its own routing:
   `window.open`), is cancelled and opened through the Terminal's normal link handling instead.
 - A certificate error is accepted **only for the page's own origin**, matching what
   `allowUntrustedCertificate` does for fetch steps.
-- Showing Details again for the same URL keeps the page as it was left; nothing reloads it.
-- The card stays up while Details is open: the WebView2 is its own window, so pointer-leave cannot
-  be the signal. **Esc** (in the page or the terminal), a click on the terminal, **Close details**,
-  a resize of the pane, or switching tabs puts it away.
+- Showing the page again for the same URL keeps it as it was left; nothing reloads it.
+- The card stays up while the page is showing — it is something being read, not a hover.
+  **Esc** (in the page or the terminal), a click on the terminal, **Hide *name* page**, a resize of
+  the pane, or switching tabs puts it away. In the pane, Esc returns to the summary.
+- In the pane the button is a switch: while it is on, each link shown there opens on its page.
 
 Stith's manifest uses `"{{settings.baseUrl}}/embed/s/{{id}}?host=mullion"`, its chromeless
 session view.

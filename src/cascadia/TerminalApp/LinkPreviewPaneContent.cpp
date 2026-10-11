@@ -239,6 +239,7 @@ namespace winrt::TerminalApp::implementation
             _rebuildTabStrip(nullptr);
             _rebuildActions(nullptr);
             _setError(RS_(L"LinkPreviewUnavailable"));
+            _updateEmbed();
             return;
         }
 
@@ -338,6 +339,97 @@ namespace winrt::TerminalApp::implementation
         _renderFields(preview);
         _rebuildTabStrip(preview);
         _rebuildActions(preview);
+        _updateEmbed();
+    }
+
+    void LinkPreviewPaneContent::_embedClick(const IInspectable&, const RoutedEventArgs&)
+    {
+        if (_embedOpen)
+        {
+            _leaveEmbed();
+        }
+        else
+        {
+            _embedOpen = true;
+            _updateEmbed();
+        }
+    }
+
+    // Brings the button and the page in line with the preview on show: offered when the
+    // integration has a page for this link, and -- while it is switched on -- showing it.
+    void LinkPreviewPaneContent::_updateEmbed()
+    {
+        const auto url = _preview ? _preview.EmbedUrl() : winrt::hstring{};
+        const auto canEmbed = !url.empty() && Control::WebEmbedHost::IsAvailable();
+        const auto name = _preview ? std::wstring{ _preview.IntegrationName() } : std::wstring{};
+        const auto label = [&](bool open) {
+            return winrt::hstring{ fmt::format(fmt::runtime(std::wstring_view{ RS_(open ? L"LinkPreviewEmbedHide" : L"LinkPreviewEmbedShow") }), name) };
+        };
+
+        EmbedButton().Visibility(canEmbed && !_compact ? Visibility::Visible : Visibility::Collapsed);
+        if (!canEmbed)
+        {
+            if (_embedOpen)
+            {
+                // A link with no page of its own: back to its summary, but the switch
+                // stays on for the next one that has one.
+                if (_embedHost)
+                {
+                    _embedHost.Hide();
+                }
+                EmbedHost().Visibility(Visibility::Collapsed);
+                ContentScroll().Visibility(Visibility::Visible);
+            }
+            return;
+        }
+        EmbedButton().Content(winrt::box_value(label(_embedOpen)));
+        if (!_embedOpen)
+        {
+            return;
+        }
+
+        if (!_embedHost)
+        {
+            // 0: the pane has no window handle of its own to give; the host takes the
+            // window that holds focus, which this click is in.
+            _embedHost = Control::WebEmbedHost{ EmbedHost(), 0 };
+            _embedHost.OpenLinkRequested([weak = get_weak()](auto&&, const winrt::hstring& uri) {
+                if (const auto self = weak.get(); self && self->_provider && self->_linkSettings)
+                {
+                    self->_provider.InvokeLinkAction(uri, self->_linkSettings, L"open");
+                }
+            });
+            _embedHost.EscapePressed([weak = get_weak()](auto&&, auto&&) {
+                if (const auto self = weak.get())
+                {
+                    self->_leaveEmbed();
+                }
+            });
+        }
+
+        ContentScroll().Visibility(Visibility::Collapsed);
+        TabStrip().Visibility(Visibility::Collapsed);
+        EmbedHost().Visibility(Visibility::Visible);
+
+        const auto dark = ActualTheme() == ElementTheme::Dark;
+        std::wstring target{ url };
+        target += target.find(L'?') == std::wstring::npos ? L'?' : L'&';
+        target += dark ? L"theme=dark" : L"theme=light";
+        _embedHost.Show(winrt::hstring{ target }, dark);
+    }
+
+    void LinkPreviewPaneContent::_leaveEmbed()
+    {
+        _embedOpen = false;
+        if (_embedHost)
+        {
+            _embedHost.Hide();
+        }
+        EmbedHost().Visibility(Visibility::Collapsed);
+        ContentScroll().Visibility(Visibility::Visible);
+        // The strip decides for itself whether it has anything to show.
+        _rebuildTabStrip(_preview);
+        _updateEmbed();
     }
 
     // The pane has room for headings, so grouped fields get them. Groups appear in
@@ -1183,6 +1275,11 @@ namespace winrt::TerminalApp::implementation
         ++_generation;
         _preview = nullptr;
         FilePreviewHost().Content(nullptr);
+        if (_embedHost)
+        {
+            _embedHost.Close();
+            _embedHost = nullptr;
+        }
         // Whoever closed the pane also meant to stop silencing the terminals, so the
         // switch reports itself off on the way out rather than leaving every control
         // mute with nothing on screen to explain why.

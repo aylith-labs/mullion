@@ -37,8 +37,8 @@ click*:
 
 The built-in buttons are **Open**, **Copy link**, **Copy path**, **Show in Explorer** and
 **Show in pane**. Which of them apply depends on the link: *Copy path* and *Show in
-Explorer* appear for links that resolve to a file. An integration can add **Details**, which
-shows its service's own full page for the link inside the card.
+Explorer* appear for links that resolve to a file. An integration can add **Show *name* page**
+(**Show Stith page**), which shows its service's own page for the link inside the card.
 
 ## Rules
 

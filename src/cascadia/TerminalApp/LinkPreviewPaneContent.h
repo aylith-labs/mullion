@@ -113,6 +113,15 @@ namespace winrt::TerminalApp::implementation
         void _undoClick(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& e);
         void _optionChanged(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::Controls::SelectionChangedEventArgs& e);
         void _hideTooltipsToggled(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& e);
+
+        // "Show <integration> page": the integration's own web page, in place of the
+        // summary. Created on first use; survives a change of link, so a second session
+        // opens straight onto its page while the button is on.
+        winrt::Microsoft::Terminal::Control::WebEmbedHost _embedHost{ nullptr };
+        bool _embedOpen{ false };
+        void _embedClick(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& e);
+        void _updateEmbed();
+        void _leaveEmbed();
     };
 }
 

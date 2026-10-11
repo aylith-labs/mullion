@@ -1193,6 +1193,14 @@ Applying on next launch closes nothing now: the swap happens once you have close
     <value>Details</value>
     <comment>Name of the first tab in the link preview pane, the one showing the list of labelled values.</comment>
   </data>
+  <data name="LinkPreviewEmbedShow" xml:space="preserve">
+    <value>Show {0} page</value>
+    <comment>{Locked="{0}"} Button in the link preview pane that replaces the summary with the integration's own web page for the link. {0} is the integration's name, e.g. "Stith".</comment>
+  </data>
+  <data name="LinkPreviewEmbedHide" xml:space="preserve">
+    <value>Hide {0} page</value>
+    <comment>{Locked="{0}"} The same button while that page is showing; pressing it returns to the summary. {0} is the integration's name.</comment>
+  </data>
   <data name="LinkPreviewUnavailable" xml:space="preserve">
     <value>No preview is available for this link.</value>
     <comment>Shown in the link preview pane when no integration could say anything about the link.</comment>

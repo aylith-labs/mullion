@@ -1,0 +1,36 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Microsoft.Terminal.Control
+{
+    // An integration's own web page, hosted inside a XAML element: the link card's
+    // and the link preview pane's "Show <integration> page". WebView2 is hosted as a
+    // composition visual in the element rather than as a child window, so it clips,
+    // scrolls and layers with the XAML around it -- a child window does not even show
+    // in the Terminal's window. Pointer input over the element is forwarded to it.
+    //
+    // The page may navigate within its own origin. Anything leaving it, and any new
+    // window it asks for, is raised as OpenLinkRequested instead; a certificate error
+    // is accepted only for that origin.
+    runtimeclass WebEmbedHost
+    {
+        // host: the element the page fills, kept in step with its size.
+        // parentWindow: the top-level window, for keyboard focus; 0 to use the window
+        // that currently holds focus on this thread.
+        WebEmbedHost(Windows.UI.Xaml.FrameworkElement host, UInt64 parentWindow);
+
+        // WebView2 can be used at all: the feature, the loader and a runtime.
+        static Boolean IsAvailable { get; };
+
+        // Loads the page, or shows it again as it was left when it is the same URL.
+        void Show(String url, Boolean dark);
+        // Hides the page and gives keyboard focus back if the page had it.
+        void Hide();
+        // Releases the browser. The host cannot be shown again afterwards.
+        void Close();
+
+        event Windows.Foundation.TypedEventHandler<WebEmbedHost, String> OpenLinkRequested;
+        // Esc pressed while the page had keyboard focus, which XAML never sees.
+        event Windows.Foundation.TypedEventHandler<WebEmbedHost, Object> EscapePressed;
+    }
+}

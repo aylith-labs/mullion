@@ -53,6 +53,9 @@
       <DependentUpon>HyperlinkPreview.idl</DependentUpon>
     </ClInclude>
     <ClInclude Include="HyperlinkHtmlHost.h" />
+    <ClInclude Include="WebEmbedHost.h">
+      <DependentUpon>WebEmbedHost.idl</DependentUpon>
+    </ClInclude>
     <ClInclude Include="SearchBoxControl.h">
       <DependentUpon>SearchBoxControl.xaml</DependentUpon>
     </ClInclude>
@@ -94,6 +97,9 @@
       <DependentUpon>HyperlinkPreview.idl</DependentUpon>
     </ClCompile>
     <ClCompile Include="HyperlinkHtmlHost.cpp" />
+    <ClCompile Include="WebEmbedHost.cpp">
+      <DependentUpon>WebEmbedHost.idl</DependentUpon>
+    </ClCompile>
     <ClCompile Include="HyperlinkTooltipRule.cpp">
       <DependentUpon>IControlSettings.idl</DependentUpon>
     </ClCompile>
@@ -130,6 +136,7 @@
     <Midl Include="KeyChord.idl" />
     <Midl Include="EventArgs.idl" />
     <Midl Include="HyperlinkPreview.idl" />
+    <Midl Include="WebEmbedHost.idl" />
     <Midl Include="IKeyBindings.idl" />
     <Midl Include="IControlSettings.idl" />
     <Midl Include="IControlAppearance.idl" />

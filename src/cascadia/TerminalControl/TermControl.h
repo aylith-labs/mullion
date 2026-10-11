@@ -410,19 +410,20 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void _HyperlinkRuleInfoClick(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
         void _raiseShowHyperlinkPreviewRequested(bool hover = false, bool createPane = true);
 
-        // A preview whose integration returned rendered HTML, or whose embeddable view the
-        // user asked for with Details, is drawn by a WebView2 parented to the owning window
-        // rather than by the field list. It is created lazily and only when
-        // HyperlinkHtmlHost::IsAvailable() -- the feature flag, plus WebView2Loader.dll and a
-        // runtime -- so without them this pointer stays null and every path below it is a
-        // null test that falls through to the field list.
+        // A preview whose integration returned rendered HTML is drawn by a WebView2
+        // parented to the owning window rather than by the field list. It is created
+        // lazily and only when HyperlinkHtmlHost::IsAvailable(), so without WebView2 this
+        // pointer stays null and every path below it falls through to the field list.
+        // (See the known limit in HyperlinkHtmlHost.h: such a window does not show here.)
         std::unique_ptr<HyperlinkHtmlHost> _hyperlinkHtmlHost;
         int32_t _hyperlinkHtmlHeight{ 120 };
-        // Details is showing: the card holds the integration's embed page, is sized for it,
-        // and stays up until Esc, a click outside it, or the button again. The pointer
-        // leaving the card cannot be the signal here -- the WebView2 is its own HWND, so
-        // XAML reports the pointer as gone the moment it moves onto the page.
+        // "Show <integration> page" is on: the card holds the integration's own page, is
+        // sized for it, and stays up until Esc, a click outside it, or the button again.
+        // It is something being read, not a hover, so leaving it does not dismiss it.
         bool _hyperlinkEmbedOpen{ false };
+        // Created on first use, in HyperlinkCardEmbedHost; see WebEmbedHost.idl.
+        Control::WebEmbedHost _hyperlinkEmbedHost{ nullptr };
+        winrt::hstring _hyperlinkEmbedButtonLabel(bool open) const;
         void _HyperlinkEmbedClick(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
         void _enterHyperlinkEmbed();
         void _leaveHyperlinkEmbed();

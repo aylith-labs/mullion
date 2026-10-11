@@ -218,13 +218,13 @@
     <value>Show in pane</value>
     <comment>Label of a button on the link tooltip that opens the same preview in a larger pane beside the terminal.</comment>
   </data>
-  <data name="HyperlinkEmbedButton.Content" xml:space="preserve">
-    <value>Details</value>
-    <comment>Label of a button on the link tooltip that shows the integration's own full page for the link inside the tooltip.</comment>
+  <data name="HyperlinkEmbedButtonShow" xml:space="preserve">
+    <value>Show {0} page</value>
+    <comment>{Locked="{0}"} Label of a button on the link tooltip and the link preview pane that shows the integration's own web page for the link in place of the summary. {0} is the integration's name, e.g. "Stith".</comment>
   </data>
-  <data name="HyperlinkEmbedButtonClose" xml:space="preserve">
-    <value>Close details</value>
-    <comment>Label of the same button while the integration's full page is showing; pressing it returns to the summary.</comment>
+  <data name="HyperlinkEmbedButtonHide" xml:space="preserve">
+    <value>Hide {0} page</value>
+    <comment>{Locked="{0}"} Label of the same button while that page is showing; pressing it returns to the summary. {0} is the integration's name.</comment>
   </data>
   <data name="HyperlinkRuleMatchedPrefix" xml:space="preserve">
     <value>Matched by</value>

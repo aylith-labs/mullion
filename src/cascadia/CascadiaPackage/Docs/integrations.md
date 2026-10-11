@@ -68,12 +68,14 @@ press Apply, and the badge on the card changes.
 Any preview can also be sent to a pane instead of a hover card, with **Show in pane**, which
 is the better surface for a long description or a comment thread.
 
-An integration whose service has a page of its own for the thing can offer it as
-**Details**. Pressing it grows the card and shows that page inside it, with all of its tabs
-and sections. Stith uses this for its full session view. The card stays open while you read:
-press **Esc**, click the terminal, or press **Close details** to put it away. Links that
-lead off the page open in your browser. Details needs the WebView2 runtime, which Windows 11
-already includes.
+An integration whose service has a page of its own for the thing can offer it with a
+**Show *name* page** button, for example **Show Stith page**. In the card, pressing it grows
+the card and shows that page inside it, with all of its tabs and sections; the card stays
+open while you read, and **Esc**, a click on the terminal, or **Hide Stith page** puts it
+away. In the pane, the same button replaces the summary with the page and fills the pane;
+while it is on, every link you show there opens straight onto its page. Links that lead off
+the page open in your browser. It needs the WebView2 runtime, which Windows 11 already
+includes.
 
 ## Adding your own
 

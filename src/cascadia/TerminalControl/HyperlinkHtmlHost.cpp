@@ -222,48 +222,6 @@ namespace
     private:
         std::function<void(ICoreWebView2WebMessageReceivedEventArgs*)> _callback;
     };
-
-    // The events only URL mode subscribes to share one shape -- (sender, args) -- so one
-    // template covers them instead of a fourth and fifth copy of the struct above.
-    template<typename I, typename Sender, typename Args>
-    struct ComEventHandler final : ComCallbackBase<I>
-    {
-        explicit ComEventHandler(std::function<void(Args*)> callback) :
-            _callback{ std::move(callback) }
-        {
-        }
-
-        HRESULT STDMETHODCALLTYPE Invoke(Sender* /*sender*/, Args* args) noexcept override
-        try
-        {
-            _callback(args);
-            return S_OK;
-        }
-        CATCH_RETURN()
-
-    private:
-        std::function<void(Args*)> _callback;
-    };
-
-    using NewWindowRequestedHandler = ComEventHandler<ICoreWebView2NewWindowRequestedEventHandler, ICoreWebView2, ICoreWebView2NewWindowRequestedEventArgs>;
-    using CertificateErrorHandler = ComEventHandler<ICoreWebView2ServerCertificateErrorDetectedEventHandler, ICoreWebView2, ICoreWebView2ServerCertificateErrorDetectedEventArgs>;
-    using AcceleratorKeyHandler = ComEventHandler<ICoreWebView2AcceleratorKeyPressedEventHandler, ICoreWebView2Controller, ICoreWebView2AcceleratorKeyPressedEventArgs>;
-
-    // scheme://host:port, lower-cased, or empty for anything Uri will not parse.
-    std::wstring originOf(std::wstring_view uri)
-    {
-        try
-        {
-            const winrt::Windows::Foundation::Uri parsed{ winrt::hstring{ uri } };
-            auto origin = fmt::format(L"{}://{}:{}", std::wstring_view{ parsed.SchemeName() }, std::wstring_view{ parsed.Host() }, parsed.Port());
-            std::transform(origin.begin(), origin.end(), origin.begin(), ::towlower);
-            return origin;
-        }
-        catch (...)
-        {
-            return {};
-        }
-    }
 }
 
 namespace winrt::Microsoft::Terminal::Control::implementation
@@ -290,6 +248,19 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         static const auto available = Feature_HyperlinkPreviewHtml::IsEnabled() && _tryResolveLoader();
         return available;
     }
+
+    HRESULT HyperlinkHtmlHost::CreateEnvironment(ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler* handler) noexcept
+    try
+    {
+        const auto& loader = webView2Loader();
+        if (!IsAvailable() || !loader.createEnvironmentWithOptions)
+        {
+            return E_NOT_VALID_STATE;
+        }
+        const auto folder = webView2UserDataFolder();
+        return loader.createEnvironmentWithOptions(nullptr, folder.c_str(), nullptr, handler);
+    }
+    CATCH_RETURN()
 
     bool HyperlinkHtmlHost::_tryResolveLoader() noexcept
     {
@@ -340,7 +311,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _html = html;
             _dataJson = dataJson;
             _uri = uri;
-            _url = {};
             _dark = dark;
             _visible = true;
 
@@ -358,37 +328,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         CATCH_LOG();
     }
 
-    void HyperlinkHtmlHost::ShowUrl(HWND owner, const RECT& ownerClientRect, const winrt::hstring& url, bool dark) noexcept
-    {
-        try
-        {
-            if (!owner || url.empty())
-            {
-                return;
-            }
-
-            _owner = owner;
-            _bounds = ownerClientRect;
-            _html = {};
-            _dataJson = {};
-            _uri = url;
-            _url = url;
-            _dark = dark;
-            _visible = true;
-            _focusBeforeShow = ::GetFocus();
-
-            if (_webView)
-            {
-                _applyBounds();
-                _prepareAndNavigate();
-                return;
-            }
-
-            _ensureEnvironment();
-        }
-        CATCH_LOG();
-    }
-
     void HyperlinkHtmlHost::Move(const RECT& ownerClientRect) noexcept
     {
         _bounds = ownerClientRect;
@@ -398,47 +337,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     void HyperlinkHtmlHost::Hide() noexcept
     {
         _visible = false;
-
-        // A page that was clicked into holds Win32 keyboard focus, and hiding its window
-        // does not move it: the terminal would stop receiving keys with nothing on screen
-        // to explain why. Only taken back from a window inside our own top-level window,
-        // never from another application.
-        const auto focused = ::GetFocus();
-        const auto restoreFocus = _focusBeforeShow && focused && focused != _focusBeforeShow &&
-                                  ::IsWindow(_focusBeforeShow) && _owner && ::IsChild(_owner, focused);
-
         if (_controller)
         {
             LOG_IF_FAILED(_controller->put_IsVisible(FALSE));
         }
-
-        if (restoreFocus)
-        {
-            ::SetFocus(_focusBeforeShow);
-        }
-        _focusBeforeShow = nullptr;
-    }
-
-    bool HyperlinkHtmlHost::_sameOriginAsUrl(LPCWSTR candidate) const noexcept
-    {
-        if (!candidate || _url.empty())
-        {
-            return false;
-        }
-        const auto expected = originOf(_url);
-        return !expected.empty() && expected == originOf(candidate);
-    }
-
-    void HyperlinkHtmlHost::_openElsewhere(LPCWSTR uri) noexcept
-    {
-        try
-        {
-            if (uri && uri[0] != L'\0' && OnOpenLink)
-            {
-                OnOpenLink(winrt::hstring{ uri });
-            }
-        }
-        CATCH_LOG();
     }
 
     void HyperlinkHtmlHost::_ensureEnvironment() noexcept
@@ -572,82 +474,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                         _allowNavigation = false;
                         return;
                     }
-
-                    // URL mode: the embedded page is an app with its own routing, so it
-                    // may move around inside its own origin. Leaving it is a link the user
-                    // followed, and goes to the browser the way the card's Open button
-                    // would send it, rather than replacing the page inside the card.
-                    wil::unique_cotaskmem_string target;
-                    LOG_IF_FAILED(args->get_Uri(&target));
-                    if (!_url.empty() && _sameOriginAsUrl(target.get()))
-                    {
-                        return;
-                    }
-
                     // Everything past the NavigateToString we asked for -- a link click, a
                     // redirect, a meta refresh -- is refused. A card does not navigate; a
                     // page that wants a link opened says so with postMessage({open}).
                     LOG_IF_FAILED(args->put_Cancel(TRUE));
-                    if (!_url.empty())
-                    {
-                        _openElsewhere(target.get());
-                    }
                 } });
             LOG_IF_FAILED(_webView->add_NavigationStarting(navigationHandler.get(), &token));
-
-            // target=_blank, window.open: never a second browser window owned by the card.
-            winrt::com_ptr<ICoreWebView2NewWindowRequestedEventHandler> newWindowHandler;
-            newWindowHandler.attach(new NewWindowRequestedHandler{
-                [alive = _alive, this](ICoreWebView2NewWindowRequestedEventArgs* args) {
-                    if (!*alive || !args)
-                    {
-                        return;
-                    }
-                    LOG_IF_FAILED(args->put_Handled(TRUE));
-                    wil::unique_cotaskmem_string target;
-                    LOG_IF_FAILED(args->get_Uri(&target));
-                    _openElsewhere(target.get());
-                } });
-            LOG_IF_FAILED(_webView->add_NewWindowRequested(newWindowHandler.get(), &token));
-
-            // An integration's own server may sit behind a development certificate -- the
-            // same case its fetch steps opt into with allowUntrustedCertificate. Accepted
-            // only for the origin the card was asked to show, never for anything it links to.
-            if (const auto webView14 = _webView.try_as<ICoreWebView2_14>())
-            {
-                winrt::com_ptr<ICoreWebView2ServerCertificateErrorDetectedEventHandler> certificateHandler;
-                certificateHandler.attach(new CertificateErrorHandler{
-                    [alive = _alive, this](ICoreWebView2ServerCertificateErrorDetectedEventArgs* args) {
-                        if (!*alive || !args)
-                        {
-                            return;
-                        }
-                        wil::unique_cotaskmem_string requestUri;
-                        LOG_IF_FAILED(args->get_RequestUri(&requestUri));
-                        LOG_IF_FAILED(args->put_Action(_sameOriginAsUrl(requestUri.get()) ? COREWEBVIEW2_SERVER_CERTIFICATE_ERROR_ACTION_ALWAYS_ALLOW :
-                                                                                            COREWEBVIEW2_SERVER_CERTIFICATE_ERROR_ACTION_CANCEL));
-                    } });
-                LOG_IF_FAILED(webView14->add_ServerCertificateErrorDetected(certificateHandler.get(), &token));
-            }
-
-            // Esc inside the page never reaches XAML. Key-down only, and not consumed:
-            // the page still sees it, in case it has a menu of its own to close first.
-            winrt::com_ptr<ICoreWebView2AcceleratorKeyPressedEventHandler> keyHandler;
-            keyHandler.attach(new AcceleratorKeyHandler{
-                [alive = _alive, this](ICoreWebView2AcceleratorKeyPressedEventArgs* args) {
-                    if (!*alive || !args)
-                    {
-                        return;
-                    }
-                    COREWEBVIEW2_KEY_EVENT_KIND kind{};
-                    UINT key{};
-                    if (SUCCEEDED(args->get_KeyEventKind(&kind)) && SUCCEEDED(args->get_VirtualKey(&key)) &&
-                        (kind == COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN) && key == VK_ESCAPE && OnEscape)
-                    {
-                        OnEscape();
-                    }
-                } });
-            LOG_IF_FAILED(_controller->add_AcceleratorKeyPressed(keyHandler.get(), &token));
 
             winrt::com_ptr<ICoreWebView2WebMessageReceivedEventHandler> messageHandler;
             messageHandler.attach(new WebMessageReceivedHandler{
@@ -668,46 +500,13 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     void HyperlinkHtmlHost::_prepareAndNavigate() noexcept
     {
-        if (!_webView || (_html.empty() && _url.empty()))
+        if (!_webView || _html.empty())
         {
             return;
         }
 
         try
         {
-            if (!_url.empty())
-            {
-                // A real page reads no window.__data, so the HTML mode's injection goes.
-                if (!_scriptId.empty())
-                {
-                    LOG_IF_FAILED(_webView->RemoveScriptToExecuteOnDocumentCreated(_scriptId.c_str()));
-                    _scriptId.clear();
-                }
-
-                if (const auto webView13 = _webView.try_as<ICoreWebView2_13>())
-                {
-                    winrt::com_ptr<ICoreWebView2Profile> profile;
-                    if (SUCCEEDED(webView13->get_Profile(profile.put())) && profile)
-                    {
-                        LOG_IF_FAILED(profile->put_PreferredColorScheme(_dark ? COREWEBVIEW2_PREFERRED_COLOR_SCHEME_DARK : COREWEBVIEW2_PREFERRED_COLOR_SCHEME_LIGHT));
-                    }
-                }
-
-                // Showing the page that is already there keeps it as the user left it.
-                if (_url == _loadedUrl)
-                {
-                    return;
-                }
-                _loadedUrl = _url;
-                _allowNavigation = true;
-                LOG_IF_FAILED(_webView->Navigate(_url.c_str()));
-                return;
-            }
-
-            // NavigateToString replaces whatever page was loaded, so the next ShowUrl of
-            // the same URL has to load it again.
-            _loadedUrl = {};
-
             // The previous hover's injection goes first: the API accumulates, and a card
             // that has shown five links should not be running five copies of this.
             if (!_scriptId.empty())

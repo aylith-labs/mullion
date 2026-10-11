@@ -1688,6 +1688,18 @@
                                             MinWidth="240"
                                             Background="Transparent"
                                             Visibility="Collapsed" />
+
+                                    <!--
+                                        "Show <integration> page": the integration's own page,
+                                        hosted by WebEmbedHost as a composition visual of this
+                                        Grid. The Background is not decoration: without one the
+                                        Grid is not hit-testable, and its pointer events are
+                                        what get forwarded to the page.
+                                    -->
+                                    <Grid x:Name="HyperlinkCardEmbedHost"
+                                          Margin="0,6,0,0"
+                                          Background="Transparent"
+                                          Visibility="Collapsed" />
                                 </StackPanel>
 
                                 <Grid x:Name="HyperlinkCardFooterActionsHost"
@@ -1757,9 +1769,8 @@
                                                 Margin="0,0,4,0"
                                                 AllowFocusOnInteraction="False"
                                                 Click="_HyperlinkShowInPaneClick" />
-                                        <!--  The integration's own full page, in the card. Shown only when it has an embed URL and WebView2 is available.  -->
+                                        <!--  "Show <integration> page". Labelled from code, with the integration's name; shown only when it has an embed URL and WebView2 is available.  -->
                                         <Button x:Name="HyperlinkEmbedButton"
-                                                x:Uid="HyperlinkEmbedButton"
                                                 Margin="0,0,4,0"
                                                 AllowFocusOnInteraction="False"
                                                 Click="_HyperlinkEmbedClick"
