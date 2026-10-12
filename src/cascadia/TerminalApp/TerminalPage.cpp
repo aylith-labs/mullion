@@ -221,6 +221,45 @@ namespace clipboard
     }
 } // namespace clipboard
 
+namespace
+{
+    // Writes one integration value the way the settings editor does. Same
+    // inheritable-setting trap as IntegrationsViewModel's _ensureEntry: an
+    // unset "integrations" reads back as a fresh temporary map, so the map is
+    // assigned back as the user's own value before anything goes into it.
+    void PersistIntegrationSetting(const CascadiaSettings& settings, const winrt::hstring& integration, const winrt::hstring& key, const winrt::hstring& value)
+    try
+    {
+        const auto globals = settings.GlobalSettings();
+        auto map = globals.Integrations();
+        if (!map)
+        {
+            map = winrt::single_threaded_map<winrt::hstring, IntegrationSettings>();
+        }
+        globals.Integrations(map);
+
+        IntegrationSettings entry{ nullptr };
+        if (map.HasKey(integration))
+        {
+            entry = map.Lookup(integration);
+        }
+        else
+        {
+            entry = IntegrationSettings{};
+            map.Insert(integration, entry);
+        }
+        auto values = entry.Values();
+        if (!values)
+        {
+            values = winrt::single_threaded_map<winrt::hstring, winrt::hstring>();
+            entry.Values(values);
+        }
+        values.Insert(key, value);
+        settings.WriteSettingsToDisk();
+    }
+    CATCH_LOG()
+}
+
 namespace winrt::TerminalApp::implementation
 {
     TerminalPage::TerminalPage(TerminalApp::WindowProperties properties, const TerminalApp::ContentManager& manager) :
@@ -292,6 +331,12 @@ namespace winrt::TerminalApp::implementation
                 if (action == L"open") self->_OpenHyperlinkHandler(nullptr, Microsoft::Terminal::Control::OpenHyperlinkEventArgs{ target });
                 else if (action == L"showInPane") self->_ShowHyperlinkPreviewRequestedHandler(nullptr, Microsoft::Terminal::Control::ShowHyperlinkPreviewRequestedEventArgs{ target, integration, path });
                 else self->_HyperlinkTooltipActionInvokedHandler(nullptr, Microsoft::Terminal::Control::HyperlinkTooltipActionInvokedEventArgs{ action, target });
+            }
+        };
+        _hyperlinkPreviewService->PersistIntegrationSetting = [weak = get_weak()](hstring integration, hstring key, hstring value) {
+            if (const auto self = weak.get())
+            {
+                ::PersistIntegrationSetting(self->_settings, integration, key, value);
             }
         };
 
@@ -1641,6 +1686,12 @@ namespace winrt::TerminalApp::implementation
                 if (action == L"open") self->_OpenHyperlinkHandler(nullptr, Microsoft::Terminal::Control::OpenHyperlinkEventArgs{ target });
                 else if (action == L"showInPane") self->_ShowHyperlinkPreviewRequestedHandler(nullptr, Microsoft::Terminal::Control::ShowHyperlinkPreviewRequestedEventArgs{ target, integration, path });
                 else self->_HyperlinkTooltipActionInvokedHandler(nullptr, Microsoft::Terminal::Control::HyperlinkTooltipActionInvokedEventArgs{ action, target });
+            }
+        };
+        _hyperlinkPreviewService->PersistIntegrationSetting = [weak = get_weak()](hstring integration, hstring key, hstring value) {
+            if (const auto self = weak.get())
+            {
+                ::PersistIntegrationSetting(self->_settings, integration, key, value);
             }
         };
         _HookupKeyBindings(_settings.ActionMap());

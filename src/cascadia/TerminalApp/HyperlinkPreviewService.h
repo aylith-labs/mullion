@@ -52,6 +52,10 @@ namespace winrt::TerminalApp::implementation
                      const winrt::Microsoft::Terminal::Settings::Model::WindowSettings& windowSettings);
 
         std::function<void(winrt::hstring, winrt::hstring, winrt::hstring, winrt::hstring)> LinkAction;
+        // (integration id, setting key, value): writes one integration setting
+        // to settings.json. How a pick made on a card -- which GitHub owner a
+        // bare repo#number means -- outlives the session.
+        std::function<void(winrt::hstring, winrt::hstring, winrt::hstring)> PersistIntegrationSetting;
         safe_void_coroutine InvokeLinkAction(winrt::hstring text, winrt::Microsoft::Terminal::Control::IControlSettings settings, winrt::hstring actionId);
         winrt::Windows::UI::Xaml::FrameworkElement CreatePreviewView(const winrt::hstring& text, const winrt::Microsoft::Terminal::Control::IControlSettings& settings, int32_t depth);
         // IHyperlinkPreviewProvider

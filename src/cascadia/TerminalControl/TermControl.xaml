@@ -1410,6 +1410,13 @@
                                                 card and would otherwise start the hide timer. The
                                                 two DropDown handlers are what hold the card open.
                                             -->
+                                            <TextBox x:Name="HyperlinkActionFilter"
+                                                     x:Uid="HyperlinkActionFilter"
+                                                     Width="120"
+                                                     VerticalAlignment="Center"
+                                                     IsSpellCheckEnabled="False"
+                                                     TextChanged="_HyperlinkActionFilterChanged"
+                                                     Visibility="Collapsed" />
                                             <ComboBox x:Name="HyperlinkActionOptions"
                                                       x:Uid="HyperlinkActionOptions"
                                                       MinWidth="150"

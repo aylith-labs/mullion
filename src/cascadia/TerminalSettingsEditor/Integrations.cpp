@@ -180,6 +180,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return true;
     }
 
+    // Pinned organizations: rows reordered by dragging (the ↑/↓ buttons stay
+    // for the keyboard), followed by the organizations resolution reaches on its
+    // own, which is everything account discovery found and nobody pinned.
     void Integrations::_RenderOwners()
     {
         const auto host = _ownerHost.get(); if (!host) return;
@@ -187,11 +190,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto weak = get_weak();
         Controls::TextBlock error; error.TextWrapping(TextWrapping::Wrap);
         const auto weakError = make_weak(error);
+
+        auto rows = winrt::single_threaded_observable_vector<IInspectable>();
         for (size_t index = 0; index < _ownerValues.size(); ++index)
         {
             Controls::StackPanel row; row.Orientation(Controls::Orientation::Horizontal); row.Spacing(6);
-            Controls::TextBox input; input.Width(260); input.Text(_ownerValues[index]); input.PlaceholderText(L"Organization or account");
-            Automation::AutomationProperties::SetName(input, L"Preferred organization " + std::to_wstring(index + 1));
+            row.Tag(box_value(winrt::hstring{ _ownerValues[index] }));
+            Controls::FontIcon grip; grip.Glyph(L"\xE76F"); grip.FontSize(14); grip.Opacity(0.6); grip.VerticalAlignment(VerticalAlignment::Center);
+            row.Children().Append(grip);
+            Controls::TextBox input; input.Width(240); input.Text(_ownerValues[index]); input.PlaceholderText(L"Organization or account");
+            Automation::AutomationProperties::SetName(input, L"Pinned organization " + std::to_wstring(index + 1));
             input.TextChanged([weak, index](const IInspectable& sender, auto&&) { if (const auto self = weak.get(); self && index < self->_ownerValues.size()) self->_ownerValues[index] = sender.as<Controls::TextBox>().Text(); });
             input.LostFocus([weak, weakError](auto&&, auto&&) { if (const auto self = weak.get()) if (const auto message = weakError.get()) message.Text(self->_SaveOwners() ? L"" : L"Enter one unique GitHub organization or account per row."); });
             row.Children().Append(input);
@@ -210,17 +218,109 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 });
                 row.Children().Append(button);
             }
-            host.Children().Append(row);
+            rows.Append(row);
+        }
+
+        if (rows.Size() > 0)
+        {
+            // An observable source is what makes CanReorderItems move rows; the
+            // new order is read back from each row's Tag once the drop lands.
+            Controls::ListView list;
+            list.SelectionMode(Controls::ListViewSelectionMode::None);
+            list.CanDragItems(true); list.CanReorderItems(true); list.AllowDrop(true);
+            list.ItemsSource(rows);
+            Automation::AutomationProperties::SetName(list, L"Pinned organizations, drag to reorder");
+            list.DragItemsCompleted([weak, rows](auto&&, auto&&) {
+                if (const auto self = weak.get())
+                {
+                    std::vector<std::wstring> reordered;
+                    for (const auto& row : rows)
+                    {
+                        if (const auto panel = row.try_as<Controls::StackPanel>()) reordered.emplace_back(unbox_value_or<winrt::hstring>(panel.Tag(), L""));
+                    }
+                    // Typed but unsaved text is in _ownerValues, not in the Tags,
+                    // so a drop applies the new order to the current values.
+                    std::vector<std::wstring> values;
+                    for (const auto& owner : reordered)
+                    {
+                        const auto it = std::find(self->_ownerValues.begin(), self->_ownerValues.end(), owner);
+                        if (it != self->_ownerValues.end()) values.push_back(owner);
+                    }
+                    if (values.size() == self->_ownerValues.size()) self->_ownerValues = std::move(values);
+                    self->_SaveOwners(); self->_RenderOwners();
+                }
+            });
+            host.Children().Append(list);
         }
         host.Children().Append(error);
+
+        // What resolution tries after the pinned rows, without being asked to.
+        std::wstring implicit;
+        for (const auto& org : _discoveredOwners)
+        {
+            if (std::any_of(_ownerValues.begin(), _ownerValues.end(), [&](const auto& item) { return _wcsicmp(item.c_str(), org.c_str()) == 0; })) continue;
+            if (!implicit.empty()) implicit += L", ";
+            implicit += org;
+        }
+        Controls::TextBlock reach; reach.TextWrapping(TextWrapping::Wrap); reach.Opacity(0.75);
+        reach.Text(implicit.empty() ? L"Organizations your account can reach are tried after these automatically." :
+                                      L"Then tried automatically: " + implicit + L".");
+        host.Children().Append(reach);
+
         Controls::StackPanel buttons; buttons.Orientation(Controls::Orientation::Horizontal); buttons.Spacing(8);
         Controls::Button add; add.Content(box_value(L"Add organization"));
         add.Click([weak](auto&&, auto&&) { if (const auto self = weak.get()) { self->_ownerValues.emplace_back(); self->_RenderOwners(); } });
         buttons.Children().Append(add);
-        Controls::Button discover; discover.Content(box_value(L"Add identified organization"));
+        Controls::Button discover; discover.Content(box_value(L"Pin a reachable organization"));
         Controls::MenuFlyout menu; discover.Flyout(menu);
         discover.Click([weak, menu](auto&&, auto&&) { if (const auto self = weak.get()) self->_RefreshAccount(true, menu); });
         buttons.Children().Append(discover); host.Children().Append(buttons);
+    }
+
+    void Integrations::RepoOwners_Loaded(const IInspectable& sender, const RoutedEventArgs&)
+    {
+        const auto host = sender.as<Controls::StackPanel>();
+        const auto setting = host.Tag().as<Editor::IntegrationSettingViewModel>();
+        if (!setting.IsRepoOwnerList()) return;
+        _repoOwnerHost = make_weak(host); _repoOwnerSetting = setting;
+        _RenderRepoOwners();
+    }
+
+    // Picks made on a link card. Read-only rows: a pick is made where the
+    // ambiguity shows up, and only ever undone here.
+    void Integrations::_RenderRepoOwners()
+    {
+        const auto host = _repoOwnerHost.get(); if (!host || !_repoOwnerSetting) return;
+        host.Children().Clear(); host.Spacing(6);
+        const auto pairs = ::Microsoft::Terminal::GitHubRepoOwners(std::wstring_view{ _repoOwnerSetting.Value() });
+        if (pairs.empty())
+        {
+            Controls::TextBlock none; none.Opacity(0.75); none.TextWrapping(TextWrapping::Wrap);
+            none.Text(L"None yet. Choosing an owner on a repo#number card adds it here.");
+            host.Children().Append(none);
+            return;
+        }
+        const auto weak = get_weak();
+        for (const auto& [repo, owner] : pairs)
+        {
+            Controls::StackPanel row; row.Orientation(Controls::Orientation::Horizontal); row.Spacing(8);
+            Controls::TextBlock text; text.VerticalAlignment(VerticalAlignment::Center); text.Width(260);
+            text.Text(repo + L"  →  " + owner + L"/" + repo);
+            row.Children().Append(text);
+            Controls::Button remove; remove.Content(box_value(L"×"));
+            Automation::AutomationProperties::SetName(remove, L"Forget the owner of " + repo);
+            remove.Click([weak, repo](auto&&, auto&&) {
+                if (const auto self = weak.get(); self && self->_repoOwnerSetting)
+                {
+                    auto remaining = ::Microsoft::Terminal::GitHubRepoOwners(std::wstring_view{ self->_repoOwnerSetting.Value() });
+                    std::erase_if(remaining, [&](const auto& pair) { return ::Microsoft::Terminal::SameGitHubName(pair.first, repo); });
+                    self->_repoOwnerSetting.Value(winrt::hstring{ ::Microsoft::Terminal::FormatGitHubRepoOwners(remaining) });
+                    self->_RenderRepoOwners();
+                }
+            });
+            row.Children().Append(remove);
+            host.Children().Append(row);
+        }
     }
 
     winrt::fire_and_forget Integrations::_RefreshAccount(bool discover, Controls::MenuFlyout menu)
@@ -242,6 +342,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         if (menu) { menu.Items().Clear(); Controls::MenuFlyoutItem loading; loading.Text(L"Finding organizations…"); loading.IsEnabled(false); menu.Items().Append(loading); }
         IntegrationAccounts::Values settings, credentials;
         const std::wstring provider{ integration.Manifest().AccountProvider() };
+        // GitHub always discovers: the organizations it finds are what repo#number
+        // resolution tries after the pinned ones, and the owner list says which.
+        discover = discover || provider == L"github";
         for (const auto& setting : integration.Settings()) settings[std::wstring{ setting.Key() }] = setting.Value();
         for (const auto& credential : integration.Credentials()) credentials[std::wstring{ credential.Key() }] = Model::IntegrationCredentialStore::Get(integration.Id(), credential.Key());
         const auto ui = winrt::apartment_context{};
@@ -272,6 +375,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             Controls::Button refresh; refresh.Content(box_value(L"Refresh")); refresh.Click([weak](auto&&, auto&&) { if (const auto self = weak.get()) self->_RefreshAccount(); }); row.Children().Append(refresh);
             AccountHost().Children().Append(row);
             if (!result.discoveryMessage.empty()) addText(AccountHost(), result.discoveryMessage);
+            if (discover && result.connected)
+            {
+                _discoveredOwners = result.organizations;
+                _RenderOwners();
+            }
             if (menu)
             {
                 menu.Items().Clear();

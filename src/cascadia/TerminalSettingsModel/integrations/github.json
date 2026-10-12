@@ -7,12 +7,28 @@
     "settings": [
         {
             "key": "candidateOwners",
-            "label": "Preferred organizations",
+            "label": "Pinned organizations",
             "placeholder": "Organization or account",
             "default": "",
-            "description": "Ordered GitHub organizations or accounts used to resolve repo#number. The first matching issue wins.",
+            "description": "Tried first, in this order, to resolve repo#number. Organizations your account can reach are tried after these automatically; pin one only to win a tie between two that share a repository name.",
             "required": false,
             "editor": "github-owners"
+        },
+        {
+            "key": "repoOwners",
+            "label": "Remembered repositories",
+            "default": "",
+            "description": "Owners you picked for a repository name from a link card. Checked before anything else.",
+            "required": false,
+            "editor": "github-repo-owners"
+        },
+        {
+            "key": "autoPickOwner",
+            "label": "Assume the most-starred repository",
+            "default": "true",
+            "description": "When no organization you can reach has the repository, use the most-starred public repository of that name instead of asking. The card says which owner it assumed and lets you change it.",
+            "required": false,
+            "editor": "toggle"
         }
     ],
     "credentials": [

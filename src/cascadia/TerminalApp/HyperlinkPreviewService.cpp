@@ -1673,6 +1673,241 @@ namespace
         bool IsPull{ false };
     };
 
+    // repo#number names no owner, so one is supplied, in the order Lintel's SPEC
+    // fixes under "Resolving repo#number": a remembered pick, the pinned
+    // organizations, everything the account can reach, then repository search.
+    // Process-wide rather than per service: every window asks the same account
+    // the same questions, and search is rate-limited per account.
+    constexpr std::wstring_view GitHubOwnerActionKey{ L"lintel.github.owner" };
+
+    struct GitHubOwnerCandidate
+    {
+        std::wstring Owner;
+        double Stars{};
+    };
+
+    struct GitHubOwnerState
+    {
+        std::mutex Mutex;
+        // A card pick, held here until the settings write that persists it is
+        // read back: the refresh straight after the pick cannot wait for that.
+        std::map<std::wstring, std::wstring> Picks;
+        std::wstring DiscoveryToken;
+        ULONGLONG DiscoveredAt{};
+        // The login first, then organizations, then other repository owners.
+        std::vector<std::wstring> Owners;
+        // Lower-cased repository name -> the reachable owners that have one.
+        std::map<std::wstring, std::vector<std::wstring>> OwnersByRepo;
+        std::map<std::wstring, std::pair<ULONGLONG, std::vector<GitHubOwnerCandidate>>> Searches;
+    };
+
+    GitHubOwnerState& OwnerState()
+    {
+        static GitHubOwnerState state;
+        return state;
+    }
+
+    std::wstring LowerName(std::wstring value)
+    {
+        std::transform(value.begin(), value.end(), value.begin(), towlower);
+        return value;
+    }
+
+    void AddOwnerOnce(std::vector<std::wstring>& owners, const std::wstring& owner)
+    {
+        if (::Microsoft::Terminal::ValidGitHubOwner(owner) &&
+            std::none_of(owners.begin(), owners.end(), [&](const auto& known) { return ::Microsoft::Terminal::SameGitHubName(known, owner); }))
+        {
+            owners.push_back(owner);
+        }
+    }
+
+    // GET against api.github.com under one shared deadline. Null on any
+    // failure, a 404 included, and once the time is spent.
+    struct GitHubClient
+    {
+        std::wstring Token;
+        std::wstring IntegrationName;
+        WWH::HttpClient& Plain;
+        WWH::HttpClient& Lenient;
+        ULONGLONG Deadline{};
+
+        IJsonValue Get(const std::wstring& url) const
+        {
+            const auto now = GetTickCount64();
+            if (now >= Deadline)
+            {
+                return nullptr;
+            }
+            HttpCall call;
+            call.Url = url;
+            call.Method = L"GET";
+            std::vector<std::pair<std::wstring, std::wstring>> headers = {
+                { L"Accept", L"application/vnd.github+json" },
+                { L"X-GitHub-Api-Version", L"2022-11-28" },
+                { L"User-Agent", L"WindowsTerminal" }
+            };
+            call.Headers = &headers;
+            if (!Token.empty())
+            {
+                call.AuthType = L"bearer";
+                call.AuthPassword = Token;
+            }
+            call.TimeoutMs = static_cast<unsigned long>(Deadline - now);
+            ExpandContext context;
+            const auto outcome = RunHttpCall(call, context, IntegrationName, Plain, Lenient);
+            JsonValue value{ nullptr };
+            if (!outcome.Error.empty() || outcome.Body.empty() || !JsonValue::TryParse(winrt::hstring{ outcome.Body }, value))
+            {
+                return nullptr;
+            }
+            return value;
+        }
+    };
+
+    // Who the account is and what it can reach, the same discovery the settings
+    // page runs: /user, /user/orgs, and the owners of /user/repos, which is also
+    // what fine-grained tokens with no visible memberships still answer. Cached
+    // for the session; a failed /user caches nothing, so the next hover retries.
+    void DiscoverGitHubOwners(const GitHubClient& client)
+    {
+        auto& state = OwnerState();
+        {
+            std::scoped_lock lock{ state.Mutex };
+            if (state.DiscoveredAt && state.DiscoveryToken == client.Token && GetTickCount64() - state.DiscoveredAt < 30 * 60 * 1000)
+            {
+                return;
+            }
+        }
+
+        const auto user = client.Get(L"https://api.github.com/user");
+        if (!user || user.ValueType() != JsonValueType::Object)
+        {
+            return;
+        }
+        std::vector<std::wstring> owners;
+        std::map<std::wstring, std::vector<std::wstring>> byRepo;
+        AddOwnerOnce(owners, std::wstring{ user.GetObject().GetNamedString(L"login", L"") });
+
+        const auto pages = [&](std::wstring_view resource, const auto& each) {
+            for (int page = 1; page <= 3; ++page)
+            {
+                const auto rows = client.Get(fmt::format(L"https://api.github.com/user/{}?per_page=100&page={}", resource, page));
+                if (!rows || rows.ValueType() != JsonValueType::Array)
+                {
+                    return;
+                }
+                const auto array = rows.GetArray();
+                for (const auto& row : array)
+                {
+                    if (row.ValueType() == JsonValueType::Object)
+                    {
+                        try
+                        {
+                            each(row.GetObject());
+                        }
+                        CATCH_LOG();
+                    }
+                }
+                if (array.Size() < 100)
+                {
+                    return;
+                }
+            }
+        };
+        pages(L"orgs", [&](const JsonObject& org) { AddOwnerOnce(owners, std::wstring{ org.GetNamedString(L"login", L"") }); });
+        pages(L"repos", [&](const JsonObject& repo) {
+            const std::wstring owner{ repo.GetNamedObject(L"owner").GetNamedString(L"login", L"") };
+            AddOwnerOnce(owners, owner);
+            AddOwnerOnce(byRepo[LowerName(std::wstring{ repo.GetNamedString(L"name", L"") })], owner);
+        });
+
+        std::scoped_lock lock{ state.Mutex };
+        state.DiscoveryToken = client.Token;
+        state.DiscoveredAt = GetTickCount64();
+        state.Owners = std::move(owners);
+        state.OwnersByRepo = std::move(byRepo);
+    }
+
+    // Every public repository with exactly this name, most-starred first. Search
+    // has its own rate limit (30 a minute), so an answer is kept per name.
+    std::vector<GitHubOwnerCandidate> SearchGitHubOwners(const GitHubClient& client, const std::wstring& repo)
+    {
+        auto& state = OwnerState();
+        const auto key = LowerName(repo);
+        {
+            std::scoped_lock lock{ state.Mutex };
+            if (const auto it = state.Searches.find(key); it != state.Searches.end() && GetTickCount64() - it->second.first < 10 * 60 * 1000)
+            {
+                return it->second.second;
+            }
+        }
+
+        const auto found = client.Get(fmt::format(L"https://api.github.com/search/repositories?q={}+in:name&sort=stars&order=desc&per_page=50", repo));
+        if (!found || found.ValueType() != JsonValueType::Object)
+        {
+            return {};
+        }
+        std::vector<GitHubOwnerCandidate> candidates;
+        for (const auto& item : found.GetObject().GetNamedArray(L"items", JsonArray{}))
+        {
+            try
+            {
+                const auto row = item.GetObject();
+                if (!::Microsoft::Terminal::SameGitHubName(row.GetNamedString(L"name", L""), repo))
+                {
+                    continue;
+                }
+                const std::wstring owner{ row.GetNamedObject(L"owner").GetNamedString(L"login", L"") };
+                if (::Microsoft::Terminal::ValidGitHubOwner(owner))
+                {
+                    candidates.push_back({ owner, row.GetNamedNumber(L"stargazers_count", 0) });
+                }
+            }
+            CATCH_LOG();
+        }
+
+        std::scoped_lock lock{ state.Mutex };
+        state.Searches[key] = { GetTickCount64(), candidates };
+        return candidates;
+    }
+
+    std::wstring FormatStars(double stars)
+    {
+        // U+2605 BLACK STAR, kept out of the source as a literal.
+        constexpr wchar_t star = 0x2605;
+        if (stars >= 1000)
+        {
+            return fmt::format(L"{} {:.{}f}k", star, stars / 1000, stars < 10000 ? 1 : 0);
+        }
+        return fmt::format(L"{} {}", star, static_cast<uint64_t>(stars));
+    }
+
+    // The card's "which one?" list. Picking an option comes back through
+    // InvokeActionAsync under GitHubOwnerActionKey and is remembered.
+    Control::HyperlinkPreviewAction GitHubOwnerAction(const std::wstring& repo, const std::vector<GitHubOwnerCandidate>& candidates, const std::wstring& current)
+    {
+        Control::HyperlinkPreviewAction action{};
+        action.Key(winrt::hstring{ GitHubOwnerActionKey });
+        action.Label(current.empty() ? L"Choose the owner" : L"Change the owner");
+        auto options = winrt::single_threaded_vector<Control::HyperlinkPreviewActionOption>();
+        for (const auto& candidate : candidates)
+        {
+            if (::Microsoft::Terminal::SameGitHubName(candidate.Owner, current))
+            {
+                continue;
+            }
+            Control::HyperlinkPreviewActionOption option{};
+            option.Id(winrt::hstring{ candidate.Owner });
+            option.Label(winrt::hstring{ fmt::format(L"{}/{}", candidate.Owner, repo) });
+            option.Badge(winrt::hstring{ FormatStars(candidate.Stars) });
+            option.Fields(winrt::single_threaded_vector<Control::HyperlinkPreviewActionField>());
+            options.Append(option);
+        }
+        action.Options(options);
+        return action;
+    }
+
     // Runs the whole pipeline for one integration and renders the result.
     // Blocking; always called from a background thread.
     // `pipeline` is an out-parameter rather than a local because the service
@@ -1695,81 +1930,158 @@ namespace
         WWH::HttpClient plainClient{ nullptr };
         WWH::HttpClient lenientClient{ nullptr };
 
+        // Offered on the card when the owner was assumed rather than known.
+        Control::HyperlinkPreviewAction ownerAction{ nullptr };
+        std::wstring assumedOwnerNote;
         if (plugin.Id == L"github" && effectiveGroups.find(L"owner") == effectiveGroups.end())
         {
             const auto repoIt = effectiveGroups.find(L"repo");
             const auto numberIt = effectiveGroups.find(L"number");
             if (repoIt != effectiveGroups.end() && numberIt != effectiveGroups.end())
             {
-                const auto& repo = repoIt->second;
-                const auto& number = numberIt->second;
+                const auto repo = repoIt->second;
+                const auto number = numberIt->second;
+                const auto setting = [&](const wchar_t* key) {
+                    const auto it = plugin.Settings.find(key);
+                    return it == plugin.Settings.end() ? std::wstring{} : it->second;
+                };
+
+                const auto credIt = plugin.Credentials.find(L"token");
+                const GitHubClient client{ ::Microsoft::Terminal::GitHubToken(credIt == plugin.Credentials.end() ? std::wstring{} : credIt->second),
+                                           plugin.Name,
+                                           plainClient,
+                                           lenientClient,
+                                           GetTickCount64() + 8000 };
 
                 RepoOwnerResolution resolution;
-                bool resolved = false;
+                std::vector<std::wstring> tried;
+                const auto tryOwner = [&](const std::wstring& owner) {
+                    if (std::any_of(tried.begin(), tried.end(), [&](const auto& known) { return ::Microsoft::Terminal::SameGitHubName(known, owner); }))
+                    {
+                        return false;
+                    }
+                    tried.push_back(owner);
+                    const auto item = client.Get(fmt::format(L"https://api.github.com/repos/{}/{}/issues/{}", owner, repo, number));
+                    if (!item || item.ValueType() != JsonValueType::Object)
+                    {
+                        return false;
+                    }
+                    resolution.Owner = owner;
+                    resolution.IsPull = item.GetObject().HasKey(L"pull_request");
+                    return true;
+                };
+
+                // 1. The owner the user picked for this repository name.
+                auto& state = OwnerState();
+                std::wstring picked;
+                {
+                    std::scoped_lock lock{ state.Mutex };
+                    if (const auto it = state.Picks.find(LowerName(repo)); it != state.Picks.end())
+                    {
+                        picked = it->second;
+                    }
+                }
+                if (picked.empty())
+                {
+                    for (const auto& [name, owner] : ::Microsoft::Terminal::GitHubRepoOwners(setting(L"repoOwners")))
+                    {
+                        if (::Microsoft::Terminal::SameGitHubName(name, repo))
+                        {
+                            picked = owner;
+                        }
+                    }
+                }
+                auto resolved = !picked.empty() && tryOwner(picked);
+                // A pick that no longer finds the reference is never silently
+                // replaced by a guess: the card asks again instead.
+                const auto pickFailed = !picked.empty() && !resolved;
+
+                // 2. Pinned organizations, in the user's order.
+                for (const auto& owner : ::Microsoft::Terminal::GitHubOwners(setting(L"candidateOwners")))
+                {
+                    if (resolved)
+                    {
+                        break;
+                    }
+                    resolved = tryOwner(owner);
+                }
+
+                // 3. What the account can reach: owners known to have a
+                // repository of this name first, then everyone else.
                 if (!resolved)
                 {
-                    const auto credIt = plugin.Credentials.find(L"token");
-                    const auto token = ::Microsoft::Terminal::GitHubToken(credIt == plugin.Credentials.end() ? std::wstring{} : credIt->second);
-
-                    std::wstring candidates;
-                    const auto settingIt = plugin.Settings.find(L"candidateOwners");
-                    if (settingIt != plugin.Settings.end())
+                    DiscoverGitHubOwners(client);
+                    std::vector<std::wstring> reachable;
                     {
-                        candidates = settingIt->second;
-                    }
-
-                    const auto candidateList = ::Microsoft::Terminal::GitHubOwners(candidates);
-                    if (candidateList.empty()) { preview.Error(L"Add preferred organizations in GitHub integration settings to resolve repo#number references."); return preview; }
-                    const auto deadline = GetTickCount64() + 8000;
-                    ExpandContext probeContext;
-                    for (const auto& candidate : candidateList)
-                    {
-                        if (GetTickCount64() >= deadline) break;
-                        HttpCall probeCall;
-                        probeCall.Url = fmt::format(L"https://api.github.com/repos/{}/{}/issues/{}", candidate, repo, number);
-                        probeCall.Method = L"GET";
-                        std::vector<std::pair<std::wstring, std::wstring>> headers = {
-                            { L"Accept", L"application/vnd.github+json" },
-                            { L"X-GitHub-Api-Version", L"2022-11-28" },
-                            { L"User-Agent", L"WindowsTerminal" }
-                        };
-                        probeCall.Headers = &headers;
-                        if (!token.empty())
+                        std::scoped_lock lock{ state.Mutex };
+                        if (const auto it = state.OwnersByRepo.find(LowerName(repo)); it != state.OwnersByRepo.end())
                         {
-                            probeCall.AuthType = L"bearer";
-                            probeCall.AuthPassword = token;
+                            reachable = it->second;
                         }
-                        probeCall.TimeoutMs = static_cast<int32_t>(std::max<int64_t>(1, static_cast<int64_t>(deadline) - static_cast<int64_t>(GetTickCount64())));
-
-                        const auto outcome = RunHttpCall(probeCall, probeContext, plugin.Name, plainClient, lenientClient);
-                        if (outcome.Error.empty() && !outcome.Body.empty())
+                        for (const auto& owner : state.Owners)
                         {
-                            JsonObject parsedObj{ nullptr };
-                            if (JsonObject::TryParse(winrt::hstring{ outcome.Body }, parsedObj))
-                            {
-                                resolution.Owner = candidate;
-                                resolution.IsPull = parsedObj.HasKey(L"pull_request");
-                                resolved = true;
-                                break;
-                            }
+                            AddOwnerOnce(reachable, owner);
+                        }
+                    }
+                    for (const auto& owner : reachable)
+                    {
+                        if (resolved)
+                        {
+                            break;
+                        }
+                        resolved = tryOwner(owner);
+                    }
+                }
+
+                // 4. Every public repository of that name, most-starred first.
+                std::vector<GitHubOwnerCandidate> candidates;
+                auto assumed = false;
+                if (!resolved)
+                {
+                    candidates = SearchGitHubOwners(client, repo);
+                    if (setting(L"autoPickOwner") != L"false" && !pickFailed)
+                    {
+                        for (size_t i = 0; i < candidates.size() && i < 5 && !resolved; ++i)
+                        {
+                            resolved = assumed = tryOwner(candidates[i].Owner);
                         }
                     }
                 }
 
-                if (!resolved) { preview.Error(L"Reference not found under the preferred organizations. Check the organization order and account access in GitHub integration settings."); return preview; }
-                if (resolved)
+                if (!resolved)
                 {
-                    effectiveGroups[L"owner"] = resolution.Owner;
-                    if (resolution.IsPull)
+                    if (candidates.empty())
                     {
-                        effectiveGroups[L"ispull"] = L"pull";
-                        preview.ResolvedUri(winrt::hstring{ fmt::format(L"https://github.com/{}/{}/pull/{}", resolution.Owner, repo, number) });
+                        preview.Error(winrt::hstring{ GetTickCount64() >= client.Deadline ?
+                                                          fmt::format(L"GitHub took too long to find which {} {}#{} refers to.", repo, repo, number) :
+                                                          fmt::format(L"No GitHub repository named {} has #{}.", repo, number) });
+                        return preview;
                     }
-                    else
-                    {
-                        effectiveGroups[L"isissue"] = L"issues";
-                        preview.ResolvedUri(winrt::hstring{ fmt::format(L"https://github.com/{}/{}/issues/{}", resolution.Owner, repo, number) });
-                    }
+                    preview.Error(winrt::hstring{ pickFailed ?
+                                                      fmt::format(L"{}/{} has no #{}. Choose another owner for {}.", picked, repo, number, repo) :
+                                                      fmt::format(L"Several repositories are named {}. Choose which one {}#{} means; the choice is remembered.", repo, repo, number) });
+                    auto actions = winrt::single_threaded_vector<Control::HyperlinkPreviewAction>();
+                    actions.Append(GitHubOwnerAction(repo, candidates, {}));
+                    preview.Actions(actions);
+                    return preview;
+                }
+
+                if (assumed)
+                {
+                    ownerAction = GitHubOwnerAction(repo, candidates, resolution.Owner);
+                    assumedOwnerNote = fmt::format(L"{} (assumed: the most-starred {})", resolution.Owner, repo);
+                }
+
+                effectiveGroups[L"owner"] = resolution.Owner;
+                if (resolution.IsPull)
+                {
+                    effectiveGroups[L"ispull"] = L"pull";
+                    preview.ResolvedUri(winrt::hstring{ fmt::format(L"https://github.com/{}/{}/pull/{}", resolution.Owner, repo, number) });
+                }
+                else
+                {
+                    effectiveGroups[L"isissue"] = L"issues";
+                    preview.ResolvedUri(winrt::hstring{ fmt::format(L"https://github.com/{}/{}/issues/{}", resolution.Owner, repo, number) });
                 }
             }
         }
@@ -1895,6 +2207,27 @@ namespace
 
         BuildTabs(plugin, reader, preview);
         BuildActions(plugin, reader, preview);
+
+        // An assumed owner says so, and the card's one action row becomes the
+        // way to change it: picking the wrong repository matters more than
+        // anything the manifest's own first action would do to it.
+        if (!assumedOwnerNote.empty())
+        {
+            Control::HyperlinkPreviewField note{};
+            note.Label(L"Owner");
+            note.Value(winrt::hstring{ assumedOwnerNote });
+            fields.Append(note);
+        }
+        if (ownerAction && ownerAction.Options().Size() > 0)
+        {
+            auto actions = preview.Actions();
+            if (!actions)
+            {
+                actions = winrt::single_threaded_vector<Control::HyperlinkPreviewAction>();
+                preview.Actions(actions);
+            }
+            actions.InsertAt(0, ownerAction);
+        }
 
         // Not escaped: the template is a whole URL whose settings (the server) must
         // survive intact, and the groups it draws on are the matcher's own captures.
@@ -2621,6 +2954,14 @@ namespace winrt::TerminalApp::implementation
             }
         }
 
+        {
+            // Picks made on a card are in settings.json by now, and a pick the
+            // user has since removed there must stop applying.
+            auto& ownerState = OwnerState();
+            std::scoped_lock ownerLock{ ownerState.Mutex };
+            ownerState.Picks.clear();
+        }
+
         std::scoped_lock lock{ _mutex };
         _snapshot = std::move(snapshot);
         // Whatever was cached was rendered against the old configuration.
@@ -2994,6 +3335,55 @@ namespace winrt::TerminalApp::implementation
         TemplateValueMap values;
         std::wstring cacheKey;
         std::wstring failure;
+
+        // Not a manifest action: the owner picked for a bare repo#number. It is
+        // remembered at once, so the refresh the card runs next resolves with
+        // it, and persisted so it outlives the session.
+        if (std::wstring_view{ actionKey } == GitHubOwnerActionKey)
+        {
+            Control::HyperlinkActionResult result{};
+            try
+            {
+                const std::wstring owner{ choiceId };
+                const auto found = FindMatch(strongThis->_currentSnapshot(), std::wstring{ text }, std::wstring{ integrationHint }, false);
+                const auto repoIt = found ? found->Groups.find(L"repo") : TemplateValueMap::const_iterator{};
+                if (!found || repoIt == found->Groups.end() || !::Microsoft::Terminal::ValidGitHubOwner(owner))
+                {
+                    result.Error(L"That reference can no longer be resolved.");
+                    co_return result;
+                }
+                const auto repo = repoIt->second;
+                std::wstring stored;
+                if (const auto it = found->Owner->Settings.find(L"repoOwners"); it != found->Owner->Settings.end())
+                {
+                    stored = it->second;
+                }
+                {
+                    auto& state = OwnerState();
+                    std::scoped_lock lock{ state.Mutex };
+                    state.Picks[LowerName(repo)] = owner;
+                    // Picks made since the last reload are not in `stored` yet.
+                    for (const auto& [name, pick] : state.Picks)
+                    {
+                        stored = ::Microsoft::Terminal::WithGitHubRepoOwner(stored, name, pick);
+                    }
+                }
+                // Again with the name as written, since Picks is keyed lower-case.
+                stored = ::Microsoft::Terminal::WithGitHubRepoOwner(stored, repo, owner);
+                strongThis->_cacheErase(found->Owner->Id + L"|" + std::wstring{ text });
+                if (strongThis->PersistIntegrationSetting)
+                {
+                    strongThis->PersistIntegrationSetting(winrt::hstring{ found->Owner->Id }, L"repoOwners", winrt::hstring{ stored });
+                }
+                result.Ok(true);
+            }
+            catch (...)
+            {
+                LOG_CAUGHT_EXCEPTION();
+                result.Error(L"The owner could not be remembered.");
+            }
+            co_return result;
+        }
 
         try
         {

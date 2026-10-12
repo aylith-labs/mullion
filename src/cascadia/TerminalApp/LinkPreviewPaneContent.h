@@ -97,6 +97,8 @@ namespace winrt::TerminalApp::implementation
         // written into, and it has to outlive the fetch.
         safe_void_coroutine _requestTab(uint32_t generation, winrt::Microsoft::Terminal::Control::HyperlinkPreview preview, int32_t index, winrt::hstring tabKey);
         void _rebuildActions(const winrt::Microsoft::Terminal::Control::HyperlinkPreview& preview);
+        void _fillActionOptions(std::wstring_view filter);
+        void _filterChanged(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::Controls::TextChangedEventArgs& e);
         void _updateActionFields();
         void _updateApplyState();
         void _setActionBusy(bool busy);

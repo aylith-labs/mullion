@@ -909,9 +909,49 @@ namespace winrt::TerminalApp::implementation
             return;
         }
 
+        if (const auto label = _action.Label(); !label.empty())
+        {
+            combo.PlaceholderText(label);
+        }
+
+        // Same as the card: a long list gets a filter box, and clearing it
+        // raises TextChanged, which refills the list on its own.
+        const auto filter = ActionFilter();
+        filter.Visibility(options.Size() > 6 ? Visibility::Visible : Visibility::Collapsed);
+        if (!filter.Text().empty())
+        {
+            filter.Text({});
+        }
+        _fillActionOptions({});
+
+        ActionRow().Visibility(Visibility::Visible);
+        UndoButton().Visibility(_undoChoiceId.empty() ? Visibility::Collapsed : Visibility::Visible);
+        _updateApplyState();
+    }
+
+    void LinkPreviewPaneContent::_filterChanged(const IInspectable& /*sender*/, const Controls::TextChangedEventArgs& /*e*/)
+    {
+        _fillActionOptions(ActionFilter().Text());
+        _updateActionFields();
+    }
+
+    void LinkPreviewPaneContent::_fillActionOptions(std::wstring_view filter)
+    {
+        const auto combo = ActionOptions();
+        combo.Items().Clear();
+        const auto options = _action ? _action.Options() : nullptr;
+        if (!options)
+        {
+            return;
+        }
+
         for (const auto& option : options)
         {
             if (!option)
+            {
+                continue;
+            }
+            if (!filter.empty() && !til::contains_linguistic_insensitive(option.Label(), filter))
             {
                 continue;
             }
@@ -949,10 +989,6 @@ namespace winrt::TerminalApp::implementation
             item.Tag(option);
             combo.Items().Append(item);
         }
-
-        ActionRow().Visibility(Visibility::Visible);
-        UndoButton().Visibility(_undoChoiceId.empty() ? Visibility::Collapsed : Visibility::Visible);
-        _updateApplyState();
     }
 
     Control::HyperlinkPreviewActionOption LinkPreviewPaneContent::_selectedOption()

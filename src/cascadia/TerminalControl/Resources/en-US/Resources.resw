@@ -242,6 +242,10 @@
     <value>Change status</value>
     <comment>Placeholder of the dropdown on the link tooltip that lists what the user can do to the linked item, such as moving an issue to another status.</comment>
   </data>
+  <data name="HyperlinkActionFilter.PlaceholderText" xml:space="preserve">
+    <value>Filter</value>
+    <comment>Placeholder of the box on the link tooltip that narrows a long list of choices, such as every GitHub repository with the same name, to those containing the typed text.</comment>
+  </data>
   <data name="HyperlinkActionApplyButton.Content" xml:space="preserve">
     <value>Apply</value>
     <comment>Label of the button on the link tooltip that carries out the action chosen in the dropdown beside it.</comment>

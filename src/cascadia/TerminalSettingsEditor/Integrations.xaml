@@ -161,6 +161,9 @@
                                             Header="{x:Bind Label}">
                             <StackPanel>
                             <StackPanel Loaded="PreferredOwners_Loaded" Tag="{x:Bind}" Visibility="{x:Bind IsOwnerList}" />
+                            <StackPanel Loaded="RepoOwners_Loaded" Tag="{x:Bind}" Visibility="{x:Bind IsRepoOwnerList}" />
+                            <ToggleSwitch Visibility="{x:Bind IsToggle}"
+                                          IsOn="{x:Bind ToggleValue, Mode=TwoWay}" />
                             <TextBox Visibility="{x:Bind IsPlainSetting}" IsSpellCheckEnabled="False"
                                      PlaceholderText="{x:Bind Placeholder}"
                                      Style="{StaticResource TextBoxSettingStyle}"

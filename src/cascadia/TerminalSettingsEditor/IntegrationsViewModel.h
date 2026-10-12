@@ -36,10 +36,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         bool HasDescription() const { return !_Field.Description().empty(); }
         bool Required() const { return _Field.Required(); }
         bool IsOwnerList() const { return _Field.Editor() == L"github-owners" || (_IntegrationId == L"github" && Key() == L"candidateOwners"); }
-        bool IsPlainSetting() const { return !IsOwnerList(); }
+        bool IsRepoOwnerList() const { return _Field.Editor() == L"github-repo-owners"; }
+        bool IsToggle() const { return _Field.Editor() == L"toggle"; }
+        bool IsPlainSetting() const { return !IsOwnerList() && !IsRepoOwnerList() && !IsToggle(); }
 
         hstring Value() const;
         void Value(const hstring& value);
+        bool ToggleValue() const { return Value() == L"true"; }
+        void ToggleValue(bool value) { Value(value ? L"true" : L"false"); }
 
     private:
         Model::IntegrationField _Field;

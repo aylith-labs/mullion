@@ -13,7 +13,11 @@ namespace Microsoft.Terminal.Settings.Editor
         String Description { get; };
         Boolean HasDescription { get; };
         Boolean IsOwnerList { get; };
+        Boolean IsRepoOwnerList { get; };
+        Boolean IsToggle { get; };
         Boolean IsPlainSetting { get; };
+        // Value as a switch, for the "toggle" editor: "true" or "false".
+        Boolean ToggleValue;
         Boolean Required { get; };
 
         String Value;

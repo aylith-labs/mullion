@@ -391,6 +391,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // far end's wording for one action can be undone for the next link.
         Windows::Foundation::IInspectable _hyperlinkUndoDefaultContent{ nullptr };
         void _rebuildHyperlinkActions(const Control::HyperlinkPreview& preview);
+        void _fillHyperlinkActionOptions(std::wstring_view filter);
+        void _HyperlinkActionFilterChanged(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::Controls::TextChangedEventArgs& e);
         void _updateHyperlinkActionFields();
         void _updateHyperlinkActionApplyState();
         // Not const: the XAML-generated element accessors these read are not.

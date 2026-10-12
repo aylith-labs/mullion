@@ -31,8 +31,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _RenderOwners();
         bool _SaveOwners();
         std::vector<std::wstring> _ownerValues;
+        // Organizations account discovery found: tried after the pinned ones.
+        std::vector<std::wstring> _discoveredOwners;
         winrt::weak_ref<winrt::Windows::UI::Xaml::Controls::StackPanel> _ownerHost;
         Editor::IntegrationSettingViewModel _ownerSetting{ nullptr };
+        void RepoOwners_Loaded(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& e);
+        void _RenderRepoOwners();
+        winrt::weak_ref<winrt::Windows::UI::Xaml::Controls::StackPanel> _repoOwnerHost;
+        Editor::IntegrationSettingViewModel _repoOwnerSetting{ nullptr };
         uint64_t _accountGeneration{};
 
         WINRT_CALLBACK(PropertyChanged, Windows::UI::Xaml::Data::PropertyChangedEventHandler);

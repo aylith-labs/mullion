@@ -162,6 +162,13 @@
                             Orientation="Horizontal"
                             Spacing="6"
                             Visibility="Collapsed">
+                    <TextBox x:Name="ActionFilter"
+                             x:Uid="LinkPreviewActionFilter"
+                             Width="140"
+                             VerticalAlignment="Center"
+                             IsSpellCheckEnabled="False"
+                             TextChanged="_filterChanged"
+                             Visibility="Collapsed" />
                     <ComboBox x:Name="ActionOptions"
                               x:Uid="LinkPreviewActionOptions"
                               MinWidth="180"

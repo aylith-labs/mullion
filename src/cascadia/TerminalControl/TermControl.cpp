@@ -5944,9 +5944,53 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return;
         }
 
+        if (const auto label = _currentHyperlinkAction.Label(); !label.empty())
+        {
+            combo.PlaceholderText(label);
+        }
+
+        // A long list -- every repository of one name, say -- gets a filter box.
+        // Clearing it raises TextChanged, which refills the list on its own.
+        const auto filter = HyperlinkActionFilter();
+        filter.Visibility(options.Size() > 6 ? Visibility::Visible : Visibility::Collapsed);
+        if (!filter.Text().empty())
+        {
+            filter.Text({});
+        }
+        _fillHyperlinkActionOptions({});
+
+        HyperlinkCardActionRow().Visibility(Visibility::Visible);
+        // An undo offered by an action that has already run outlives the refresh that
+        // followed it, which is what makes the button still be there afterwards.
+        HyperlinkActionUndoButton().Visibility(_hyperlinkUndoChoiceId.empty() ? Visibility::Collapsed : Visibility::Visible);
+        _updateHyperlinkActionApplyState();
+    }
+
+    void TermControl::_HyperlinkActionFilterChanged(const IInspectable& /*sender*/, const Controls::TextChangedEventArgs& /*e*/)
+    {
+        _fillHyperlinkActionOptions(HyperlinkActionFilter().Text());
+        _updateHyperlinkActionFields();
+    }
+
+    // The options of the current action whose label contains `filter`, ignoring
+    // case. An empty filter is all of them.
+    void TermControl::_fillHyperlinkActionOptions(std::wstring_view filter)
+    {
+        const auto combo = HyperlinkActionOptions();
+        combo.Items().Clear();
+        const auto options = _currentHyperlinkAction ? _currentHyperlinkAction.Options() : nullptr;
+        if (!options)
+        {
+            return;
+        }
+
         for (const auto& option : options)
         {
             if (!option)
+            {
+                continue;
+            }
+            if (!filter.empty() && !til::contains_linguistic_insensitive(option.Label(), filter))
             {
                 continue;
             }
@@ -5988,12 +6032,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             item.Tag(option);
             combo.Items().Append(item);
         }
-
-        HyperlinkCardActionRow().Visibility(Visibility::Visible);
-        // An undo offered by an action that has already run outlives the refresh that
-        // followed it, which is what makes the button still be there afterwards.
-        HyperlinkActionUndoButton().Visibility(_hyperlinkUndoChoiceId.empty() ? Visibility::Collapsed : Visibility::Visible);
-        _updateHyperlinkActionApplyState();
     }
 
     Control::HyperlinkPreviewActionOption TermControl::_selectedHyperlinkActionOption()

@@ -1035,12 +1035,28 @@ for github.com take precedence over the saved PAT, consistently for the account
 check and previews. Jira and Slack also expose account checks when enabled;
 other integrations explicitly report that an account check is unavailable.
 
-**Preferred organizations** replaces the comma-separated editor with editable
-rows. Add an organization or account manually, move it up/down, or remove it.
-**Add identified organization** discovers organizations visible to the active
+A bare `repo#number` names no owner, so one is found in this order (Lintel
+SPEC, "Resolving repo#number"):
+
+1. **Remembered repositories** — an owner picked for that repository name on a
+   card. Listed in GitHub settings, where each can be forgotten.
+2. **Pinned organizations** — editable rows, reordered by dragging (or ↑/↓).
+   Pinning is only needed to break a tie between two reachable organizations
+   that share a repository name.
+3. **Everything the account can reach** — the login, its organizations and the
+   owners of its repositories (`/user`, `/user/orgs`, `/user/repos`), cached for
+   30 minutes. Settings shows which ones are tried after the pinned rows.
+4. **Repository search** — every public repository with exactly that name,
+   most-starred first (cached 10 minutes; search is rate-limited). With
+   **Assume the most-starred repository** on (the default) the card resolves to
+   it, says so in an *Owner* row, and its action row offers to change it. With it
+   off, or when a remembered owner has no such number, the card lists the owners
+   with a filter box; choosing one remembers it in `repoOwners`.
+
+**Pin a reachable organization** discovers organizations visible to the active
 credentials, including organization owners of accessible repositories for
 fine-grained tokens. Discovery can be partial; manual additions are always
-available. The first matching issue under the ordered list wins.
+available.
 
 The repo#number preset now recognizes references inside prose, including
 `See terminal#18920 for the details`. Untouched older copies of the shipped

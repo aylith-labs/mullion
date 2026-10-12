@@ -1177,6 +1177,10 @@ Applying on next launch closes nothing now: the swap happens once you have close
     <value>Change status</value>
     <comment>Placeholder of the dropdown in the link preview pane that lists what the user can do to the linked item, such as moving an issue to another status.</comment>
   </data>
+  <data name="LinkPreviewActionFilter.PlaceholderText" xml:space="preserve">
+    <value>Filter</value>
+    <comment>Placeholder of the box in the link preview pane that narrows a long list of choices, such as every GitHub repository with the same name, to those containing the typed text.</comment>
+  </data>
   <data name="LinkPreviewApplyButton.Content" xml:space="preserve">
     <value>Apply</value>
     <comment>Label of the button in the link preview pane that carries out the action chosen in the dropdown beside it.</comment>
