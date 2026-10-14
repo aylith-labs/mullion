@@ -5406,6 +5406,14 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         HyperlinkCardFieldsScroll().Visibility(Visibility::Visible);
 
         auto row = 0;
+        uint32_t breadcrumbCount = 0;
+        for (const auto& f : fields)
+        {
+            if (f && f.Placement() == L"breadcrumb")
+            {
+                ++breadcrumbCount;
+            }
+        }
         for (const auto& field : fields)
         {
             // Keep zero counts in the full pane, but omit them from the hover card.
@@ -5439,9 +5447,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             const auto placement = field.Placement();
             if (placement == L"status" || placement == L"header" || placement == L"breadcrumb")
             {
-                // The card's own heading already names the ticket; a breadcrumb entry
-                // that says the same thing is the key printed twice.
-                if (placement == L"breadcrumb" && field.Value() == HoveredUri().Text())
+                // The card's own heading already names the ticket, so a breadcrumb
+                // that is only that ticket is the key printed twice. With a parent
+                // the trail (AT-58 / AT-240) is the point and stays whole.
+                if (placement == L"breadcrumb" && breadcrumbCount == 1 && field.Value() == HoveredUri().Text())
                 {
                     continue;
                 }
