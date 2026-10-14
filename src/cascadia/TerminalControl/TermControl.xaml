@@ -1310,15 +1310,24 @@
                                 -->
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
+                                    <!--
+                                        On the right, and fixed at about two text rows: the icon
+                                        arrives after the fetch, and on the left it pushed the whole
+                                        card's text sideways when it did.
+                                    -->
                                     <ContentControl x:Name="HyperlinkCardLeftIcon"
+                                                    Grid.Column="1"
+                                                    Width="40"
+                                                    Height="40"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    VerticalContentAlignment="Stretch"
                                                     VerticalAlignment="Top"
-                                                    Margin="0,2,0,0"
                                                     IsTabStop="False"
                                                     Visibility="Collapsed" />
-                                    <StackPanel Grid.Column="1"
+                                    <StackPanel Grid.Column="0"
                                                 Spacing="2">
                                         <TextBlock x:Name="HoveredUri"
                                                    IsTextSelectionEnabled="True"
@@ -1345,6 +1354,20 @@
                                                    TextWrapping="Wrap"
                                                    Visibility="Collapsed" />
                                     </StackPanel>
+                                </Grid>
+
+                                <!--
+                                    Directly under the title and link, so whatever the fetch adds
+                                    (status, fields, tabs) appears below the buttons and the
+                                    buttons never move.
+                                -->
+                                <Grid x:Name="HyperlinkCardHeaderActionsHost"
+                                      ColumnSpacing="8"
+                                      Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                 </Grid>
 
                                 <!--
@@ -1463,15 +1486,6 @@
 
                                     <StackPanel x:Name="HyperlinkCardMetadataHost" Orientation="Horizontal" Spacing="8" />
                                 </StackPanel>
-
-                                <Grid x:Name="HyperlinkCardHeaderActionsHost"
-                                      ColumnSpacing="8"
-                                      Visibility="Collapsed">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                </Grid>
 
                                 <!--
                                     What an integration has to say about the hovered link, or about

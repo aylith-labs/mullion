@@ -171,7 +171,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         Controls::StackPanel root;
         root.Spacing(6);
         Controls::ScrollViewer scroll;
-        scroll.MaxHeight(compact ? 320 : 800);
+        scroll.MaxHeight(compact ? 560 : 800);
         scroll.HorizontalScrollBarVisibility(Controls::ScrollBarVisibility::Auto);
         scroll.VerticalScrollBarVisibility(Controls::ScrollBarVisibility::Auto);
         if (preview.FileKind() == L"image" || preview.FileKind() == L"pdf")
@@ -310,7 +310,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 while (start < body.size())
                 {
                     const auto end = body.find(L'\n', start);
-                    if (compact && line > 30) { result += L"\n[Open in pane for more]"; break; }
+                    if (compact && line > 200) { result += L"\n[Open in pane for more]"; break; }
                     if (numbered && !compact) result += std::to_wstring(line) + L"  ";
                     result.append(body, start, end == std::wstring::npos ? body.size() - start : end - start + 1);
                     if (end == std::wstring::npos) break;

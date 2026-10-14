@@ -5439,6 +5439,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             const auto placement = field.Placement();
             if (placement == L"status" || placement == L"header" || placement == L"breadcrumb")
             {
+                // The card's own heading already names the ticket; a breadcrumb entry
+                // that says the same thing is the key printed twice.
+                if (placement == L"breadcrumb" && field.Value() == HoveredUri().Text())
+                {
+                    continue;
+                }
                 Controls::StackPanel item;
                 item.Orientation(Controls::Orientation::Horizontal);
                 item.Spacing(4);
@@ -5556,7 +5562,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 Controls::TextBlock text;
                 text.Text(field.Value());
                 text.TextWrapping(TextWrapping::Wrap);
-                text.MaxLines(6);
+                text.MaxLines(40);
 
                 Controls::HyperlinkButton link;
                 link.Content(text);
@@ -5572,7 +5578,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 Controls::TextBlock value;
                 value.Text(field.Value());
                 value.TextWrapping(TextWrapping::Wrap);
-                value.MaxLines(6);
+                value.MaxLines(40);
                 value.IsTextSelectionEnabled(true);
                 Controls::Grid::SetColumn(value, 1);
                 cell.Children().Append(value);
@@ -5653,7 +5659,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 {
                     auto body = winrt::Microsoft::Terminal::UI::Markdown::Builder::Convert(comment.Body(), L"");
                     Control::HyperlinkPreviewHelpers::AttachLinkTooltips(body, _hyperlinkPreviewProvider, _core.Settings(), true, 0);
-                    body.MaxHeight(180);
+                    body.MaxHeight(600);
                     body.IsTextSelectionEnabled(true);
                     text.Children().Append(body);
                     rendered = true;
@@ -5663,7 +5669,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             if (!rendered)
             {
                 auto body = Control::HyperlinkPreviewHelpers::CreateTextView(comment.Body(), _hyperlinkPreviewProvider, _core.Settings(), true, 0);
-                body.MaxLines(6);
+                body.MaxLines(40);
                 text.Children().Append(body);
             }
 
