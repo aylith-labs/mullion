@@ -149,7 +149,7 @@
                                        FontFamily="Cascadia Mono, Consolas, monospace"
                                        FontSize="10"
                                        FontWeight="SemiBold"
-                                       Foreground="{ThemeResource SystemControlForegroundAccentBrush}"
+                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                        Text="{x:Bind UnseenPipeCallCount, Mode=OneWay}"
                                        Visibility="{x:Bind HasUnseenPipeCalls, Mode=OneWay}" />
                         </StackPanel>
