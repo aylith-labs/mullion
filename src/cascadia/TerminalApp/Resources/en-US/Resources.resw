@@ -911,6 +911,22 @@
     <value>Click to copy</value>
     <comment>Last line of the tooltip on the DEV/TEST badge, telling the reader the badge is clickable. The lines above it show the commit, branch and build time.</comment>
   </data>
+  <data name="PipeActivityButton.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Control pipe activity</value>
+    <comment>Screen reader name for the tab row badge that appears once another program has used the control pipe to list, read, type into or focus this Terminal's panes</comment>
+  </data>
+  <data name="PipeActivityButton.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Other programs have used the control pipe to list, read, type into or focus panes. Click to see the latest requests.</value>
+    <comment>Tooltip on the control pipe badge in the tab row. The number beside the icon counts requests not yet looked at.</comment>
+  </data>
+  <data name="PipeActivity_FlyoutTitle" xml:space="preserve">
+    <value>Control pipe requests</value>
+    <comment>Heading of the list that opens from the control pipe badge in the tab row. The rows below it are the latest requests, newest first.</comment>
+  </data>
+  <data name="PipeActivity_ShowAll" xml:space="preserve">
+    <value>Show all in Activity</value>
+    <comment>Link at the bottom of the control pipe badge's list. Opens Settings on the Activity page, filtered to control pipe requests.</comment>
+  </data>
   <data name="BuildInfoCopiedToast.Title" xml:space="preserve">
     <value>Build info copied</value>
     <comment>Brief confirmation shown after clicking the DEV/TEST badge in the tab row, which copies the build's details to the clipboard</comment>

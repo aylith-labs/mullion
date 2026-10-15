@@ -219,6 +219,7 @@ namespace winrt::TerminalApp::implementation
         TerminalApp::ControlPipeCaptureResult ControlPipeCapturePane(uint32_t tabIndex, uint32_t paneId, int32_t lines);
         TerminalApp::ControlPipeStatus ControlPipeSendInput(uint32_t tabIndex, uint32_t paneId, hstring text, hstring requireContains);
         TerminalApp::ControlPipeStatus ControlPipeFocusPane(uint32_t tabIndex, uint32_t paneId);
+        void ControlPipeCallRecorded(const TerminalApp::ControlPipeCall& call);
 
         void ToggleFocusMode();
         void ToggleFullscreen();
@@ -401,6 +402,7 @@ namespace winrt::TerminalApp::implementation
         safe_void_coroutine _PromoteSlotRequested(Windows::Foundation::IInspectable sender, Windows::Foundation::IInspectable args);
         void _ReconcileCiPollInterval();
         void _CopyBuildInfoRequested(const Windows::Foundation::IInspectable& sender, const Windows::Foundation::IInspectable& args);
+        void _ShowAllControlPipeCallsRequested(const Windows::Foundation::IInspectable& sender, const Windows::Foundation::IInspectable& args);
 
         bool _resumeEnabled() const;
         std::vector<::TerminalApp::SessionResume::PaneProbe> _collectResumeProbes();

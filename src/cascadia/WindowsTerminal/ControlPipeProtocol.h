@@ -14,7 +14,9 @@
 
 #include <json/json.h>
 
+#include <algorithm>
 #include <charconv>
+#include <cstdio>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -527,5 +529,233 @@ namespace ControlPipe
         root["ok"] = true;
         root["id"] = FormatPaneAddress(address);
         return details::Serialize(root);
+    }
+
+    // ---------------------------------------------------------------------
+    // Recording. Every request is written to the activity log and listed on
+    // the tab row's pipe badge; these put a request into the words both of
+    // them show. They live here, away from the pipe, so they can be tested.
+    // ---------------------------------------------------------------------
+
+    // The longest send-input text a record keeps. The log is this user's own,
+    // but one pasted megabyte would push everything else out of a 4 MiB log.
+    inline constexpr size_t MaxRecordedTextChars = 4096;
+    // The most of a filter or a needle a record keeps.
+    inline constexpr size_t MaxRecordedNeedleChars = 256;
+    // How much of a line that would not parse is kept: enough to tell which
+    // client sent it and what it got wrong.
+    inline constexpr size_t MaxRecordedRawBytes = 512;
+
+    inline std::wstring_view OpName(Op op) noexcept
+    {
+        switch (op)
+        {
+        case Op::ListPanes:
+            return L"list-panes";
+        case Op::CapturePane:
+            return L"capture-pane";
+        case Op::SendInput:
+            return L"send-input";
+        case Op::FocusPane:
+            return L"focus-pane";
+        case Op::Ping:
+        default:
+            return L"ping";
+        }
+    }
+
+    // What a request was. `op` is the wire name, or "unparsed" for a line that
+    // never became a request; `target` is the pane address or the braced
+    // session id it named; `detail` is what it asked for.
+    struct CallDescription
+    {
+        std::wstring op;
+        std::wstring target;
+        std::wstring detail;
+    };
+
+    namespace details
+    {
+        // Quoted, with control characters spelled out. A record that shows \r
+        // says exactly what reached the pane, where a raw CR would end the line
+        // it is printed on - and "did the client send the Enter" is the usual
+        // question.
+        inline std::wstring Quote(std::wstring_view text, size_t maxChars)
+        {
+            static constexpr wchar_t hex[] = L"0123456789abcdef";
+
+            auto kept = std::min(text.size(), maxChars);
+            // Never cut between the halves of a surrogate pair.
+            if (kept < text.size() && kept > 0 && IS_HIGH_SURROGATE(text[kept - 1]))
+            {
+                kept--;
+            }
+
+            std::wstring out;
+            out.reserve(kept + 2);
+            out.push_back(L'"');
+            for (size_t i = 0; i < kept; i++)
+            {
+                const auto ch = text[i];
+                switch (ch)
+                {
+                case L'"':
+                    out.append(L"\\\"");
+                    break;
+                case L'\\':
+                    out.append(L"\\\\");
+                    break;
+                case L'\r':
+                    out.append(L"\\r");
+                    break;
+                case L'\n':
+                    out.append(L"\\n");
+                    break;
+                case L'\t':
+                    out.append(L"\\t");
+                    break;
+                default:
+                    if (ch < 0x20 || ch == 0x7f)
+                    {
+                        out.append(L"\\x");
+                        out.push_back(hex[(ch >> 4) & 0xf]);
+                        out.push_back(hex[ch & 0xf]);
+                    }
+                    else
+                    {
+                        out.push_back(ch);
+                    }
+                    break;
+                }
+            }
+            out.push_back(L'"');
+
+            if (kept < text.size())
+            {
+                out.append(L" ...+");
+                out.append(std::to_wstring(text.size() - kept));
+                out.append(L" chars");
+            }
+            return out;
+        }
+
+        inline std::wstring Ascii(std::string_view text)
+        {
+            return { text.begin(), text.end() };
+        }
+
+        inline std::wstring FormatSessionId(const GUID& guid)
+        {
+            wchar_t buffer[64]{};
+            const auto data4 = [&](size_t i) { return static_cast<unsigned int>(guid.Data4[i]); };
+            swprintf_s(buffer,
+                       L"{%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+                       static_cast<unsigned long>(guid.Data1),
+                       static_cast<unsigned int>(guid.Data2),
+                       static_cast<unsigned int>(guid.Data3),
+                       data4(0),
+                       data4(1),
+                       data4(2),
+                       data4(3),
+                       data4(4),
+                       data4(5),
+                       data4(6),
+                       data4(7));
+            return buffer;
+        }
+    }
+
+    inline CallDescription DescribeRequest(const Request& request)
+    {
+        CallDescription description;
+        description.op = OpName(request.op);
+
+        if (request.pane)
+        {
+            description.target = details::Ascii(FormatPaneAddress(*request.pane));
+        }
+        else if (request.session)
+        {
+            description.target = details::FormatSessionId(*request.session);
+        }
+
+        switch (request.op)
+        {
+        case Op::ListPanes:
+            if (!request.containing.empty())
+            {
+                description.detail = L"containing " + details::Quote(request.containing, MaxRecordedNeedleChars);
+            }
+            break;
+        case Op::CapturePane:
+            description.detail = request.lines > 0 ? L"lines " + std::to_wstring(request.lines) : std::wstring{ L"viewport" };
+            break;
+        case Op::SendInput:
+            description.detail = details::Quote(request.text, MaxRecordedTextChars);
+            if (!request.requireContains.empty())
+            {
+                description.detail += L" requireContains " + details::Quote(request.requireContains, MaxRecordedNeedleChars);
+            }
+            break;
+        case Op::Ping:
+        case Op::FocusPane:
+        default:
+            break;
+        }
+        return description;
+    }
+
+    // A line that never became a request has no op to name, so keep the start
+    // of what was sent instead.
+    inline CallDescription DescribeUnparsed(std::string_view line)
+    {
+        CallDescription description;
+        description.op = L"unparsed";
+
+        auto kept = std::min(line.size(), MaxRecordedRawBytes);
+        // Back off to a character boundary, so a cut through a multi-byte
+        // character does not turn the whole prefix into a conversion failure.
+        while (kept > 0 && kept < line.size() && (static_cast<unsigned char>(line[kept]) & 0xC0) == 0x80)
+        {
+            kept--;
+        }
+        const auto prefix = line.substr(0, kept);
+
+        auto widened = details::Widen(prefix);
+        if (!widened)
+        {
+            // Not UTF-8 at all. Keep the ASCII and mark the rest, rather than
+            // keeping nothing.
+            widened.emplace();
+            for (const auto ch : prefix)
+            {
+                widened->push_back(static_cast<unsigned char>(ch) < 0x80 ? static_cast<wchar_t>(ch) : L'?');
+            }
+        }
+
+        description.detail = details::Quote(*widened, MaxRecordedRawBytes);
+        if (kept < line.size())
+        {
+            description.detail.append(L" ...+");
+            description.detail.append(std::to_wstring(line.size() - kept));
+            description.detail.append(L" bytes");
+        }
+        return description;
+    }
+
+    // The one-line form, as the activity log's command column shows it:
+    //   send-input 1.0.3 "echo hi\r"
+    inline std::wstring SummarizeCall(const CallDescription& description)
+    {
+        std::wstring out{ description.op };
+        for (const auto* part : { &description.target, &description.detail })
+        {
+            if (!part->empty())
+            {
+                out.push_back(L' ');
+                out.append(*part);
+            }
+        }
+        return out;
     }
 }

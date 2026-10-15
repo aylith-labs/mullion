@@ -43,6 +43,11 @@ namespace Microsoft::Terminal::ActivityLog
         std::wstring pid;
         std::wstring parentPid;
 
+        // controlPipe only: which op, which pane, and how it ended.
+        std::wstring op;
+        std::wstring target;
+        std::wstring result;
+
         // Every field above, lowercased and joined, so a filter box is a single
         // substring test rather than the reader having to remember which field
         // a half-remembered fragment was in.
@@ -91,6 +96,9 @@ namespace Microsoft::Terminal::ActivityLog
         out.reason = details::StringField(obj, L"reason");
         out.pid = details::StringField(obj, L"pid");
         out.parentPid = details::StringField(obj, L"parentPid");
+        out.op = details::StringField(obj, L"op");
+        out.target = details::StringField(obj, L"target");
+        out.result = details::StringField(obj, L"result");
 
         // Falls back to the whole string when there is no separator, so a bare
         // "wscript.exe" still shows something.
@@ -98,7 +106,7 @@ namespace Microsoft::Terminal::ActivityLog
         out.exeName = slash == std::wstring::npos ? out.exe : out.exe.substr(slash + 1);
 
         out.searchText.clear();
-        for (const auto* part : { &out.timestamp, &out.kind, &out.exe, &out.commandLine, &out.cwd, &out.parentExe, &out.reason, &out.pid, &out.parentPid })
+        for (const auto* part : { &out.timestamp, &out.kind, &out.exe, &out.commandLine, &out.cwd, &out.parentExe, &out.reason, &out.pid, &out.parentPid, &out.op, &out.target, &out.result })
         {
             out.searchText.append(*part);
             out.searchText.push_back(L' ');

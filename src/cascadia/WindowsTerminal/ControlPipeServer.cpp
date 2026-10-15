@@ -5,16 +5,116 @@
 #include "ControlPipeServer.h"
 
 #include <sddl.h>
+#include <tlhelp32.h>
 
 // A pane's screen is at most a few hundred KB of text; a client that wants the
 // scrollback is asking the wrong tool.
 static constexpr DWORD PipeBufferSize = 64 * 1024;
 
-ControlPipeServer::ControlPipeServer(HWND messageWindow, UINT requestMessage) noexcept :
+ControlPipeServer::ControlPipeServer(HWND messageWindow, UINT requestMessage, Observer observer) noexcept :
     _messageWindow{ messageWindow },
-    _requestMessage{ requestMessage }
+    _requestMessage{ requestMessage },
+    _observer{ std::move(observer) }
 {
 }
+
+static std::wstring _imagePath(DWORD pid) noexcept
+try
+{
+    if (pid == 0)
+    {
+        return {};
+    }
+
+    wil::unique_handle process{ OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid) };
+    if (!process)
+    {
+        return {};
+    }
+
+    // Image paths can outgrow MAX_PATH; the API takes whatever we give it.
+    std::wstring path(32 * 1024, L'\0');
+    auto length = static_cast<DWORD>(path.size());
+    if (!QueryFullProcessImageNameW(process.get(), 0, path.data(), &length))
+    {
+        return {};
+    }
+    path.resize(length);
+    return path;
+}
+catch (...)
+{
+    return {};
+}
+
+static DWORD _parentPid(DWORD pid) noexcept
+{
+    wil::unique_hfile snapshot{ CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+    if (!snapshot)
+    {
+        return 0;
+    }
+
+    PROCESSENTRY32W entry{};
+    entry.dwSize = sizeof(entry);
+    for (auto more = Process32FirstW(snapshot.get(), &entry); more; more = Process32NextW(snapshot.get(), &entry))
+    {
+        if (entry.th32ProcessID == pid)
+        {
+            return entry.th32ParentProcessID;
+        }
+    }
+    return 0;
+}
+
+// Who is on the other end. Asked once per connection, before the first request,
+// while the client is certainly still alive to be asked about. A client that has
+// already exited by then leaves the fields empty rather than wrong.
+ControlPipeServer::Client ControlPipeServer::_identifyClient(HANDLE pipe) noexcept
+{
+    Client client;
+    ULONG pid = 0;
+    if (!GetNamedPipeClientProcessId(pipe, &pid))
+    {
+        return client;
+    }
+
+    client.pid = pid;
+    client.exe = _imagePath(pid);
+    client.parentPid = _parentPid(pid);
+    client.parentExe = _imagePath(client.parentPid);
+    return client;
+}
+
+void ControlPipeServer::_report(const Client& client, ControlPipe::CallDescription description, const Outcome& outcome) const noexcept
+try
+{
+    if (!_observer)
+    {
+        return;
+    }
+
+    ControlPipeCallRecord record;
+    record.description = std::move(description);
+    record.ok = !outcome.error.has_value();
+    if (outcome.error)
+    {
+        const auto code = ControlPipe::ErrorCode(*outcome.error);
+        record.result.assign(code.begin(), code.end());
+    }
+    else
+    {
+        record.result = L"ok";
+    }
+    record.note = outcome.note;
+    record.clientPid = client.pid;
+    record.clientExe = client.exe;
+    record.clientParentPid = client.parentPid;
+    record.clientParentExe = client.parentExe;
+
+    _observer(record);
+}
+CATCH_LOG()
 
 ControlPipeServer::~ControlPipeServer()
 {
@@ -274,6 +374,7 @@ try
 
     std::string buffer;
     std::string line;
+    const auto client = _identifyClient(pipe);
 
     while (!_stop.is_signaled())
     {
@@ -283,23 +384,38 @@ try
         }
 
         // The response never contains what the client asked us to type, and we
-        // never trace it either: that text is session titles and command lines.
+        // never trace it: that text is session titles and command lines. It does
+        // go into the activity log through _report - a file local to this user,
+        // which is the record of what was typed into their shells and by whom.
         std::string response;
+        Outcome outcome;
+        ControlPipe::CallDescription description;
         if (line.size() > ControlPipe::MaxRequestBytes)
         {
-            response = ControlPipe::ErrorResponse(ControlPipe::Error::BadRequest);
+            outcome.error = ControlPipe::Error::BadRequest;
+            response = ControlPipe::ErrorResponse(*outcome.error);
+            description = ControlPipe::DescribeUnparsed(line);
         }
         else if (const auto request = ControlPipe::ParseRequest(line))
         {
-            response = _dispatch(*request);
+            response = _dispatch(*request, outcome);
+            description = ControlPipe::DescribeRequest(*request);
         }
         else
         {
-            response = ControlPipe::ErrorResponse(ControlPipe::Error::BadRequest);
+            outcome.error = ControlPipe::Error::BadRequest;
+            response = ControlPipe::ErrorResponse(*outcome.error);
+            description = ControlPipe::DescribeUnparsed(line);
         }
 
         response.push_back('\n');
-        if (!_write(pipe, response))
+        const auto written = _write(pipe, response);
+
+        // Recorded whether or not the client stayed to read the answer: what it
+        // asked for has already happened.
+        _report(client, std::move(description), outcome);
+
+        if (!written)
         {
             return;
         }
@@ -316,7 +432,7 @@ CATCH_LOG()
 
 // Hand the request to the UI thread and turn what comes back into a response
 // line. Everything expensive - JSON, UTF-8, process names - stays out here.
-std::string ControlPipeServer::_dispatch(const ControlPipe::Request& request) const
+std::string ControlPipeServer::_dispatch(const ControlPipe::Request& request, Outcome& outcome) const
 {
     ControlPipeExchange exchange;
     exchange.request = &request;
@@ -334,11 +450,13 @@ std::string ControlPipeServer::_dispatch(const ControlPipe::Request& request) co
     {
         // An invalid window: we're shutting down. Nothing was done.
         LOG_WIN32(error);
-        return ControlPipe::ErrorResponse(ControlPipe::Error::NoSuchPane);
+        outcome.error = ControlPipe::Error::NoSuchPane;
+        return ControlPipe::ErrorResponse(*outcome.error);
     }
 
     if (exchange.error)
     {
+        outcome.error = exchange.error;
         return ControlPipe::ErrorResponse(*exchange.error);
     }
 
@@ -373,14 +491,20 @@ std::string ControlPipeServer::_dispatch(const ControlPipe::Request& request) co
                 pane.process = slash == std::wstring_view::npos ? std::wstring{ full } : std::wstring{ full.substr(slash + 1) };
             }
         }
+        outcome.note = std::to_wstring(exchange.panes.size()) + (exchange.panes.size() == 1 ? L" pane" : L" panes");
         return ControlPipe::ListPanesResponse(exchange.panes);
     }
 
     case ControlPipe::Op::CapturePane:
+        outcome.note = std::to_wstring(exchange.text.size()) + L" chars";
         return ControlPipe::CapturePaneResponse(exchange.text);
 
     case ControlPipe::Op::FocusPane:
+    {
+        const auto focused = ControlPipe::FormatPaneAddress(exchange.focused);
+        outcome.note.assign(focused.begin(), focused.end());
         return ControlPipe::FocusPaneResponse(exchange.focused);
+    }
 
     case ControlPipe::Op::SendInput:
     default:

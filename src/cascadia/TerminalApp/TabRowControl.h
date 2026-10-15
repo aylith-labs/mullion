@@ -5,6 +5,8 @@
 
 #include "winrt/Microsoft.UI.Xaml.Controls.h"
 
+#include <deque>
+
 #include "TabRowControl.g.h"
 
 namespace winrt::TerminalApp::implementation
@@ -18,6 +20,10 @@ namespace winrt::TerminalApp::implementation
         void OnNewTabButtonDragOver(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::DragEventArgs& e);
         void OnPromoteSlotButtonClick(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& args);
         void OnSlotBadgeClick(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::RoutedEventArgs& args);
+        void OnPipeActivityFlyoutOpening(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::Foundation::IInspectable& args);
+
+        void AddControlPipeCall(const winrt::TerminalApp::ControlPipeCall& call);
+        til::typed_event<> ShowAllControlPipeCallsRequested;
 
         til::typed_event<> PromoteRequested;
         // The badge reports the intent; TerminalPage owns the clipboard and the
@@ -33,6 +39,11 @@ namespace winrt::TerminalApp::implementation
         WINRT_OBSERVABLE_PROPERTY(bool, PromotionAvailable, PropertyChanged.raise, false);
         // What is staged, for the button's tooltip: "a1b2c3d+dirty (main), 4 minutes ago".
         WINRT_OBSERVABLE_PROPERTY(winrt::hstring, PromotionDescription, PropertyChanged.raise, L"");
+        // The control pipe badge. Shown from this window's first pipe request on;
+        // the count is the requests since the flyout was last opened.
+        WINRT_OBSERVABLE_PROPERTY(bool, ShowPipeActivity, PropertyChanged.raise, false);
+        WINRT_OBSERVABLE_PROPERTY(bool, HasUnseenPipeCalls, PropertyChanged.raise, false);
+        WINRT_OBSERVABLE_PROPERTY(winrt::hstring, UnseenPipeCallCount, PropertyChanged.raise, L"");
 
         // WINRT_OBSERVABLE_PROPERTY leaves the class in a non-public section, so
         // anything declared after it has to reopen public access explicitly.
@@ -46,6 +57,17 @@ namespace winrt::TerminalApp::implementation
         winrt::hstring BuildBranch();
         winrt::hstring BuildTime();
         winrt::hstring BuildExePath();
+
+    private:
+        // How many requests the flyout lists. The Activity page has the rest.
+        static constexpr size_t MaxListedPipeCalls = 10;
+
+        void _setUnseenPipeCalls(uint32_t count);
+        void _rebuildPipeActivityList(const winrt::Windows::UI::Xaml::Controls::Flyout& flyout);
+
+        // Newest first.
+        std::deque<winrt::TerminalApp::ControlPipeCall> _pipeCalls;
+        uint32_t _unseenPipeCalls{ 0 };
     };
 }
 

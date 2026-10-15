@@ -1797,6 +1797,22 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _SelectNavItemByTag(documentationTag);
     }
 
+    void MainPage::NavigateToActivity(const winrt::hstring& kind)
+    {
+        _Navigate(box_value(hstring{ activityTag }));
+        _SelectNavItemByTag(activityTag);
+
+        // Frame.Navigate has run the page's OnNavigatedTo by the time it returns,
+        // so the fresh view model _Navigate built is already the page's.
+        if (const auto page = contentFrame().Content().try_as<Editor::Activity>())
+        {
+            if (const auto vm = page.ViewModel())
+            {
+                vm.ShowOnlyKind(kind);
+            }
+        }
+    }
+
     void MainPage::_AppendProfilesRootCrumb()
     {
         _breadcrumbs.Append(winrt::make<Breadcrumb>(box_value(profilesTag), RS_(L"Nav_Profiles/Content"), BreadcrumbSubPage::None));

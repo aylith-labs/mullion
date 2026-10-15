@@ -114,6 +114,26 @@ namespace TerminalApp
         String Text;
     };
 
+    // One control pipe request, as the tab row's pipe badge lists it. Built by
+    // WindowEmperor from what the pipe thread recorded; the full record, text
+    // and all, is the activity log's controlPipe event.
+    struct ControlPipeCall
+    {
+        // Local wall-clock time, "14:03:07".
+        String Time;
+        // The client's image name and pid, "powershell.exe (4242)".
+        String Client;
+        // The wire op, "send-input", or "unparsed".
+        String Operation;
+        // The pane address or session id it named, or empty.
+        String Target;
+        // What it asked for, shortened for a glance.
+        String Detail;
+        // "ok" or the error it was answered, plus what came back.
+        String Result;
+        Boolean Ok;
+    };
+
     [default_interface] runtimeclass TerminalPage : Windows.UI.Xaml.Controls.Page, Windows.UI.Xaml.Data.INotifyPropertyChanged, Microsoft.Terminal.UI.IDirectKeyListener
     {
         TerminalPage(WindowProperties properties, ContentManager manager);

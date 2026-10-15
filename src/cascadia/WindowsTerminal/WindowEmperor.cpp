@@ -427,10 +427,93 @@ void WindowEmperor::_setupControlPipe(bool enabled)
         return;
     }
 
-    auto server = std::make_unique<ControlPipeServer>(_window.get(), WM_CONTROL_PIPE_REQUEST);
+    // Every request is recorded twice: in the activity log, from the pipe thread
+    // (ActivityLog::Record is thread-safe and does no disk I/O on its caller),
+    // and on each window's tab row, which has to happen on this thread.
+    const auto messageWindow = _window.get();
+    auto observer = [messageWindow](const ControlPipeCallRecord& record) {
+        namespace AL = ::Microsoft::Terminal::ActivityLog;
+        AL::Entry entry;
+        entry.kind = AL::Kind::ControlPipe;
+        entry.exe = record.clientExe;
+        entry.pid = record.clientPid;
+        entry.parentExe = record.clientParentExe;
+        entry.parentPid = record.clientParentPid;
+        entry.commandLine = ControlPipe::SummarizeCall(record.description);
+        entry.reason = record.note.empty() ? record.result : record.result + L", " + record.note;
+        entry.op = record.description.op;
+        entry.target = record.description.target;
+        entry.result = record.result;
+        AL::Record(entry);
+
+        auto copy = std::make_unique<ControlPipeCallRecord>(record);
+        if (PostMessageW(messageWindow, WM_CONTROL_PIPE_ACTIVITY, 0, reinterpret_cast<LPARAM>(copy.get())))
+        {
+            // The handler owns it now.
+            copy.release();
+        }
+    };
+
+    auto server = std::make_unique<ControlPipeServer>(_window.get(), WM_CONTROL_PIPE_REQUEST, std::move(observer));
     if (server->Start())
     {
         _controlPipe = std::move(server);
+    }
+}
+
+// Hand one recorded request to every window's tab row. The badge counts it and
+// its flyout lists it; the full record is in the activity log.
+void WindowEmperor::_broadcastControlPipeCall(const ControlPipeCallRecord& record) const
+{
+    _assertIsMainThread();
+
+    // The flyout is a glance, not the record: keep its rows short. The Activity
+    // page has the whole text.
+    static constexpr size_t MaxFlyoutDetail = 160;
+
+    std::wstring time;
+    {
+        SYSTEMTIME local{};
+        GetLocalTime(&local);
+        wchar_t buffer[16]{};
+        swprintf_s(buffer, L"%02u:%02u:%02u", static_cast<unsigned>(local.wHour), static_cast<unsigned>(local.wMinute), static_cast<unsigned>(local.wSecond));
+        time = buffer;
+    }
+
+    std::wstring client;
+    {
+        const std::wstring_view exe{ record.clientExe };
+        const auto slash = exe.find_last_of(L"\\/");
+        client = slash == std::wstring_view::npos ? std::wstring{ exe } : std::wstring{ exe.substr(slash + 1) };
+        if (client.empty())
+        {
+            client = L"?";
+        }
+        if (record.clientPid != 0)
+        {
+            client += L" (" + std::to_wstring(record.clientPid) + L")";
+        }
+    }
+
+    auto detail = record.description.detail;
+    if (detail.size() > MaxFlyoutDetail)
+    {
+        detail.resize(MaxFlyoutDetail);
+        detail.append(L"...");
+    }
+
+    winrt::TerminalApp::ControlPipeCall call{};
+    call.Time = winrt::hstring{ time };
+    call.Client = winrt::hstring{ client };
+    call.Operation = winrt::hstring{ record.description.op };
+    call.Target = winrt::hstring{ record.description.target };
+    call.Detail = winrt::hstring{ detail };
+    call.Result = winrt::hstring{ record.note.empty() ? record.result : record.result + L", " + record.note };
+    call.Ok = record.ok;
+
+    for (const auto& host : _windows)
+    {
+        host->Logic().ControlPipeCallRecorded(call);
     }
 }
 
@@ -1499,6 +1582,20 @@ LRESULT WindowEmperor::_messageHandler(HWND window, UINT const message, WPARAM c
             if (auto* exchange = reinterpret_cast<ControlPipeExchange*>(lParam))
             {
                 _handleControlPipeRequest(*exchange);
+            }
+            return 0;
+        }
+        case WM_CONTROL_PIPE_ACTIVITY:
+        {
+            // Owned from here, whatever happens below.
+            const std::unique_ptr<ControlPipeCallRecord> record{ reinterpret_cast<ControlPipeCallRecord*>(lParam) };
+            if (record)
+            {
+                try
+                {
+                    _broadcastControlPipeCall(*record);
+                }
+                CATCH_LOG();
             }
             return 0;
         }

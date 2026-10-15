@@ -977,6 +977,10 @@
     <value>Elevation</value>
     <comment>Event-type filter option for Terminal relaunching itself as administrator.</comment>
   </data>
+  <data name="Activity_EventFilterControlPipe.Content" xml:space="preserve">
+    <value>Control pipe requests</value>
+    <comment>Event-type filter option for requests another program made through the control pipe: listing, reading, typing into or focusing a pane.</comment>
+  </data>
   <data name="Activity_GroupBy.Header" xml:space="preserve">
     <value>Group repeated events</value>
     <comment>Header for a control that collapses several recorded events into one counted row.</comment>
@@ -1200,6 +1204,14 @@
   <data name="Activity_KindElevateTip.Text" xml:space="preserve">
     <value>Terminal relaunched itself as administrator, which is how a profile that asks to run elevated is started.</value>
     <comment>Tooltip explaining the "elevation" event kind.</comment>
+  </data>
+  <data name="Activity_KindControlPipe.Text" xml:space="preserve">
+    <value>control pipe</value>
+    <comment>Badge naming an event where another program made a request through the control pipe.</comment>
+  </data>
+  <data name="Activity_KindControlPipeTip.Text" xml:space="preserve">
+    <value>Another program used the control pipe to list panes, read one, type into one or focus one. The program is the one that asked; the command shows what it asked for, including any text it typed, and the reason shows how it was answered.</value>
+    <comment>Tooltip explaining the "control pipe" event kind.</comment>
   </data>
   <data name="Activity_KindUnknown.Text" xml:space="preserve">
     <value>unknown event</value>

@@ -1469,6 +1469,7 @@ namespace winrt::TerminalApp::implementation
 
         _tabRow.PromoteRequested({ get_weak(), &TerminalPage::_PromoteSlotRequested });
         _tabRow.CopyBuildInfoRequested({ get_weak(), &TerminalPage::_CopyBuildInfoRequested });
+        _tabRow.ShowAllControlPipeCallsRequested({ get_weak(), &TerminalPage::_ShowAllControlPipeCallsRequested });
         RefreshPendingPromotion();
         _ReconcileCiPollInterval();
 

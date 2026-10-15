@@ -20,6 +20,31 @@ Abstract:
 
 #include "ControlPipeProtocol.h"
 
+#include <functional>
+
+// One request as it is recorded: who asked, what they asked for, and how it
+// ended. Built on the pipe thread once the response is known, and handed to the
+// observer the server was constructed with. Every request produces one,
+// including a line that would not parse, because a client sending garbage into
+// the pipe is exactly the one worth knowing about.
+struct ControlPipeCallRecord
+{
+    ControlPipe::CallDescription description;
+    bool ok{};
+    // "ok", or the error code the client was answered with.
+    std::wstring result;
+    // What came back, where that says something: "3 panes", "812 chars",
+    // the pane focus-pane landed on.
+    std::wstring note;
+
+    // The process on the other end of the pipe, and its parent - the client is
+    // often a short-lived powershell.exe, and its parent is what started it.
+    DWORD clientPid{};
+    std::wstring clientExe;
+    DWORD clientParentPid{};
+    std::wstring clientParentExe;
+};
+
 // One of these crosses to the UI thread per request. The pipe thread owns it
 // for the duration of the SendMessage and reads the results afterwards; the
 // emperor only writes the out-fields.
@@ -43,7 +68,11 @@ struct ControlPipeExchange
 class ControlPipeServer
 {
 public:
-    ControlPipeServer(HWND messageWindow, UINT requestMessage) noexcept;
+    // Called on a pipe thread after every request, response already sent. It
+    // must not block for long and must not touch XAML; post to the UI thread.
+    using Observer = std::function<void(const ControlPipeCallRecord&)>;
+
+    ControlPipeServer(HWND messageWindow, UINT requestMessage, Observer observer = {}) noexcept;
     ~ControlPipeServer();
 
     ControlPipeServer(const ControlPipeServer&) = delete;
@@ -60,10 +89,27 @@ public:
 private:
     static constexpr DWORD MaxInstances = 4;
 
+    struct Client
+    {
+        DWORD pid{};
+        std::wstring exe;
+        DWORD parentPid{};
+        std::wstring parentExe;
+    };
+
+    // How a dispatched request ended, for the record.
+    struct Outcome
+    {
+        std::optional<ControlPipe::Error> error;
+        std::wstring note;
+    };
+
     void _worker(wil::unique_hfile firstInstance) noexcept;
     wil::unique_hfile _createInstance(bool first) const noexcept;
     void _serve(HANDLE pipe) noexcept;
-    std::string _dispatch(const ControlPipe::Request& request) const;
+    std::string _dispatch(const ControlPipe::Request& request, Outcome& outcome) const;
+    static Client _identifyClient(HANDLE pipe) noexcept;
+    void _report(const Client& client, ControlPipe::CallDescription description, const Outcome& outcome) const noexcept;
 
     bool _readLine(HANDLE pipe, std::string& buffer, std::string& line) const;
     bool _write(HANDLE pipe, std::string_view bytes) const noexcept;
@@ -76,6 +122,7 @@ private:
 
     HWND _messageWindow{ nullptr };
     UINT _requestMessage{ 0 };
+    Observer _observer;
     std::wstring _name;
     wil::unique_hlocal_security_descriptor _securityDescriptor;
     wil::unique_event _stop{ wil::EventOptions::ManualReset };

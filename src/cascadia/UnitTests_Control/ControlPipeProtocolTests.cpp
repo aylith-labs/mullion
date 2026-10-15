@@ -27,6 +27,10 @@ namespace ControlUnitTests
         TEST_METHOD(KeepsTextVerbatim);
         TEST_METHOD(IgnoresUnknownMembers);
         TEST_METHOD(FormatsResponses);
+        TEST_METHOD(DescribesEveryOp);
+        TEST_METHOD(RecordedTextSpellsOutControlCharacters);
+        TEST_METHOD(RecordedTextIsCapped);
+        TEST_METHOD(DescribesUnparsedLines);
     };
 
     void ControlPipeProtocolTests::PaneAddressRoundTrips()
@@ -279,5 +283,90 @@ namespace ControlUnitTests
         const auto capture = ControlPipe::CapturePaneResponse(L"line one\nline two\n");
         VERIFY_IS_TRUE(singleLine(capture));
         VERIFY_IS_TRUE(capture.find(R"("text":"line one\nline two\n")") != std::string::npos, NoThrowString().Format(L"%hs", capture.c_str()));
+    }
+
+    // What the activity log's command column shows for each op. The point of
+    // the record is "what did that program do to my panes", so each one has to
+    // say which pane and what was asked, in a form that reads back unambiguously.
+    void ControlPipeProtocolTests::DescribesEveryOp()
+    {
+        const auto summarize = [](std::string_view line) {
+            const auto request = ControlPipe::ParseRequest(line);
+            VERIFY_IS_TRUE(request.has_value());
+            return ControlPipe::SummarizeCall(ControlPipe::DescribeRequest(*request));
+        };
+
+        VERIFY_ARE_EQUAL(std::wstring{ L"ping" }, summarize(R"({"op":"ping"})"));
+        VERIFY_ARE_EQUAL(std::wstring{ L"list-panes" }, summarize(R"({"op":"list-panes"})"));
+        VERIFY_ARE_EQUAL(std::wstring{ LR"(list-panes containing "6f1a")" }, summarize(R"({"op":"list-panes","containing":"6f1a"})"));
+        VERIFY_ARE_EQUAL(std::wstring{ L"capture-pane 1.0.3 viewport" }, summarize(R"({"op":"capture-pane","pane":"1.0.3"})"));
+        VERIFY_ARE_EQUAL(std::wstring{ L"capture-pane 1.0.3 lines 80" }, summarize(R"({"op":"capture-pane","pane":"1.0.3","lines":80})"));
+        VERIFY_ARE_EQUAL(std::wstring{ LR"(send-input 2.1.4 "hello" requireContains "needle")" },
+                         summarize(R"({"op":"send-input","pane":"2.1.4","text":"hello","requireContains":"needle"})"));
+        VERIFY_ARE_EQUAL(std::wstring{ L"focus-pane 1.0.3" }, summarize(R"({"op":"focus-pane","pane":"1.0.3"})"));
+        VERIFY_ARE_EQUAL(std::wstring{ L"focus-pane {6f1a2b3c-0000-4000-8000-00000000000a}" },
+                         summarize(R"({"op":"focus-pane","session":"6F1A2B3C-0000-4000-8000-00000000000A"})"));
+
+        // The structured fields the log also writes, for a script that would
+        // rather not parse the summary back apart.
+        const auto request = ControlPipe::ParseRequest(R"({"op":"send-input","pane":"2.1.4","text":"x"})");
+        const auto description = ControlPipe::DescribeRequest(*request);
+        VERIFY_ARE_EQUAL(std::wstring{ L"send-input" }, description.op);
+        VERIFY_ARE_EQUAL(std::wstring{ L"2.1.4" }, description.target);
+    }
+
+    // "Did the client send the Enter" is the usual question, and a raw CR in a
+    // record would end the line it is printed on rather than answer it.
+    void ControlPipeProtocolTests::RecordedTextSpellsOutControlCharacters()
+    {
+        const auto request = ControlPipe::ParseRequest(R"({"op":"send-input","pane":"1.0.0","text":"a\r\n\t\u001b\"\\z"})");
+        VERIFY_IS_TRUE(request.has_value());
+        VERIFY_ARE_EQUAL(std::wstring{ LR"("a\r\n\t\x1b\"\\z")" }, ControlPipe::DescribeRequest(*request).detail);
+
+        // Non-ASCII is kept as itself, not escaped.
+        const auto unicode = ControlPipe::ParseRequest("{\"op\":\"send-input\",\"pane\":\"1.0.0\",\"text\":\"\xC3\xA9\xF0\x9F\x98\x80\"}");
+        VERIFY_IS_TRUE(unicode.has_value());
+        VERIFY_ARE_EQUAL(std::wstring{ L"\"é\U0001F600\"" }, ControlPipe::DescribeRequest(*unicode).detail);
+    }
+
+    // A pasted megabyte must not become a megabyte of log, and a cut must not
+    // split a surrogate pair into something that is no longer text.
+    void ControlPipeProtocolTests::RecordedTextIsCapped()
+    {
+        ControlPipe::Request request;
+        request.op = ControlPipe::Op::SendInput;
+        request.pane = ControlPipe::PaneAddress{ 1, 0, 0 };
+        request.text.assign(ControlPipe::MaxRecordedTextChars + 10, L'x');
+
+        const auto detail = ControlPipe::DescribeRequest(request).detail;
+        VERIFY_IS_TRUE(detail.ends_with(L" ...+10 chars"), detail.c_str());
+        VERIFY_ARE_EQUAL(ControlPipe::MaxRecordedTextChars + 2 + std::wstring_view{ L" ...+10 chars" }.size(), detail.size());
+
+        // The cap lands between the two halves of an emoji: back off a char.
+        request.text.assign(ControlPipe::MaxRecordedTextChars - 1, L'x');
+        request.text.append(L"\U0001F600");
+        const auto split = ControlPipe::DescribeRequest(request).detail;
+        VERIFY_IS_TRUE(split.ends_with(L"x\" ...+2 chars"), split.c_str());
+    }
+
+    // A line that never became a request is still recorded, by what was sent:
+    // a client writing garbage into the pipe is exactly the one worth seeing.
+    void ControlPipeProtocolTests::DescribesUnparsedLines()
+    {
+        const auto description = ControlPipe::DescribeUnparsed(R"({"op":"rm -rf"})");
+        VERIFY_ARE_EQUAL(std::wstring{ L"unparsed" }, description.op);
+        VERIFY_IS_TRUE(description.target.empty());
+        VERIFY_ARE_EQUAL(std::wstring{ LR"("{\"op\":\"rm -rf\"}")" }, description.detail);
+
+        // Not UTF-8 at all: keep the ASCII, mark the rest.
+        const auto binary = ControlPipe::DescribeUnparsed("ab\xFF\xFE");
+        VERIFY_ARE_EQUAL(std::wstring{ LR"("ab??")" }, binary.detail);
+
+        // Long lines keep a prefix, cut on a character boundary, and say how
+        // much was dropped.
+        std::string longLine(ControlPipe::MaxRecordedRawBytes - 1, 'a');
+        longLine.append("\xC3\xA9tail");
+        const auto cut = ControlPipe::DescribeUnparsed(longLine);
+        VERIFY_IS_TRUE(cut.detail.ends_with(L"a\" ...+6 bytes"), cut.detail.c_str());
     }
 }

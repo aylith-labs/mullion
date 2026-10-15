@@ -275,6 +275,7 @@
                         <ComboBoxItem x:Uid="Activity_EventFilterProbe" />
                         <ComboBoxItem x:Uid="Activity_EventFilterShellVerb" />
                         <ComboBoxItem x:Uid="Activity_EventFilterElevate" />
+                        <ComboBoxItem x:Uid="Activity_EventFilterControlPipe" />
                     </ComboBox>
                 </local:SettingsCard>
 

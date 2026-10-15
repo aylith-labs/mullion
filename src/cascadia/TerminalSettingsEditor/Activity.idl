@@ -56,6 +56,9 @@ namespace Microsoft.Terminal.Settings.Editor
         Boolean HasEntries { get; };
 
         void Reload();
+        // Set the event-type filter to one kind, by its name in the log
+        // ("controlPipe"). Unknown names change nothing.
+        void ShowOnlyKind(String kind);
     }
 
     [default_interface] runtimeclass Activity : Windows.UI.Xaml.Controls.Page

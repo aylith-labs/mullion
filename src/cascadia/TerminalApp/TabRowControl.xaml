@@ -117,6 +117,53 @@
                             Spacing="6">
 
                     <!--
+                        The control pipe badge (doc/control-pipe.md). Collapsed until
+                        this window sees a pipe request, so a Terminal nothing drives
+                        looks exactly as it did; from then on it stays, with a count of
+                        the requests since its list was last opened. The list itself
+                        is built in OnPipeActivityFlyoutOpening, and its last row
+                        opens the Activity page for everything else.
+
+                        MinWidth/MinHeight zeroed for the reason SlotBadgeButton
+                        gives below: the default Button style would grow it.
+                    -->
+                    <Button x:Name="PipeActivityButton"
+                            x:Uid="PipeActivityButton"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Padding="6,1"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource SystemControlBackgroundBaseLowBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            Visibility="{x:Bind ShowPipeActivity, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="4">
+                            <!--  E8AF is the "Remote" glyph  -->
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                      FontSize="11"
+                                      Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                      Glyph="&#xE8AF;" />
+                            <TextBlock VerticalAlignment="Center"
+                                       FontFamily="Cascadia Mono, Consolas, monospace"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="{ThemeResource SystemControlForegroundAccentBrush}"
+                                       Text="{x:Bind UnseenPipeCallCount, Mode=OneWay}"
+                                       Visibility="{x:Bind HasUnseenPipeCalls, Mode=OneWay}" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <Flyout Opening="OnPipeActivityFlyoutOpening"
+                                    Placement="BottomEdgeAlignedRight">
+                                <StackPanel MinWidth="320"
+                                            MaxWidth="560"
+                                            Spacing="6" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+
+                    <!--
                         Deliberately a separate control rather than a state of the
                         badge: the badge says what you are running, which is true at
                         all times, and this says something is waiting, which is not.

@@ -82,6 +82,11 @@ namespace Microsoft.Terminal.Settings.Editor
         // name lands on the topic list.
         void NavigateToDocumentationTopic(String topicElementName);
 
+        // Open the Activity page with its event-type filter set to one kind, by
+        // its name in the log ("controlPipe"). The control pipe badge's "show
+        // all" link lands here.
+        void NavigateToActivity(String kind);
+
         Windows.Foundation.Collections.IObservableVector<IInspectable> Breadcrumbs { get; };
         ExtensionsViewModel ExtensionsVM { get; };
         ActionsViewModel ActionsVM { get; };

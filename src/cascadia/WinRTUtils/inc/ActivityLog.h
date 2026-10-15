@@ -57,6 +57,10 @@ namespace Microsoft::Terminal::ActivityLog
         inline constexpr std::wstring_view ShellVerb{ L"shellVerb" };
         // The elevation shim re-launching us as administrator.
         inline constexpr std::wstring_view Elevate{ L"elevate" };
+        // A request on the control pipe (doc/control-pipe.md). Not a spawn: the
+        // process fields name the CLIENT that asked, and commandLine says what it
+        // asked for -- for send-input, the text it typed into a pane.
+        inline constexpr std::wstring_view ControlPipe{ L"controlPipe" };
     }
 
     // One record. Every field is optional: fill in what the call site actually
@@ -81,6 +85,13 @@ namespace Microsoft::Terminal::ActivityLog
         // Free-form: why this happened, in the terms of the call site. "split
         // pane", "new tab", "promotion helper", "WSL distro probe".
         std::wstring reason;
+
+        // controlPipe only, so a script reading the file does not have to parse
+        // commandLine back apart: the op ("send-input"), the pane it named
+        // ("1.0.3"), and how it ended ("ok", or the error code it was answered).
+        std::wstring op;
+        std::wstring target;
+        std::wstring result;
     };
 
     // Queue a record. Cheap, non-throwing, and safe from any thread. Does no

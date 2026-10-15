@@ -1433,6 +1433,14 @@ namespace winrt::TerminalApp::implementation
         return _root->ControlPipeFocusPane(tabIndex, paneId);
     }
 
+    void TerminalWindow::ControlPipeCallRecorded(const winrt::TerminalApp::ControlPipeCall& call)
+    {
+        if (_root)
+        {
+            _root->ControlPipeCallRecorded(call);
+        }
+    }
+
     bool TerminalWindow::ShouldImmediatelyHandoffToElevated()
     {
         return _root != nullptr ? _root->ShouldImmediatelyHandoffToElevated(_settings) : false;

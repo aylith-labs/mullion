@@ -36,16 +36,17 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         namespace AL = ::Microsoft::Terminal::ActivityLog;
 
         // The order the event-type dropdown lists them in, which is also what
-        // KindChoiceIndex indexes: 0 is every kind, 1 through 6 are these. The
+        // KindChoiceIndex indexes: 0 is every kind, 1 through 7 are these. The
         // dropdown's items are spelled out in Activity.xaml in the same order,
         // and nothing but this comment keeps the two in step.
-        constexpr std::array<std::wstring_view, 6> KindOrder{
+        constexpr std::array<std::wstring_view, 7> KindOrder{
             AL::Kind::ProfileLaunch,
             AL::Kind::Handoff,
             AL::Kind::Helper,
             AL::Kind::Probe,
             AL::Kind::ShellVerb,
             AL::Kind::Elevate,
+            AL::Kind::ControlPipe,
         };
 
         // What a row stands for. Collapsing identical command lines is the one
@@ -181,6 +182,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             if (k == AL::Kind::Elevate)
             {
                 return { RS_(L"Activity_KindElevate/Text"), RS_(L"Activity_KindElevateTip/Text") };
+            }
+            if (k == AL::Kind::ControlPipe)
+            {
+                return { RS_(L"Activity_KindControlPipe/Text"), RS_(L"Activity_KindControlPipeTip/Text") };
             }
 
             // A kind this build has no name for is still worth showing by its own
@@ -458,6 +463,22 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _kindChoiceIndex = clamped;
         _NotifyChanges(L"KindChoiceIndex");
         _applyFilter();
+    }
+
+    // Narrow the list to one kind of event by its log name, for a link that
+    // opens this page already filtered - the control pipe badge's "show all".
+    // A name this build does not list leaves the filter where it was.
+    void ActivityViewModel::ShowOnlyKind(const winrt::hstring& kind)
+    {
+        const std::wstring_view wanted{ kind };
+        for (size_t i = 0; i < KindOrder.size(); i++)
+        {
+            if (KindOrder[i] == wanted)
+            {
+                KindChoiceIndex(gsl::narrow_cast<int32_t>(i + 1));
+                return;
+            }
+        }
     }
 
     void ActivityViewModel::ProgramChoiceIndex(int32_t value)

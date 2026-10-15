@@ -216,4 +216,28 @@ namespace winrt::TerminalApp::implementation
         tabImpl->FocusPane(paneId);
         return TerminalApp::ControlPipeStatus::Ok;
     }
+
+    // A request was answered on this process's pipe. The tab row counts it and
+    // lists the latest few; recording it durably already happened, in the
+    // activity log, on the pipe thread.
+    void TerminalPage::ControlPipeCallRecorded(const TerminalApp::ControlPipeCall& call)
+    {
+        if (_tabRow)
+        {
+            _tabRow.AddControlPipeCall(call);
+        }
+    }
+
+    // "Show all" under the badge's list: the Activity page, narrowed to pipe
+    // requests. OpenSettingsUI makes or focuses the settings tab, and either way
+    // leaves _settingsUI live - the same route the link tooltip's rule link takes.
+    void TerminalPage::_ShowAllControlPipeCallsRequested(const Windows::Foundation::IInspectable& /*sender*/, const Windows::Foundation::IInspectable& /*args*/)
+    {
+        OpenSettingsUI();
+
+        if (const auto sui = _settingsUI.get())
+        {
+            sui.NavigateToActivity(L"controlPipe");
+        }
+    }
 }

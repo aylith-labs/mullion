@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import "TerminalPage.idl";
+
 namespace TerminalApp
 {
     [default_interface] runtimeclass TabRowControl : Windows.UI.Xaml.Controls.ContentPresenter,
@@ -24,5 +26,14 @@ namespace TerminalApp
         String PromotionDescription;
         event Windows.Foundation.TypedEventHandler<Object, Object> PromoteRequested;
         event Windows.Foundation.TypedEventHandler<Object, Object> CopyBuildInfoRequested;
+
+        // The control pipe badge (doc/control-pipe.md). Hidden until this window
+        // sees a pipe request, then a count of the ones not yet looked at; its
+        // flyout lists the latest few and links to the Activity page for the rest.
+        Boolean ShowPipeActivity { get; };
+        Boolean HasUnseenPipeCalls { get; };
+        String UnseenPipeCallCount { get; };
+        void AddControlPipeCall(ControlPipeCall call);
+        event Windows.Foundation.TypedEventHandler<Object, Object> ShowAllControlPipeCallsRequested;
     }
 }

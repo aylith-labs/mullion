@@ -159,6 +159,7 @@ namespace winrt::TerminalApp::implementation
         winrt::TerminalApp::ControlPipeCaptureResult ControlPipeCapturePane(uint32_t tabIndex, uint32_t paneId, int32_t lines);
         winrt::TerminalApp::ControlPipeStatus ControlPipeSendInput(uint32_t tabIndex, uint32_t paneId, winrt::hstring text, winrt::hstring requireContains);
         winrt::TerminalApp::ControlPipeStatus ControlPipeFocusPane(uint32_t tabIndex, uint32_t paneId);
+        void ControlPipeCallRecorded(const winrt::TerminalApp::ControlPipeCall& call);
 
         // -------------------------------- WinRT Events ---------------------------------
         // PropertyChanged is surprisingly not a typed event, so we'll define that one manually.

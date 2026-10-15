@@ -167,5 +167,9 @@ namespace TerminalApp
         ControlPipeCaptureResult ControlPipeCapturePane(UInt32 tabIndex, UInt32 paneId, Int32 lines);
         ControlPipeStatus ControlPipeSendInput(UInt32 tabIndex, UInt32 paneId, String text, String requireContains);
         ControlPipeStatus ControlPipeFocusPane(UInt32 tabIndex, UInt32 paneId);
+        // A request any client made of this process's pipe, after it was
+        // answered. Every window gets every call: the badge is there to say the
+        // pipe is being used at all, not which window it was used on.
+        void ControlPipeCallRecorded(ControlPipeCall call);
     }
 }

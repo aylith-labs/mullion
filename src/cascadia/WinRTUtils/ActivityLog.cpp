@@ -453,6 +453,9 @@ namespace Microsoft::Terminal::ActivityLog
         appendField(line, "profileGuid", entry.profileGuid);
         appendField(line, "sessionId", entry.sessionId);
         appendField(line, "reason", entry.reason);
+        appendField(line, "op", entry.op);
+        appendField(line, "target", entry.target);
+        appendField(line, "result", entry.result);
 
         // Which Terminal wrote this. With two slots registered and several
         // windows open, "which process was this" is half the question.

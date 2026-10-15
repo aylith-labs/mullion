@@ -35,6 +35,11 @@ public:
         // in LPARAM. Handled synchronously so the pane work happens on this
         // thread and the answer is ready when SendMessage returns.
         WM_CONTROL_PIPE_REQUEST,
+        // Posted by a control pipe thread after every request, with a
+        // heap-allocated ControlPipeCallRecord* in LPARAM that the handler
+        // takes ownership of. Posted, not sent: the client already has its
+        // answer, and the tab row's badge can wait for the UI thread.
+        WM_CONTROL_PIPE_ACTIVITY,
     };
 
     // Used by WM_GET_WINDOW_LIST.  Callers allocate a vector on their
@@ -97,6 +102,7 @@ private:
     void _setupAumid(const std::wstring& aumid);
     void _setupControlPipe(bool enabled);
     void _handleControlPipeRequest(ControlPipeExchange& exchange) const;
+    void _broadcastControlPipeCall(const ControlPipeCallRecord& record) const;
 
     wil::unique_hwnd _window;
     winrt::TerminalApp::App _app{ nullptr };

@@ -134,6 +134,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // no selection.
         int32_t KindChoiceIndex() const noexcept { return _kindChoiceIndex; }
         void KindChoiceIndex(int32_t value);
+        void ShowOnlyKind(const winrt::hstring& kind);
 
         // Programs and days cannot be a fixed list: they are whatever is in the
         // log. Index 0 of each is "all", so the indices line up with the choice

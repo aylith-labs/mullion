@@ -215,9 +215,43 @@ The pipe can type into the user's shells, so:
   caller who can reach the pipe can already write into any pane directly with `send-input`, which is
   strictly more powerful. What it can do is pull a window to the front, which is the same thing a
   notification toast's click already does, and it is behind the same current-user DACL.
-- Connections are traced at measure level; **the text being written is never logged**, because
-  session titles and command lines would end up in traces.
+- Connections are traced at measure level; **the text being written never goes into a trace**,
+  because session titles and command lines would end up in telemetry. It *is* recorded in the
+  activity log - see [Recording](#recording) - which is a file in this user's own package folder,
+  not a trace, and exists precisely so you can see what was typed into your shells and by whom.
 - `controlPipe: false` removes the endpoint entirely.
+
+## Recording
+
+Every request is recorded, including the ones that fail and lines that never parse - a client
+writing garbage into the pipe is exactly the one worth knowing about. Two places show it:
+
+**The activity log** (`activity.jsonl` beside `settings.json`; Settings → Activity) gets one
+`controlPipe` event per request:
+
+| Field | For a pipe request |
+|---|---|
+| `exe`, `pid` | The **client**: the process on the other end of the pipe (`GetNamedPipeClientProcessId`), asked once per connection. |
+| `parentExe`, `parentPid` | Its parent. Clients are often a short-lived `powershell.exe`; the parent is what started it. |
+| `commandLine` | What was asked, on one line: `send-input 1.0.3 "echo hi\r"`. Control characters are spelled out, so whether the Enter was sent is visible. |
+| `reason` | How it ended: `ok`, or the error code it was answered, plus what came back (`3 panes`, `812 chars`, the pane focus-pane landed on). |
+| `op`, `target`, `result` | The same, unpacked, for a script that would rather not parse `commandLine`. |
+
+send-input text is kept in full up to 4096 characters, then cut with a count of what was dropped;
+filters and needles up to 256; an unparsed line's first 512 bytes. The log is governed by the
+`activityLog` and `activityLogMaxKilobytes` settings like every other event - turning the activity
+log off stops recording pipe requests too.
+
+**The tab row** grows a small badge the first time a window sees a pipe request, and keeps it for
+the rest of that window's life. The number beside it counts requests since its list was last
+opened; the list holds the latest ten, newest first, with the client, the op, the pane and the
+result, and its last row - *Show all in Activity* - opens Settings → Activity filtered to control
+pipe requests. Every window gets every request: the badge says the pipe is in use at all, not which
+window was touched. A window opened later starts with no badge until the next request.
+
+The pipe thread does none of the UI work: it records into the activity log (which formats on the
+caller and appends on a threadpool timer) and **posts** `WM_CONTROL_PIPE_ACTIVITY` to the emperor,
+so the client already has its answer before any of this happens.
 
 ## How it fits together
 
@@ -229,6 +263,11 @@ The pipe can type into the user's shells, so:
 | Pane enumeration, capture, input and focus, per window | `src/cascadia/TerminalApp/TerminalPage.ControlPipe.cpp` |
 | Viewport read and match | `ControlCore::ReadViewportText`, `ControlCore::ViewportContains` |
 | Tests for the wire format | `src/cascadia/UnitTests_Control/ControlPipeProtocolTests.cpp` |
+| Describing a request for the record (`DescribeRequest`, `SummarizeCall`) | `src/cascadia/WindowsTerminal/ControlPipeProtocol.h` |
+| Identifying the client, reporting each request | `ControlPipeServer::_identifyClient`, `_report` |
+| Writing the `controlPipe` event, broadcasting to windows | `WindowEmperor::_setupControlPipe`'s observer, `_broadcastControlPipeCall` |
+| The badge and its list | `src/cascadia/TerminalApp/TabRowControl.{xaml,cpp}` |
+| The Activity page's filter and "show all" landing | `TerminalSettingsEditor/Activity.cpp` (`ShowOnlyKind`), `MainPage::NavigateToActivity` |
 
 `WindowEmperor` hosts the server because it owns every `AppHost` in the process, which is what pane
 enumeration across windows needs. The pipe threads never touch a pane directly; they `SendMessage`
