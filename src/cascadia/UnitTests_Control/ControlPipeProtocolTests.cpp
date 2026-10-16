@@ -387,7 +387,7 @@ namespace ControlUnitTests
         VERIFY_IS_TRUE(blank.has_value());
         VERIFY_IS_FALSE(ControlPipe::HasAttribution(*blank));
 
-        const auto full = ControlPipe::ParseRequest(R"({"op":"list-panes","reason":"label the host terminal","caller":"stith-server identifyTerminalProduct (pid 42)"})");
+        const auto full = ControlPipe::ParseRequest(R"json({"op":"list-panes","reason":"label the host terminal","caller":"stith-server identifyTerminalProduct (pid 42)"})json");
         VERIFY_IS_TRUE(full.has_value());
         VERIFY_IS_TRUE(ControlPipe::HasAttribution(*full));
         const auto described = ControlPipe::DescribeRequest(*full);
