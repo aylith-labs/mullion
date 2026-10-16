@@ -7,6 +7,8 @@
 #include <sddl.h>
 #include <tlhelp32.h>
 
+#include <unordered_map>
+
 // A pane's screen is at most a few hundred KB of text; a client that wants the
 // scrollback is asking the wrong tool.
 static constexpr DWORD PipeBufferSize = 64 * 1024;
@@ -47,31 +49,38 @@ catch (...)
     return {};
 }
 
-static DWORD _parentPid(DWORD pid) noexcept
+// When the process was created, or 0 if it can't be asked (gone, or not ours to
+// open). Used to tell a real parent from a stranger that inherited its pid.
+static uint64_t _creationTime(DWORD pid) noexcept
 {
-    wil::unique_hfile snapshot{ CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
-    if (!snapshot)
+    wil::unique_handle process{ OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid) };
+    if (!process)
     {
         return 0;
     }
-
-    PROCESSENTRY32W entry{};
-    entry.dwSize = sizeof(entry);
-    for (auto more = Process32FirstW(snapshot.get(), &entry); more; more = Process32NextW(snapshot.get(), &entry))
+    FILETIME created{}, exited{}, kernel{}, user{};
+    if (!GetProcessTimes(process.get(), &created, &exited, &kernel, &user))
     {
-        if (entry.th32ProcessID == pid)
-        {
-            return entry.th32ParentProcessID;
-        }
+        return 0;
     }
-    return 0;
+    return (static_cast<uint64_t>(created.dwHighDateTime) << 32) | created.dwLowDateTime;
 }
 
 // Who is on the other end. Asked once per connection, before the first request,
 // while the client is certainly still alive to be asked about. A client that has
 // already exited by then leaves the fields empty rather than wrong.
+//
+// Beyond the parent, the whole chain of ancestors the snapshot still knows, as
+// "wslhost.exe 20440 < wsl.exe 1234 < ...": a short-lived client's parent is
+// often another short-lived wrapper, and it is the far end of the chain that
+// says who started it. A pid whose process is younger than its supposed child
+// was reused after the real parent exited, so the walk stops there rather than
+// naming the wrong program.
 ControlPipeServer::Client ControlPipeServer::_identifyClient(HANDLE pipe) noexcept
+try
 {
+    static constexpr size_t MaxAncestors = 8;
+
     Client client;
     ULONG pid = 0;
     if (!GetNamedPipeClientProcessId(pipe, &pid))
@@ -81,9 +90,62 @@ ControlPipeServer::Client ControlPipeServer::_identifyClient(HANDLE pipe) noexce
 
     client.pid = pid;
     client.exe = _imagePath(pid);
-    client.parentPid = _parentPid(pid);
-    client.parentExe = _imagePath(client.parentPid);
+
+    std::unordered_map<DWORD, std::pair<DWORD, std::wstring>> table;
+    if (wil::unique_hfile snapshot{ CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) })
+    {
+        PROCESSENTRY32W entry{};
+        entry.dwSize = sizeof(entry);
+        for (auto more = Process32FirstW(snapshot.get(), &entry); more; more = Process32NextW(snapshot.get(), &entry))
+        {
+            table.emplace(entry.th32ProcessID, std::pair{ entry.th32ParentProcessID, std::wstring{ entry.szExeFile } });
+        }
+    }
+
+    auto child = pid;
+    auto childCreated = _creationTime(pid);
+    for (size_t depth = 0; depth < MaxAncestors; depth++)
+    {
+        const auto found = table.find(child);
+        if (found == table.end() || found->second.first == 0 || found->second.first == child)
+        {
+            break;
+        }
+        const auto parent = found->second.first;
+        const auto parentCreated = _creationTime(parent);
+        if (parentCreated != 0 && childCreated != 0 && parentCreated > childCreated)
+        {
+            break;
+        }
+        const auto parentEntry = table.find(parent);
+        if (parentEntry == table.end())
+        {
+            break;
+        }
+
+        if (depth == 0)
+        {
+            client.parentPid = parent;
+            client.parentExe = _imagePath(parent);
+        }
+
+        // The parent leads the chain too, so the chain reads whole on its own.
+        if (!client.ancestry.empty())
+        {
+            client.ancestry.append(L" < ");
+        }
+        client.ancestry.append(parentEntry->second.second);
+        client.ancestry.push_back(L' ');
+        client.ancestry.append(std::to_wstring(parent));
+
+        child = parent;
+        childCreated = parentCreated;
+    }
     return client;
+}
+catch (...)
+{
+    return {};
 }
 
 void ControlPipeServer::_report(const Client& client, ControlPipe::CallDescription description, const Outcome& outcome) const noexcept
@@ -111,6 +173,7 @@ try
     record.clientExe = client.exe;
     record.clientParentPid = client.parentPid;
     record.clientParentExe = client.parentExe;
+    record.clientAncestry = client.ancestry;
 
     _observer(record);
 }
@@ -398,7 +461,17 @@ try
         }
         else if (const auto request = ControlPipe::ParseRequest(line))
         {
-            response = _dispatch(*request, outcome);
+            // Refused before the UI thread sees it: nothing is done for a request
+            // that will not say why it wants it done, or who wants it.
+            if (ControlPipe::HasAttribution(*request))
+            {
+                response = _dispatch(*request, outcome);
+            }
+            else
+            {
+                outcome.error = ControlPipe::Error::MissingReason;
+                response = ControlPipe::ErrorResponse(*outcome.error);
+            }
             description = ControlPipe::DescribeRequest(*request);
         }
         else

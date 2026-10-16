@@ -89,6 +89,12 @@
 
                     <StackPanel Grid.Column="2"
                                 Spacing="4">
+                        <!--  A pipe request's sender, as it named itself: the trace past wslhost.exe.  -->
+                        <TextBlock FontSize="12"
+                                   IsTextSelectionEnabled="True"
+                                   Text="{x:Bind Caller}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{x:Bind HasCaller}" />
                         <TextBlock FontSize="11"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    IsTextSelectionEnabled="True"
@@ -104,13 +110,21 @@
                     </StackPanel>
 
                     <!--  The command is the evidence, so it remains selectable.  -->
-                    <TextBlock Grid.Column="3"
-                               FontFamily="Cascadia Mono, Consolas"
-                               FontSize="12"
-                               IsTextSelectionEnabled="True"
-                               Text="{x:Bind CommandLine}"
-                               TextWrapping="Wrap"
-                               Visibility="{x:Bind ShowCommandLineInline}" />
+                    <StackPanel Grid.Column="3"
+                                Spacing="4">
+                        <TextBlock FontFamily="Cascadia Mono, Consolas"
+                                   FontSize="12"
+                                   IsTextSelectionEnabled="True"
+                                   Text="{x:Bind CommandLine}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{x:Bind ShowCommandLineInline}" />
+                        <TextBlock FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   IsTextSelectionEnabled="True"
+                                   Text="{x:Bind ReasonText}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{x:Bind HasReasonText}" />
+                    </StackPanel>
 
                     <!--
                         The row's popover. It carries the command line when the

@@ -20,6 +20,10 @@ namespace Microsoft.Terminal.Settings.Editor
         String CommandLine { get; };
         String WorkingDirectory { get; };
         String ParentExe { get; };
+        // Control pipe requests: the program the client named itself as, and
+        // its reason for asking ("Reason: ..."). Empty for every other kind.
+        String Caller { get; };
+        String ReasonText { get; };
         String HoverSummary { get; };
 
         Boolean IsGroup { get; };
@@ -28,6 +32,8 @@ namespace Microsoft.Terminal.Settings.Editor
         Boolean ShowCommandLineInTooltip { get; };
         Boolean HasWorkingDirectory { get; };
         Boolean HasParent { get; };
+        Boolean HasCaller { get; };
+        Boolean HasReasonText { get; };
     }
 
     runtimeclass ActivityViewModel : Windows.UI.Xaml.Data.INotifyPropertyChanged

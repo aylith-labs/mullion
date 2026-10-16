@@ -75,14 +75,36 @@ Every response carries `"ok"`. On failure:
 | `no-such-pane` | The window/tab/pane triple (or, for `focus-pane`, the session id) doesn't name a live terminal pane in this process. |
 | `needle-gone` | `requireContains` was not on the pane's screen. **Nothing was written.** |
 | `disconnected` | The pane's connection has already closed. **Nothing was written.** |
+| `missing-reason` | The request had no `reason` or no `caller` (see below). **Nothing was done**; the response also carries a `message` saying what to add. |
 
 Unknown members in a request are ignored, so adding a field later doesn't break an existing client.
+
+### Every request says why, and who is asking
+
+Every request - `ping` included - must carry two strings, or it is refused with `missing-reason`
+before anything is done for it (protocol version 2):
+
+| Field | What to put in it |
+|---|---|
+| `reason` | Why this request is being sent, in words a person reading the Activity log would understand: `"find which terminal hosts session 6f1a... to label it on the dashboard"`, not `"lookup"`. |
+| `caller` | The program and code path sending it, with its pid, specific enough to find the code: `"stith-server host-terminal.ts identifyTerminalProduct (pid 1939269, WSL Ubuntu)"`. |
+
+This is required rather than inferred because the server can only see the process on its end of
+the pipe, and for anything in WSL that is a throwaway `powershell.exe` whose parent is
+`wslhost.exe` - the same two names for every WSL client on the machine. The Windows side records
+the whole parent chain it can see (`ancestry`, under [Recording](#recording)); past `wslhost.exe`,
+only the client can say who it is. Both are capped at 300 characters. The examples below leave them
+out for brevity; a real request has them:
+
+```json
+{"op":"list-panes","reason":"find the pane showing session 6f1a... to rename it","caller":"stith-server live-rename.ts (pid 4242)"}
+```
 
 ### ping
 
 ```json
 {"op":"ping"}
-{"ok":true,"version":1,"pid":24680,"windows":[1,2]}
+{"ok":true,"version":2,"pid":24680,"windows":[1,2]}
 ```
 
 ### list-panes
@@ -234,7 +256,9 @@ writing garbage into the pipe is exactly the one worth knowing about. Two places
 | `exe`, `pid` | The **client**: the process on the other end of the pipe (`GetNamedPipeClientProcessId`), asked once per connection. |
 | `parentExe`, `parentPid` | Its parent. Clients are often a short-lived `powershell.exe`; the parent is what started it. |
 | `commandLine` | What was asked, on one line: `send-input 1.0.3 "echo hi\r"`. Control characters are spelled out, so whether the Enter was sent is visible. |
-| `reason` | How it ended: `ok`, or the error code it was answered, plus what came back (`3 panes`, `812 chars`, the pane focus-pane landed on). |
+| `ancestry` | The parent and every ancestor Windows still knows, nearest first: `wslhost.exe 20440 < wsl.exe 1234`. The walk stops at a pid whose process is younger than its child (a reused pid) rather than name a stranger. |
+| `reason`, `caller` | What the client said: why it asked, and who it is. Empty on a request refused for lacking them. |
+| `outcome` | How it ended: `ok`, or the error code it was answered, plus what came back (`3 panes`, `812 chars`, the pane focus-pane landed on). Records written before version 2 kept this in `reason`; the Activity page reads them that way. |
 | `op`, `target`, `result` | The same, unpacked, for a script that would rather not parse `commandLine`. |
 
 send-input text is kept in full up to 4096 characters, then cut with a count of what was dropped;
@@ -244,8 +268,12 @@ log off stops recording pipe requests too.
 
 **The tab row** grows a small badge the first time a window sees a pipe request, and keeps it for
 the rest of that window's life. The number beside it counts requests since its list was last
-opened; the list holds the latest ten, newest first, with the client, the op, the pane and the
-result, and its last row - *Show all in Activity* - opens Settings → Activity filtered to control
+opened; the list holds the latest ten rows, newest first: the op, the pane and the result, the
+client's reason, and its caller and process (the process chain is the row's tooltip). Repeats -
+the same op, target and request from the same program, caller and reason, answered the same way -
+are grouped into one row with a count and the time of the first, so a client polling every few
+seconds is one line; the *Group identical* box above the list turns that off for the window. Its
+last row - *Show all in Activity* - opens Settings → Activity filtered to control
 pipe requests. Every window gets every request: the badge says the pipe is in use at all, not which
 window was touched. A window opened later starts with no badge until the next request.
 
@@ -286,11 +314,12 @@ $c = New-Object System.IO.Pipes.NamedPipeClientStream '.', $name, 'InOut'
 $c.Connect(2000)
 $w = New-Object System.IO.StreamWriter $c; $w.AutoFlush = $true
 $r = New-Object System.IO.StreamReader $c
-$w.WriteLine('{"op":"ping"}');       $r.ReadLine()
-$w.WriteLine('{"op":"list-panes"}'); $r.ReadLine()
-$w.WriteLine('{"op":"capture-pane","pane":"1.0.0","lines":20}'); $r.ReadLine()
-$w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"echo hello-from-the-pipe"}'); $r.ReadLine()
-$w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"`r"}'); $r.ReadLine()
+$who = '"reason":"trying the pipe by hand","caller":"interactive PowerShell (pid ' + $PID + ')"'
+$w.WriteLine('{"op":"ping",' + $who + '}');       $r.ReadLine()
+$w.WriteLine('{"op":"list-panes",' + $who + '}'); $r.ReadLine()
+$w.WriteLine('{"op":"capture-pane","pane":"1.0.0","lines":20,' + $who + '}'); $r.ReadLine()
+$w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"echo hello-from-the-pipe",' + $who + '}'); $r.ReadLine()
+$w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"`r",' + $who + '}'); $r.ReadLine()
 ```
 
 The command runs in that pane, and the window stays minimised and unfocused throughout.

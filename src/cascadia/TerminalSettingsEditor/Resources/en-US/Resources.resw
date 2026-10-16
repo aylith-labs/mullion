@@ -1245,6 +1245,30 @@
     <value>Reason: {0}</value>
     <comment>Line in the hover popover giving what Terminal recorded about why this happened. {0} is a short phrase such as "split pane".</comment>
   </data>
+  <data name="Activity_ReasonLine.Text" xml:space="preserve">
+    <value>Reason: {0}</value>
+    <comment>Shown under a control pipe request in the list: the reason the program that sent it gave. {0} is that program's own words.</comment>
+  </data>
+  <data name="Activity_NoReason.Text" xml:space="preserve">
+    <value>No reason given (refused)</value>
+    <comment>Shown under a control pipe request whose sender did not say why it was asking. Such requests are refused.</comment>
+  </data>
+  <data name="Activity_HoverOutcome.Text" xml:space="preserve">
+    <value>Result: {0}</value>
+    <comment>Line in the hover popover for a control pipe request: how it was answered. {0} is e.g. "ok, 2 panes" or "missing-reason".</comment>
+  </data>
+  <data name="Activity_HoverCaller.Text" xml:space="preserve">
+    <value>Sent by: {0}</value>
+    <comment>Line in the hover popover for a control pipe request: the program and code path that sent it, as it named itself. {0} is that name.</comment>
+  </data>
+  <data name="Activity_HoverAncestry.Text" xml:space="preserve">
+    <value>Process chain: {0}</value>
+    <comment>Line in the hover popover for a control pipe request: the parents of the process that connected, nearest first. {0} is e.g. "wslhost.exe 20440 &lt; wsl.exe 1234".</comment>
+  </data>
+  <data name="Activity_HoverAncestryLatest.Text" xml:space="preserve">
+    <value>Process chain (latest): {0}</value>
+    <comment>As Activity_HoverAncestry, for a group of repeated requests: the chain of the newest one, since process ids differ between them.</comment>
+  </data>
   <data name="Globals_AlwaysOnTop.Description" xml:space="preserve">
     <value>Terminal will always be the topmost window on the desktop.</value>
     <comment>A description for what the "always on top" setting does. Presented near "Globals_AlwaysOnTop.Header".</comment>

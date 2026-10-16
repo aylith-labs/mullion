@@ -43,6 +43,10 @@ struct ControlPipeCallRecord
     std::wstring clientExe;
     DWORD clientParentPid{};
     std::wstring clientParentExe;
+    // The parent and its ancestors, nearest first: "wslhost.exe 20440 <
+    // wsl.exe 1234". What the Windows side can trace on its own; past
+    // wslhost.exe only the request's own `caller` can say.
+    std::wstring clientAncestry;
 };
 
 // One of these crosses to the UI thread per request. The pipe thread owns it
@@ -95,6 +99,7 @@ private:
         std::wstring exe;
         DWORD parentPid{};
         std::wstring parentExe;
+        std::wstring ancestry;
     };
 
     // How a dispatched request ended, for the record.

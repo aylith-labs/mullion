@@ -97,7 +97,8 @@
           </div>
           <figure class="code-figure">
             <pre class="code-block" aria-label="Example requests sent to the control pipe"><span class="c"># \\.\pipe\wt-control-&lt;pid&gt;, one JSON object per line</span>
-<span class="p">&rarr;</span> {"op":"list-panes"}
+<span class="p">&rarr;</span> {"op":"list-panes","reason":"find my build pane",
+   "caller":"deploy.ps1 (pid 4242)"}
 <span class="p">&rarr;</span> {"op":"capture-pane","pane":"1.0.0","lines":20}
 <span class="p">&rarr;</span> {"op":"send-input","pane":"1.1.0","text":"git status",
    "requireContains":"PS C:\\"}

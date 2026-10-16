@@ -58,6 +58,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         bool sameCommandLine{ true };
         bool sameWorkingDirectory{ true };
         bool sameParent{ true };
+        bool sameReason{ true };
+        bool sameCaller{ true };
     };
 
     // The two display choices the rows are built against. Both change what the
@@ -82,6 +84,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::hstring CommandLine() const noexcept { return _commandLine; }
         winrt::hstring WorkingDirectory() const noexcept { return _cwd; }
         winrt::hstring ParentExe() const noexcept { return _parentExe; }
+        winrt::hstring Caller() const noexcept { return _caller; }
+        winrt::hstring ReasonText() const noexcept { return _reasonText; }
         winrt::hstring HoverSummary() const noexcept { return _hoverSummary; }
 
         bool IsGroup() const noexcept { return _isGroup; }
@@ -90,6 +94,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         bool ShowCommandLineInTooltip() const noexcept { return _showCommandLineInTooltip; }
         bool HasWorkingDirectory() const noexcept { return !_cwd.empty(); }
         bool HasParent() const noexcept { return !_parentExe.empty(); }
+        bool HasCaller() const noexcept { return !_caller.empty(); }
+        bool HasReasonText() const noexcept { return !_reasonText.empty(); }
 
         static winrt::com_ptr<ActivityEntryViewModel> From(const ActivityGroup& group, const ActivityEntryOptions& options);
 
@@ -104,6 +110,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::hstring _commandLine;
         winrt::hstring _cwd;
         winrt::hstring _parentExe;
+        winrt::hstring _caller;
+        winrt::hstring _reasonText;
         winrt::hstring _hoverSummary;
         bool _isGroup{ false };
         bool _showCommandLineInline{ false };

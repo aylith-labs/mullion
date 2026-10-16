@@ -927,6 +927,22 @@
     <value>Show all in Activity</value>
     <comment>Link at the bottom of the control pipe badge's list. Opens Settings on the Activity page, filtered to control pipe requests.</comment>
   </data>
+  <data name="PipeActivity_Group" xml:space="preserve">
+    <value>Group identical</value>
+    <comment>Toggle at the top of the control pipe badge's list. On (the default), repeats of the same request from the same sender for the same reason are shown as one row with a count.</comment>
+  </data>
+  <data name="PipeActivity_NoReason" xml:space="preserve">
+    <value>No reason given, so it was refused</value>
+    <comment>Shown in the control pipe badge's list in place of a request's reason, when the program that sent it did not give one.</comment>
+  </data>
+  <data name="PipeActivity_FirstSeen" xml:space="preserve">
+    <value>first {0}</value>
+    <comment>For a grouped row in the control pipe badge's list: when the oldest of the repeats arrived. {0} is a time such as 14:07:09.</comment>
+  </data>
+  <data name="PipeActivity_Chain" xml:space="preserve">
+    <value>Process chain: {0}</value>
+    <comment>Tooltip on a row of the control pipe badge's list: the parents of the process that connected, nearest first. {0} is e.g. "wslhost.exe 20440 &lt; wsl.exe 1234".</comment>
+  </data>
   <data name="BuildInfoCopiedToast.Title" xml:space="preserve">
     <value>Build info copied</value>
     <comment>Brief confirmation shown after clicking the DEV/TEST badge in the tab row, which copies the build's details to the clipboard</comment>

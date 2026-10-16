@@ -31,6 +31,7 @@ namespace ControlUnitTests
         TEST_METHOD(RecordedTextSpellsOutControlCharacters);
         TEST_METHOD(RecordedTextIsCapped);
         TEST_METHOD(DescribesUnparsedLines);
+        TEST_METHOD(RequiresReasonAndCaller);
     };
 
     void ControlPipeProtocolTests::PaneAddressRoundTrips()
@@ -252,7 +253,7 @@ namespace ControlUnitTests
         VERIFY_IS_TRUE(singleLine(ping));
         VERIFY_IS_TRUE(ping.find(R"("pid":24680)") != std::string::npos, NoThrowString().Format(L"%hs", ping.c_str()));
         VERIFY_IS_TRUE(ping.find(R"("windows":[1,2])") != std::string::npos);
-        VERIFY_IS_TRUE(ping.find(R"("version":1)") != std::string::npos);
+        VERIFY_IS_TRUE(ping.find(R"("version":2)") != std::string::npos);
 
         ControlPipe::PaneEntry pane;
         pane.address = { 1, 0, 3 };
@@ -368,5 +369,42 @@ namespace ControlUnitTests
         longLine.append("\xC3\xA9tail");
         const auto cut = ControlPipe::DescribeUnparsed(longLine);
         VERIFY_IS_TRUE(cut.detail.ends_with(L"a\" ...+6 bytes"), cut.detail.c_str());
+    }
+
+    void ControlPipeProtocolTests::RequiresReasonAndCaller()
+    {
+        // Parsed either way: a request without them is still the op it was, so
+        // the refusal can be recorded as "list-panes, refused" and not as noise.
+        const auto bare = ControlPipe::ParseRequest(R"({"op":"list-panes"})");
+        VERIFY_IS_TRUE(bare.has_value());
+        VERIFY_IS_FALSE(ControlPipe::HasAttribution(*bare));
+
+        const auto onlyReason = ControlPipe::ParseRequest(R"({"op":"ping","reason":"health check"})");
+        VERIFY_IS_TRUE(onlyReason.has_value());
+        VERIFY_IS_FALSE(ControlPipe::HasAttribution(*onlyReason));
+
+        const auto blank = ControlPipe::ParseRequest(R"({"op":"ping","reason":"  ","caller":"x"})");
+        VERIFY_IS_TRUE(blank.has_value());
+        VERIFY_IS_FALSE(ControlPipe::HasAttribution(*blank));
+
+        const auto full = ControlPipe::ParseRequest(R"({"op":"list-panes","reason":"label the host terminal","caller":"stith-server identifyTerminalProduct (pid 42)"})");
+        VERIFY_IS_TRUE(full.has_value());
+        VERIFY_IS_TRUE(ControlPipe::HasAttribution(*full));
+        const auto described = ControlPipe::DescribeRequest(*full);
+        VERIFY_ARE_EQUAL(std::wstring{ L"label the host terminal" }, described.reason);
+        VERIFY_ARE_EQUAL(std::wstring{ L"stith-server identifyTerminalProduct (pid 42)" }, described.caller);
+
+        // The wrong type is a malformed request, not a missing reason.
+        VERIFY_IS_FALSE(ControlPipe::ParseRequest(R"({"op":"ping","reason":7,"caller":"x"})").has_value());
+
+        // A paragraph is kept to the cap.
+        const std::string longReason(1000, 'r');
+        const auto capped = ControlPipe::ParseRequest(R"({"op":"ping","caller":"x","reason":")" + longReason + R"("})");
+        VERIFY_IS_TRUE(capped.has_value());
+        VERIFY_ARE_EQUAL(ControlPipe::MaxAttributionChars, capped->reason.size());
+
+        const auto refusal = ControlPipe::ErrorResponse(ControlPipe::Error::MissingReason);
+        VERIFY_IS_TRUE(refusal.find(R"("error":"missing-reason")") != std::string::npos, NoThrowString().Format(L"%hs", refusal.c_str()));
+        VERIFY_IS_TRUE(refusal.find(R"("message":)") != std::string::npos);
     }
 }

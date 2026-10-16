@@ -92,6 +92,14 @@ namespace Microsoft::Terminal::ActivityLog
         std::wstring op;
         std::wstring target;
         std::wstring result;
+        // controlPipe only. `reason` above is the client's own reason for the
+        // request; these are the rest of the trace. `outcome` is the result with
+        // what came back ("ok, 2 panes"); `caller` is the program and code path
+        // the client named itself as; `ancestry` is the client's parent chain as
+        // Windows sees it ("wslhost.exe 20440 < wsl.exe 1234").
+        std::wstring outcome;
+        std::wstring caller;
+        std::wstring ancestry;
     };
 
     // Queue a record. Cheap, non-throwing, and safe from any thread. Does no

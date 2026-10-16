@@ -440,10 +440,13 @@ void WindowEmperor::_setupControlPipe(bool enabled)
         entry.parentExe = record.clientParentExe;
         entry.parentPid = record.clientParentPid;
         entry.commandLine = ControlPipe::SummarizeCall(record.description);
-        entry.reason = record.note.empty() ? record.result : record.result + L", " + record.note;
+        entry.reason = record.description.reason;
+        entry.caller = record.description.caller;
+        entry.ancestry = record.clientAncestry;
         entry.op = record.description.op;
         entry.target = record.description.target;
         entry.result = record.result;
+        entry.outcome = record.note.empty() ? record.result : record.result + L", " + record.note;
         AL::Record(entry);
 
         auto copy = std::make_unique<ControlPipeCallRecord>(record);
@@ -481,6 +484,7 @@ void WindowEmperor::_broadcastControlPipeCall(const ControlPipeCallRecord& recor
     }
 
     std::wstring client;
+    std::wstring program;
     {
         const std::wstring_view exe{ record.clientExe };
         const auto slash = exe.find_last_of(L"\\/");
@@ -489,6 +493,7 @@ void WindowEmperor::_broadcastControlPipeCall(const ControlPipeCallRecord& recor
         {
             client = L"?";
         }
+        program = client;
         if (record.clientPid != 0)
         {
             client += L" (" + std::to_wstring(record.clientPid) + L")";
@@ -510,6 +515,10 @@ void WindowEmperor::_broadcastControlPipeCall(const ControlPipeCallRecord& recor
     call.Detail = winrt::hstring{ detail };
     call.Result = winrt::hstring{ record.note.empty() ? record.result : record.result + L", " + record.note };
     call.Ok = record.ok;
+    call.Program = winrt::hstring{ program };
+    call.Reason = winrt::hstring{ record.description.reason };
+    call.Caller = winrt::hstring{ record.description.caller };
+    call.Ancestry = winrt::hstring{ record.clientAncestry };
 
     for (const auto& host : _windows)
     {

@@ -158,7 +158,28 @@
                                     Placement="BottomEdgeAlignedRight">
                                 <StackPanel MinWidth="320"
                                             MaxWidth="560"
-                                            Spacing="6" />
+                                            Spacing="6">
+                                    <!--
+                                        The rows are built in code; these give a grouped
+                                        row's count the Activity page's accent pill, with
+                                        brushes that follow the theme.
+                                    -->
+                                    <StackPanel.Resources>
+                                        <Style x:Key="PipeCountPillStyle"
+                                               TargetType="Border">
+                                            <Setter Property="Padding" Value="6,0,6,1" />
+                                            <Setter Property="CornerRadius" Value="3" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
+                                            <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}" />
+                                        </Style>
+                                        <Style x:Key="PipeCountTextStyle"
+                                               TargetType="TextBlock">
+                                            <Setter Property="FontSize" Value="11" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                            <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                        </Style>
+                                    </StackPanel.Resources>
+                                </StackPanel>
                             </Flyout>
                         </Button.Flyout>
                     </Button>

@@ -47,6 +47,11 @@ namespace Microsoft::Terminal::ActivityLog
         std::wstring op;
         std::wstring target;
         std::wstring result;
+        // controlPipe only: the result with what came back, the program the
+        // client named itself as, and its parent chain as Windows saw it.
+        std::wstring outcome;
+        std::wstring caller;
+        std::wstring ancestry;
 
         // Every field above, lowercased and joined, so a filter box is a single
         // substring test rather than the reader having to remember which field
@@ -99,6 +104,18 @@ namespace Microsoft::Terminal::ActivityLog
         out.op = details::StringField(obj, L"op");
         out.target = details::StringField(obj, L"target");
         out.result = details::StringField(obj, L"result");
+        out.outcome = details::StringField(obj, L"outcome");
+        out.caller = details::StringField(obj, L"caller");
+        out.ancestry = details::StringField(obj, L"ancestry");
+
+        // Pipe records written before clients had to give a reason kept the
+        // outcome in `reason`. Read them as what they are, so an old "ok, 2
+        // panes" is never shown as somebody's reason for asking.
+        if (out.kind == Kind::ControlPipe && out.outcome.empty() && out.caller.empty() && !out.reason.empty())
+        {
+            out.outcome = std::move(out.reason);
+            out.reason.clear();
+        }
 
         // Falls back to the whole string when there is no separator, so a bare
         // "wscript.exe" still shows something.
@@ -106,7 +123,7 @@ namespace Microsoft::Terminal::ActivityLog
         out.exeName = slash == std::wstring::npos ? out.exe : out.exe.substr(slash + 1);
 
         out.searchText.clear();
-        for (const auto* part : { &out.timestamp, &out.kind, &out.exe, &out.commandLine, &out.cwd, &out.parentExe, &out.reason, &out.pid, &out.parentPid, &out.op, &out.target, &out.result })
+        for (const auto* part : { &out.timestamp, &out.kind, &out.exe, &out.commandLine, &out.cwd, &out.parentExe, &out.reason, &out.pid, &out.parentPid, &out.op, &out.target, &out.result, &out.outcome, &out.caller, &out.ancestry })
         {
             out.searchText.append(*part);
             out.searchText.push_back(L' ');

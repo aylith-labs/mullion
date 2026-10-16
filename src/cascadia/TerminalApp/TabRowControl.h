@@ -59,8 +59,11 @@ namespace winrt::TerminalApp::implementation
         winrt::hstring BuildExePath();
 
     private:
-        // How many requests the flyout lists. The Activity page has the rest.
-        static constexpr size_t MaxListedPipeCalls = 10;
+        // How many rows the flyout lists. The Activity page has the rest.
+        static constexpr size_t MaxListedPipeRows = 10;
+        // How many requests are kept to fill them: enough that a client polling
+        // every few seconds still groups into one row instead of filling the list.
+        static constexpr size_t MaxKeptPipeCalls = 500;
 
         void _setUnseenPipeCalls(uint32_t count);
         void _rebuildPipeActivityList(const winrt::Windows::UI::Xaml::Controls::Flyout& flyout);
@@ -68,6 +71,9 @@ namespace winrt::TerminalApp::implementation
         // Newest first.
         std::deque<winrt::TerminalApp::ControlPipeCall> _pipeCalls;
         uint32_t _unseenPipeCalls{ 0 };
+        // Repeats shown as one row with a count. On unless switched off in the
+        // flyout, and only for the life of the window.
+        bool _groupPipeCalls{ true };
     };
 }
 

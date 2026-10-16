@@ -7,6 +7,8 @@
 
 #include "TabRowControl.g.cpp"
 
+#include <unordered_map>
+
 using namespace winrt::Windows::ApplicationModel::DataTransfer;
 
 using namespace winrt;
@@ -86,7 +88,7 @@ namespace winrt::TerminalApp::implementation
     void TabRowControl::AddControlPipeCall(const winrt::TerminalApp::ControlPipeCall& call)
     {
         _pipeCalls.push_front(call);
-        while (_pipeCalls.size() > MaxListedPipeCalls)
+        while (_pipeCalls.size() > MaxKeptPipeCalls)
         {
             _pipeCalls.pop_back();
         }
@@ -129,14 +131,94 @@ namespace winrt::TerminalApp::implementation
 
         const WUX::Media::FontFamily mono{ L"Cascadia Mono, Consolas, monospace" };
 
+        // The heading, with the grouping switch beside it.
+        WUX::Controls::Grid header;
+        header.Margin(WUX::Thickness{ 0, 0, 0, 4 });
+        {
+            WUX::Controls::ColumnDefinition grow;
+            grow.Width(WUX::GridLengthHelper::FromValueAndType(1, WUX::GridUnitType::Star));
+            header.ColumnDefinitions().Append(grow);
+            header.ColumnDefinitions().Append(WUX::Controls::ColumnDefinition{});
+        }
+
         WUX::Controls::TextBlock title;
         title.Text(RS_(L"PipeActivity_FlyoutTitle"));
         title.FontWeight(FontWeights::SemiBold());
-        title.Margin(WUX::Thickness{ 0, 0, 0, 4 });
-        children.Append(title);
+        title.VerticalAlignment(WUX::VerticalAlignment::Center);
+        header.Children().Append(title);
 
+        WUX::Controls::CheckBox group;
+        group.Content(winrt::box_value(RS_(L"PipeActivity_Group")));
+        group.IsChecked(_groupPipeCalls);
+        group.MinWidth(0);
+        group.Margin(WUX::Thickness{ 12, 0, 0, 0 });
+        WUX::Controls::Grid::SetColumn(group, 1);
+        const auto toggled = [weakThis = get_weak(), weakFlyout = winrt::make_weak(flyout)](const winrt::Windows::Foundation::IInspectable& sender, const auto&) {
+            const auto self = weakThis.get();
+            const auto open = weakFlyout.get();
+            const auto box = sender.try_as<WUX::Controls::CheckBox>();
+            if (!self || !open || !box)
+            {
+                return;
+            }
+            self->_groupPipeCalls = box.IsChecked() && box.IsChecked().Value();
+            self->_rebuildPipeActivityList(open);
+        };
+        group.Checked(toggled);
+        group.Unchecked(toggled);
+        header.Children().Append(group);
+        children.Append(header);
+
+        // Repeats of one request - same program, same sender and reason, same
+        // op on the same target asking the same thing, answered the same way -
+        // collapse into the newest of them with a count. A one-shot client has
+        // a new pid every call, so the pid is not part of what makes two the
+        // same; the newest row's pid is the one shown.
+        struct Row
+        {
+            const winrt::TerminalApp::ControlPipeCall* newest;
+            std::wstring_view oldestTime;
+            uint32_t count;
+        };
+        std::vector<Row> rows;
+        std::unordered_map<std::wstring, size_t> byKey;
         for (const auto& call : _pipeCalls)
         {
+            if (!_groupPipeCalls)
+            {
+                if (rows.size() == MaxListedPipeRows)
+                {
+                    break;
+                }
+                rows.push_back({ &call, {}, 1 });
+                continue;
+            }
+
+            std::wstring key;
+            for (const auto& part : { call.Program, call.Caller, call.Reason, call.Operation, call.Target, call.Detail })
+            {
+                key.append(std::wstring_view{ part });
+                key.push_back(L'\n');
+            }
+            key.push_back(call.Ok ? L'1' : L'0');
+
+            if (const auto found = byKey.find(key); found != byKey.end())
+            {
+                auto& row = rows[found->second];
+                row.count++;
+                row.oldestTime = call.Time;
+            }
+            else if (rows.size() < MaxListedPipeRows)
+            {
+                byKey.emplace(std::move(key), rows.size());
+                rows.push_back({ &call, {}, 1 });
+            }
+        }
+
+        for (const auto& row : rows)
+        {
+            const auto& call = *row.newest;
+
             // "14:03:07  send-input 1.0.3  ok" - and a failure is marked, because
             // a refused write is the row worth noticing in a list of fine ones.
             std::wstring headline{ std::wstring_view{ call.Time } };
@@ -160,13 +242,55 @@ namespace winrt::TerminalApp::implementation
             first.FontSize(12);
             first.TextWrapping(WUX::TextWrapping::NoWrap);
             first.TextTrimming(WUX::TextTrimming::CharacterEllipsis);
+            first.VerticalAlignment(WUX::VerticalAlignment::Center);
 
-            // Who asked, and what for - "powershell.exe (4242)  \"echo hi\\r\"".
-            std::wstring context{ std::wstring_view{ call.Client } };
+            WUX::Controls::StackPanel firstLine;
+            firstLine.Orientation(WUX::Controls::Orientation::Horizontal);
+            firstLine.Spacing(6);
+            firstLine.Children().Append(first);
+            if (row.count > 1)
+            {
+                // The same accent pill the Activity page puts on a group.
+                WUX::Controls::TextBlock countText;
+                countText.Text(winrt::hstring{ L"×" + std::to_wstring(row.count) });
+                countText.Style(list.Resources().Lookup(winrt::box_value(L"PipeCountTextStyle")).as<WUX::Style>());
+
+                WUX::Controls::Border pill;
+                pill.Style(list.Resources().Lookup(winrt::box_value(L"PipeCountPillStyle")).as<WUX::Style>());
+                pill.Child(countText);
+                firstLine.Children().Append(pill);
+            }
+
+            // Why it was sent, in the sender's own words - the line that answers
+            // "what is this", so it is not dimmed. Its absence is said outright.
+            WUX::Controls::TextBlock why;
+            why.Text(call.Reason.empty() ? RS_(L"PipeActivity_NoReason") : call.Reason);
+            why.FontSize(12);
+            why.TextWrapping(WUX::TextWrapping::NoWrap);
+            why.TextTrimming(WUX::TextTrimming::CharacterEllipsis);
+            if (call.Reason.empty())
+            {
+                why.FontStyle(FontStyle::Italic);
+            }
+
+            // Who sent it - its own name for itself, then the process on the
+            // pipe - what it asked for, and for a group, since when.
+            std::wstring context;
+            if (!call.Caller.empty())
+            {
+                context.append(std::wstring_view{ call.Caller });
+                context.append(L" · ");
+            }
+            context.append(std::wstring_view{ call.Client });
             if (!call.Detail.empty())
             {
                 context.append(L"  ");
                 context.append(std::wstring_view{ call.Detail });
+            }
+            if (row.count > 1 && !row.oldestTime.empty() && row.oldestTime != std::wstring_view{ call.Time })
+            {
+                context.append(L"  · ");
+                context.append(RS_fmt(L"PipeActivity_FirstSeen", row.oldestTime));
             }
 
             WUX::Controls::TextBlock second;
@@ -177,10 +301,17 @@ namespace winrt::TerminalApp::implementation
             second.TextWrapping(WUX::TextWrapping::NoWrap);
             second.TextTrimming(WUX::TextTrimming::CharacterEllipsis);
 
-            WUX::Controls::StackPanel row;
-            row.Children().Append(first);
-            row.Children().Append(second);
-            children.Append(row);
+            WUX::Controls::StackPanel entry;
+            entry.Children().Append(firstLine);
+            entry.Children().Append(why);
+            entry.Children().Append(second);
+            // The rest of the trace, where Windows can see it: the chain of
+            // processes above the one that connected.
+            if (!call.Ancestry.empty())
+            {
+                WUX::Controls::ToolTipService::SetToolTip(entry, winrt::box_value(winrt::hstring{ RS_fmt(L"PipeActivity_Chain", std::wstring_view{ call.Ancestry }) }));
+            }
+            children.Append(entry);
         }
 
         WUX::Controls::HyperlinkButton showAll;

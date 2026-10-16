@@ -132,6 +132,15 @@ namespace TerminalApp
         // "ok" or the error it was answered, plus what came back.
         String Result;
         Boolean Ok;
+        // The client's image name without its pid, "powershell.exe": what
+        // grouping compares, since a one-shot client has a new pid every call.
+        String Program;
+        // What the client said about itself (empty when refused for not saying):
+        // why it asked, and which program and code path asked.
+        String Reason;
+        String Caller;
+        // The client's parent chain as Windows sees it, nearest first.
+        String Ancestry;
     };
 
     [default_interface] runtimeclass TerminalPage : Windows.UI.Xaml.Controls.Page, Windows.UI.Xaml.Data.INotifyPropertyChanged, Microsoft.Terminal.UI.IDirectKeyListener

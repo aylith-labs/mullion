@@ -25,8 +25,9 @@
 namespace ControlPipe
 {
     // Bumped when the shape of a response changes in a way an existing client
-    // could not have coped with. Reported by `ping`.
-    inline constexpr uint32_t ProtocolVersion = 1;
+    // could not have coped with. Reported by `ping`. 2: every request must say
+    // why it was sent and who sent it (`reason`, `caller`).
+    inline constexpr uint32_t ProtocolVersion = 2;
 
     // A client that sends us more than this on one line is not speaking the
     // protocol; there is nothing legitimate in it that comes close.
@@ -47,12 +48,15 @@ namespace ControlPipe
         NoSuchPane,
         NeedleGone,
         Disconnected,
+        MissingReason,
     };
 
     inline std::string_view ErrorCode(Error error) noexcept
     {
         switch (error)
         {
+        case Error::MissingReason:
+            return "missing-reason";
         case Error::NoSuchPane:
             return "no-such-pane";
         case Error::NeedleGone:
@@ -275,7 +279,35 @@ namespace ControlPipe
         std::wstring requireContains;
         // capture-pane row count. 0 means "the whole viewport".
         int32_t lines{};
+
+        // Required on every request, ping included: why it was sent, and the
+        // program and code path that sent it. The pipe can only see the process
+        // on its end, which for anything in WSL is a throwaway powershell.exe
+        // under wslhost.exe - so the client has to say who it really is.
+        // Parsed even when blank, so a request refused for lacking them is still
+        // recorded as the op it was.
+        std::wstring reason;
+        std::wstring caller;
     };
+
+    // The longest reason or caller a request may carry. A paragraph is not a
+    // reason; it is also not something a record should have to hold.
+    inline constexpr size_t MaxAttributionChars = 300;
+
+    namespace details
+    {
+        inline bool IsBlank(std::wstring_view text) noexcept
+        {
+            return std::all_of(text.begin(), text.end(), [](wchar_t ch) { return ch == L' ' || ch == L'\t' || ch == L'\r' || ch == L'\n'; });
+        }
+    }
+
+    // A request without both `reason` and `caller` is refused with
+    // `missing-reason` before anything is done for it.
+    inline bool HasAttribution(const Request& request) noexcept
+    {
+        return !details::IsBlank(request.reason) && !details::IsBlank(request.caller);
+    }
 
     // Returns nullopt for anything we would answer with `bad-request`: not JSON,
     // not an object, an op we don't have, a malformed pane id, a field of the
@@ -375,6 +407,22 @@ namespace ControlPipe
             return std::nullopt;
         }
 
+        // Absent is not malformed here: HasAttribution turns that into its own
+        // error, which tells the client what it forgot rather than "bad-request".
+        if (!readText("reason", request.reason, present) ||
+            !readText("caller", request.caller, present))
+        {
+            return std::nullopt;
+        }
+        if (request.reason.size() > MaxAttributionChars)
+        {
+            request.reason.resize(MaxAttributionChars);
+        }
+        if (request.caller.size() > MaxAttributionChars)
+        {
+            request.caller.resize(MaxAttributionChars);
+        }
+
         if (root.isMember("pane"))
         {
             const auto& value = root["pane"];
@@ -457,6 +505,13 @@ namespace ControlPipe
         Json::Value root{ Json::objectValue };
         root["ok"] = false;
         root["error"] = std::string{ ErrorCode(error) };
+        if (error == Error::MissingReason)
+        {
+            // The one error a client author meets while writing the client, so it
+            // carries its own fix.
+            root["message"] = "every request must carry \"reason\" (why it is being sent) and \"caller\" "
+                              "(the program and code path sending it, with its pid) - see doc/control-pipe.md";
+        }
         return details::Serialize(root);
     }
 
@@ -566,12 +621,16 @@ namespace ControlPipe
 
     // What a request was. `op` is the wire name, or "unparsed" for a line that
     // never became a request; `target` is the pane address or the braced
-    // session id it named; `detail` is what it asked for.
+    // session id it named; `detail` is what it asked for; `reason` and `caller`
+    // are what the client said about itself, verbatim (empty when it said
+    // nothing, which is then the thing worth seeing).
     struct CallDescription
     {
         std::wstring op;
         std::wstring target;
         std::wstring detail;
+        std::wstring reason;
+        std::wstring caller;
     };
 
     namespace details
@@ -669,6 +728,8 @@ namespace ControlPipe
     {
         CallDescription description;
         description.op = OpName(request.op);
+        description.reason = request.reason;
+        description.caller = request.caller;
 
         if (request.pane)
         {

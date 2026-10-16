@@ -269,6 +269,24 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         entry->_commandLine = group.sameCommandLine ? winrt::hstring{ read.commandLine } : RS_(L"Activity_MixedCommands/Text");
         entry->_cwd = group.sameWorkingDirectory ? winrt::hstring{ read.cwd } : winrt::hstring{};
         entry->_parentExe = group.sameParent ? winrt::hstring{ read.parentExe } : winrt::hstring{};
+        entry->_caller = group.sameCaller ? winrt::hstring{ read.caller } : winrt::hstring{};
+
+        // A pipe request's reason is the client's own account of itself, so it
+        // is on the row rather than behind a hover - and so is its absence.
+        const auto isPipe{ group.sameKind && read.kind == AL::Kind::ControlPipe };
+        if (isPipe && group.sameReason)
+        {
+            // An empty reason on a record from before reasons were required
+            // (its outcome is all it kept) is history, not a refusal.
+            if (!read.reason.empty())
+            {
+                entry->_reasonText = winrt::hstring{ RS_fmt(L"Activity_ReasonLine/Text", read.reason) };
+            }
+            else if (read.result == L"missing-reason")
+            {
+                entry->_reasonText = RS_(L"Activity_NoReason/Text");
+            }
+        }
 
         entry->_showCommandLineInline = options.showCommandLine && !entry->_commandLine.empty();
         entry->_showCommandLineInTooltip = !options.showCommandLine && !entry->_commandLine.empty();
@@ -311,7 +329,29 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         {
             appendLine(RS_fmt(L"Activity_HoverParent/Text", std::wstring_view{ entry->_parentExe }));
         }
-        if (!entry->_isGroup && !read.reason.empty())
+        if (isPipe)
+        {
+            if (!entry->_caller.empty())
+            {
+                appendLine(RS_fmt(L"Activity_HoverCaller/Text", std::wstring_view{ entry->_caller }));
+            }
+            if (!read.ancestry.empty())
+            {
+                if (entry->_isGroup)
+                {
+                    appendLine(RS_fmt(L"Activity_HoverAncestryLatest/Text", read.ancestry));
+                }
+                else
+                {
+                    appendLine(RS_fmt(L"Activity_HoverAncestry/Text", read.ancestry));
+                }
+            }
+            if (!entry->_isGroup && !read.outcome.empty())
+            {
+                appendLine(RS_fmt(L"Activity_HoverOutcome/Text", read.outcome));
+            }
+        }
+        else if (!entry->_isGroup && !read.reason.empty())
         {
             appendLine(RS_fmt(L"Activity_HoverReason/Text", read.reason));
         }
@@ -631,6 +671,15 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 key.append(record.exe);
                 key.push_back(L'\n');
                 key.append(record.commandLine);
+                // A pipe request is also who sent it and why: the same list-panes
+                // from two programs is two things to explain, not one.
+                if (record.kind == AL::Kind::ControlPipe)
+                {
+                    key.push_back(L'\n');
+                    key.append(record.caller);
+                    key.push_back(L'\n');
+                    key.append(record.reason);
+                }
                 break;
             case GroupMode::Program:
                 key = derived.programKey;
@@ -669,6 +718,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             group.sameCommandLine = group.sameCommandLine && group.newest->commandLine == record.commandLine;
             group.sameWorkingDirectory = group.sameWorkingDirectory && group.newest->cwd == record.cwd;
             group.sameParent = group.sameParent && group.newest->parentExe == record.parentExe;
+            group.sameReason = group.sameReason && group.newest->reason == record.reason;
+            group.sameCaller = group.sameCaller && group.newest->caller == record.caller;
         }
 
         const ActivityEntryOptions options{ _useAbsoluteTime, _showCommandLines };
