@@ -65,6 +65,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void SettingsNav_ItemInvoked(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Microsoft::UI::Xaml::Controls::NavigationViewItemInvokedEventArgs& args);
         void SettingsNav_PaneOpened(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
         void SettingsNav_PaneClosed(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
+        void SettingsNav_PaneOpening(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
+        void SettingsNav_PaneClosing(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Microsoft::UI::Xaml::Controls::NavigationViewPaneClosingEventArgs& args);
         void SaveButton_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void ResetButton_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void BreadcrumbBar_ItemClicked(const Microsoft::UI::Xaml::Controls::BreadcrumbBar& sender, const Microsoft::UI::Xaml::Controls::BreadcrumbBarItemClickedEventArgs& args);
@@ -129,6 +131,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _SelectNavItemByTag(std::wstring_view tag);
 
         void _AnnounceNavPaneState(bool opened);
+        void _PlaceSearchBox(bool paneOpen);
 
         void _UpdateBackgroundForMica();
         void _MoveXamlParsedNavItemsIntoItemSource();

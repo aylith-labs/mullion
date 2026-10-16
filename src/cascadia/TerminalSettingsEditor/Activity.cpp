@@ -711,7 +711,17 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     {
         const auto args = e.Parameter().as<Editor::NavigateToPageArgs>();
         _ViewModel = args.ViewModel().as<Editor::ActivityViewModel>();
-        BringIntoViewWhenLoaded(args.ElementToFocus());
+
+        // A search result for one of the log's own settings names a card on the
+        // second tab. BringIntoViewWhenLoaded expands expanders on the way, but a
+        // Pivot is not one, and a card on an unselected tab is not in the tree to
+        // be scrolled to - so pick the tab first.
+        const auto focus{ args.ElementToFocus() };
+        if (focus == L"ActivityLog" || focus == L"ActivityLogMaxKilobytes" || focus == L"ActivityLogPath")
+        {
+            ActivityTabs().SelectedIndex(1);
+        }
+        BringIntoViewWhenLoaded(focus);
 
         TraceLoggingWrite(
             g_hTerminalSettingsEditorProvider,

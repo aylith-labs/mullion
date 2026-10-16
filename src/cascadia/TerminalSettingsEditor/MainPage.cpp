@@ -505,7 +505,46 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto requestedTheme = hasThemeForSettings ? theme.Settings().RequestedTheme() : theme.RequestedTheme();
         _setThemeOnPopups(SettingsSearchBox(), requestedTheme);
 
+        _PlaceSearchBox(SettingsNav().IsPaneOpen());
+
         _ArmDirtyTracking();
+    }
+
+    // The one search box lives in the pane while the pane is open - above the
+    // first heading, where a sidebar keeps its search - and in the header only
+    // while the pane is closed and has no room for it. Moved rather than
+    // duplicated, so the text, the recent-results history and every handler stay
+    // on a single control. Done on the -ing events, not -ed, so the box is already
+    // in place when the animation starts instead of jumping when it ends.
+    void MainPage::_PlaceSearchBox(bool paneOpen)
+    {
+        using XamlPanel = winrt::Windows::UI::Xaml::Controls::Panel;
+        const auto box{ SettingsSearchBox() };
+        const XamlPanel pane{ PaneSearchHost() };
+        const XamlPanel header{ HeaderSearchHost() };
+        const auto& target{ paneOpen ? pane : header };
+        const auto& other{ paneOpen ? header : pane };
+
+        uint32_t index{};
+        if (target.Children().IndexOf(box, index))
+        {
+            return;
+        }
+        if (other.Children().IndexOf(box, index))
+        {
+            other.Children().RemoveAt(index);
+        }
+        target.Children().Append(box);
+    }
+
+    void MainPage::SettingsNav_PaneOpening(const MUX::Controls::NavigationView&, const IInspectable&)
+    {
+        _PlaceSearchBox(true);
+    }
+
+    void MainPage::SettingsNav_PaneClosing(const MUX::Controls::NavigationView&, const MUX::Controls::NavigationViewPaneClosingEventArgs&)
+    {
+        _PlaceSearchBox(false);
     }
 
     // Starts watching for unsaved changes. Here rather than in the constructor because

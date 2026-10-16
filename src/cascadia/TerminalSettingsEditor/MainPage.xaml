@@ -69,7 +69,9 @@
                          ItemInvoked="SettingsNav_ItemInvoked"
                          Loaded="SettingsNav_Loaded"
                          PaneClosed="SettingsNav_PaneClosed"
+                         PaneClosing="SettingsNav_PaneClosing"
                          PaneOpened="SettingsNav_PaneOpened"
+                         PaneOpening="SettingsNav_PaneOpening"
                          TabFocusNavigation="Cycle"
                          Unloaded="SettingsNav_Unloaded">
         <muxc:NavigationView.Resources>
@@ -171,9 +173,16 @@
                         a box that already had focus, which raises no focus change. Both
                         funnel into one handler that does nothing unless the box is empty.
                     -->
+                    <!--
+                        The box's home while the pane is closed. MainPage::_PlaceSearchBox
+                        moves the one box between this and PaneSearchHost as the pane opens
+                        and closes: in the pane, above the first heading, when there is room
+                        for it there; up here only when the pane is down to its icons.
+                    -->
+                    <Grid x:Name="HeaderSearchHost"
+                          Grid.Column="1">
                     <AutoSuggestBox x:Name="SettingsSearchBox"
                                     x:Uid="Nav_SearchBox"
-                                    Grid.Column="1"
                                     HorizontalAlignment="Stretch"
                                     VerticalAlignment="Center"
                                     GotFocus="SettingsSearchBox_GotFocus"
@@ -224,9 +233,20 @@
                             </DataTemplate>
                         </AutoSuggestBox.ItemTemplate>
                     </AutoSuggestBox>
+                    </Grid>
                 </Grid>
             </Grid>
         </muxc:NavigationView.Header>
+
+        <!--
+            The search box's home while the pane is open: under the menu button,
+            above STARTUP, where a sidebar keeps its search. Empty while the pane is
+            closed, so the compact strip of icons gets no extra row.
+        -->
+        <muxc:NavigationView.PaneCustomContent>
+            <Grid x:Name="PaneSearchHost"
+                  Margin="12,4,12,8" />
+        </muxc:NavigationView.PaneCustomContent>
 
         <!--
             Fourteen ungrouped rows were one undifferentiated list, so the items are

@@ -50,6 +50,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     X(FileSource::Local, bool, SettingsShowDescriptions, "settingsShowDescriptions", false)                                                                               \
     X(FileSource::Local, bool, SettingsAutoSave, "settingsAutoSave", false)                                                                                               \
     X(FileSource::Local, Windows::Foundation::Collections::IVector<hstring>, SettingsSearchHistory, "settingsSearchHistory")                                              \
+    X(FileSource::Local, int32_t, SettingsDialogWidth, "settingsDialogWidth", 0)                                                                                          \
+    X(FileSource::Local, int32_t, SettingsDialogHeight, "settingsDialogHeight", 0)                                                                                        \
     X(FileSource::Shared, bool, SSHFolderGenerated, "sshFolderGenerated", false)
 
     struct WindowLayout : WindowLayoutT<WindowLayout>

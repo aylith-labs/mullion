@@ -49,8 +49,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         std::pair{ extensionsTag, L"\xEA86" }, /* Puzzle */
         std::pair{ profilesTag, L"\xE7EE" }, /* Other User */
         std::pair{ globalProfileTag, L"\xE7EE" }, /* Other User */
-        std::pair{ openJsonTag, L"\xE713" }, /* Settings */
+        // Code, not the Settings cog: this opens settings.json in an editor, and a
+        // cog at the foot of a page that is already Settings said nothing about that.
+        std::pair{ openJsonTag, L"\xE943" }, /* Code */
         std::pair{ showDescriptionsTag, L"\xE7B3" }, /* Reading Mode */
-        std::pair{ documentationTag, L"\xE897" }, /* Help */
+        // An open book rather than a bare question mark, which read as a tooltip
+        // affordance next to the "?" help buttons on every row.
+        std::pair{ documentationTag, L"\xE82D" }, /* Dictionary */
     };
 }

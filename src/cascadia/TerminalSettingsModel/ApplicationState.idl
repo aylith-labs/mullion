@@ -79,6 +79,13 @@ namespace Microsoft.Terminal.Settings.Model
         // result is chosen.
         Windows.Foundation.Collections.IVector<String> SettingsSearchHistory;
 
+        // The size the Settings dialog (settingsUIHost "dialog") was last dragged
+        // to, in DIPs; 0 means never resized, so it opens at its default share of
+        // the window. Only the size: the dialog is always centred on the window it
+        // opens over, so a remembered position would mean nothing on another one.
+        Int32 SettingsDialogWidth;
+        Int32 SettingsDialogHeight;
+
         String SettingsHash;
         Windows.Foundation.Collections.IVector<WindowLayout> PersistedWindowLayouts;
         Windows.Foundation.Collections.IVector<String> RecentCommands;

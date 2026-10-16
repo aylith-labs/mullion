@@ -977,6 +977,14 @@
     <value>Elevation</value>
     <comment>Event-type filter option for Terminal relaunching itself as administrator.</comment>
   </data>
+  <data name="Activity_EventsTab.Header" xml:space="preserve">
+    <value>Events</value>
+    <comment>First tab of the Activity page: the list of recorded events, with its filters.</comment>
+  </data>
+  <data name="Activity_SettingsTab.Header" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Second tab of the Activity page: whether the activity log is recorded, how large it may grow, and where the file is.</comment>
+  </data>
   <data name="Activity_EventFilterControlPipe.Content" xml:space="preserve">
     <value>Control pipe requests</value>
     <comment>Event-type filter option for requests another program made through the control pipe: listing, reading, typing into or focusing a pane.</comment>

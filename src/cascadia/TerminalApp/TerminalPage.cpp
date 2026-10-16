@@ -6260,6 +6260,275 @@ namespace winrt::TerminalApp::implementation
         RequestNewWindow.raise(*this, request);
     }
 
+    namespace
+    {
+        // The Settings dialog's size, and the grips that change it.
+        //
+        // ContentDialog has no resize of its own and exposes none of its template,
+        // so Attach reaches into the template by part name once the dialog has
+        // opened. BackgroundElement is the visible box; setting its size as a local
+        // value outranks the template's theme-resource bindings, which is what both
+        // pins it to one size and lets a drag change that size. The template
+        // centres the box, so a grip moves both opposite edges: dragging the right
+        // edge 10px out widens the box by 20, and the edge stays under the pointer.
+        //
+        // Lifetime: the dialog's Opened handler owns this; the grips hold it weakly
+        // and it holds the box weakly, so closing the dialog frees all of it.
+        struct SettingsDialogResize
+        {
+            static constexpr double DefaultFraction{ 0.85 };
+            // Below this the navigation list and a page cannot both fit, and the
+            // page turns into a horizontal scroll.
+            static constexpr double FloorWidth{ 720.0 };
+            static constexpr double FloorHeight{ 480.0 };
+            // Kept clear of the window's edges, so the box never runs under the
+            // caption buttons or off the bottom of the window.
+            static constexpr double WindowMargin{ 24.0 };
+            static constexpr double EdgeGrip{ 6.0 };
+            static constexpr double CornerGrip{ 14.0 };
+
+            double width{};
+            double height{};
+            double minWidth{ FloorWidth };
+            double minHeight{ FloorHeight };
+            double maxWidth{ std::numeric_limits<double>::infinity() };
+            double maxHeight{ std::numeric_limits<double>::infinity() };
+
+            winrt::weak_ref<FrameworkElement> box;
+            std::optional<uint32_t> pointerId;
+            winrt::Windows::Foundation::Point start{};
+            double startWidth{};
+            double startHeight{};
+            int sx{};
+            int sy{};
+
+            // The window the dialog opens over decides how large it may be. A
+            // window smaller than the floor gets a dialog that fits it, not one
+            // that overflows it.
+            void Bound(const double availableWidth, const double availableHeight)
+            {
+                maxWidth = std::max(1.0, availableWidth - 2 * WindowMargin);
+                maxHeight = std::max(1.0, availableHeight - 2 * WindowMargin);
+                minWidth = std::min(FloorWidth, maxWidth);
+                minHeight = std::min(FloorHeight, maxHeight);
+            }
+
+            void Clamp()
+            {
+                width = std::clamp(width, minWidth, maxWidth);
+                height = std::clamp(height, minHeight, maxHeight);
+            }
+
+            void Apply() const
+            {
+                if (const auto element{ box.get() })
+                {
+                    element.MinWidth(width);
+                    element.MaxWidth(width);
+                    element.Width(width);
+                    element.MinHeight(height);
+                    element.MaxHeight(height);
+                    element.Height(height);
+                }
+            }
+
+            void Save() const
+            {
+                const auto state{ Microsoft::Terminal::Settings::Model::ApplicationState::SharedInstance() };
+                state.SettingsDialogWidth(gsl::narrow_cast<int32_t>(std::lround(width)));
+                state.SettingsDialogHeight(gsl::narrow_cast<int32_t>(std::lround(height)));
+            }
+
+            static FrameworkElement FindPart(const DependencyObject& root, const std::wstring_view name)
+            {
+                const auto count{ Media::VisualTreeHelper::GetChildrenCount(root) };
+                for (int32_t i = 0; i < count; i++)
+                {
+                    const auto child{ Media::VisualTreeHelper::GetChild(root, i) };
+                    if (const auto element{ child.try_as<FrameworkElement>() }; element && element.Name() == name)
+                    {
+                        return element;
+                    }
+                    if (auto found{ FindPart(child, name) })
+                    {
+                        return found;
+                    }
+                }
+                return nullptr;
+            }
+
+            static CoreCursorType CursorFor(const int x, const int y) noexcept
+            {
+                if (x == 0)
+                {
+                    return CoreCursorType::SizeNorthSouth;
+                }
+                if (y == 0)
+                {
+                    return CoreCursorType::SizeWestEast;
+                }
+                return x == y ? CoreCursorType::SizeNorthwestSoutheast : CoreCursorType::SizeNortheastSouthwest;
+            }
+
+            // XAML Islands has no per-element cursor, so - as Pane's divider does -
+            // the cursor is set on the window and put back when the pointer leaves.
+            static void SetCursor(const CoreCursorType type)
+            {
+                if (const auto window{ CoreWindow::GetForCurrentThread() })
+                {
+                    window.PointerCursor(CoreCursor{ type, 0 });
+                }
+            }
+
+            static void Attach(const Controls::ContentDialog& dialog, const std::shared_ptr<SettingsDialogResize>& self)
+            {
+                // The page gets the box's height and scrolls inside itself. Left to
+                // its default, the dialog's own scroller offers the page unlimited
+                // height and the page grows to its content again.
+                if (const auto scroller{ FindPart(dialog, L"ContentScrollViewer").try_as<Controls::ScrollViewer>() })
+                {
+                    scroller.VerticalScrollBarVisibility(Controls::ScrollBarVisibility::Disabled);
+                    scroller.VerticalScrollMode(Controls::ScrollMode::Disabled);
+                }
+
+                // Sized by its label and set at the right, rather than a bar the
+                // full width of the dialog.
+                if (const auto close{ FindPart(dialog, L"CloseButton").try_as<Controls::Button>() })
+                {
+                    close.HorizontalAlignment(HorizontalAlignment::Right);
+                    close.Width(std::numeric_limits<double>::quiet_NaN());
+                    close.MinWidth(0);
+                    close.Padding(ThicknessHelper::FromLengths(20, 5, 20, 6));
+                }
+
+                const auto element{ FindPart(dialog, L"BackgroundElement") };
+                if (!element)
+                {
+                    return;
+                }
+                self->box = winrt::make_weak(element);
+                self->Apply();
+
+                const auto host{ FindPart(dialog, L"DialogSpace").try_as<Controls::Grid>() };
+                if (!host)
+                {
+                    return;
+                }
+                const auto pad{ host.Padding() };
+
+                static constexpr std::array<std::pair<int, int>, 8> grips{ {
+                    { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } };
+
+                const std::weak_ptr<SettingsDialogResize> weak{ self };
+                for (const auto& [gx, gy] : grips)
+                {
+                    // Plain copies: the handlers below capture them.
+                    const int x{ gx };
+                    const int y{ gy };
+                    const auto corner{ x != 0 && y != 0 };
+                    Controls::Border grip;
+
+                    // A null background is not hit-testable; one step of alpha is.
+                    grip.Background(Media::SolidColorBrush{ winrt::Windows::UI::Color{ 1, 0, 0, 0 } });
+
+                    if (x == 0)
+                    {
+                        grip.HorizontalAlignment(HorizontalAlignment::Stretch);
+                    }
+                    else
+                    {
+                        grip.HorizontalAlignment(x < 0 ? HorizontalAlignment::Left : HorizontalAlignment::Right);
+                        grip.Width(corner ? CornerGrip : EdgeGrip);
+                    }
+                    if (y == 0)
+                    {
+                        grip.VerticalAlignment(VerticalAlignment::Stretch);
+                    }
+                    else
+                    {
+                        grip.VerticalAlignment(y < 0 ? VerticalAlignment::Top : VerticalAlignment::Bottom);
+                        grip.Height(corner ? CornerGrip : EdgeGrip);
+                    }
+
+                    // Out through the host's padding to the box's own edge.
+                    grip.Margin(ThicknessHelper::FromLengths(-pad.Left, -pad.Top, -pad.Right, -pad.Bottom));
+                    Controls::Grid::SetRowSpan(grip, 16);
+                    Controls::Grid::SetColumnSpan(grip, 16);
+                    Controls::Canvas::SetZIndex(grip, corner ? 101 : 100);
+
+                    grip.PointerEntered([weak, x, y](const auto&, const auto&) {
+                        if (const auto s{ weak.lock() }; s && !s->pointerId)
+                        {
+                            SetCursor(CursorFor(x, y));
+                        }
+                    });
+                    grip.PointerExited([weak](const auto&, const auto&) {
+                        if (const auto s{ weak.lock() }; s && !s->pointerId)
+                        {
+                            SetCursor(CoreCursorType::Arrow);
+                        }
+                    });
+                    grip.PointerPressed([weak, x, y](const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::Input::PointerRoutedEventArgs& e) {
+                        const auto s{ weak.lock() };
+                        const auto target{ sender.try_as<UIElement>() };
+                        if (!s || s->pointerId || !target || !target.CapturePointer(e.Pointer()))
+                        {
+                            return;
+                        }
+                        s->pointerId = e.Pointer().PointerId();
+                        s->start = e.GetCurrentPoint(nullptr).Position();
+                        s->startWidth = s->width;
+                        s->startHeight = s->height;
+                        s->sx = x;
+                        s->sy = y;
+                        SetCursor(CursorFor(x, y));
+                        e.Handled(true);
+                    });
+                    grip.PointerMoved([weak](const auto&, const winrt::Windows::UI::Xaml::Input::PointerRoutedEventArgs& e) {
+                        const auto s{ weak.lock() };
+                        if (!s || !s->pointerId || *s->pointerId != e.Pointer().PointerId())
+                        {
+                            return;
+                        }
+                        const auto p{ e.GetCurrentPoint(nullptr).Position() };
+                        if (s->sx != 0)
+                        {
+                            s->width = s->startWidth + 2.0 * s->sx * (p.X - s->start.X);
+                        }
+                        if (s->sy != 0)
+                        {
+                            s->height = s->startHeight + 2.0 * s->sy * (p.Y - s->start.Y);
+                        }
+                        s->Clamp();
+                        s->Apply();
+                        e.Handled(true);
+                    });
+
+                    // Released and capture-lost both end the drag and keep the size
+                    // it reached: the box is already that size on screen.
+                    const auto end{ [weak](const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::Input::PointerRoutedEventArgs& e) {
+                        const auto s{ weak.lock() };
+                        if (!s || !s->pointerId || *s->pointerId != e.Pointer().PointerId())
+                        {
+                            return;
+                        }
+                        s->pointerId.reset();
+                        if (const auto target{ sender.try_as<UIElement>() })
+                        {
+                            target.ReleasePointerCapture(e.Pointer());
+                        }
+                        SetCursor(CoreCursorType::Arrow);
+                        s->Save();
+                    } };
+                    grip.PointerReleased(end);
+                    grip.PointerCaptureLost(end);
+
+                    host.Children().Append(grip);
+                }
+            }
+        };
+    }
+
     // Method Description:
     // - Shows the Settings UI over the window instead of beside the terminals,
     //   for settingsUIHost "dialog".
@@ -6299,25 +6568,32 @@ namespace winrt::TerminalApp::implementation
         //
         // These are looked up off the dialog's own resource dictionary, so
         // overriding them here affects this dialog and nothing else.
+        //
+        // And size it EXACTLY: Min equal to Max. With a floor below the ceiling the
+        // dialog sized itself to each page's content, so it changed shape on every
+        // navigation - Session Restore short, Interaction tall, Integrations wide,
+        // and wider again with the navigation pane open. A settings window that
+        // jumps under the pointer as you move between pages is the bug; one size
+        // for every page is the fix. The size is the one last dragged to, or a
+        // share of the window the first time.
+        const auto resize{ std::make_shared<SettingsDialogResize>() };
         const auto available{ this->Root() };
         if (available && available.ActualWidth() > 0 && available.ActualHeight() > 0)
         {
-            static constexpr auto fraction{ 0.85 };
+            resize->Bound(available.ActualWidth(), available.ActualHeight());
 
-            // The floor is what keeps the two-pane layout usable: below roughly
-            // this the navigation list and the content pane cannot both fit, and
-            // the page becomes a horizontal scroll.
-            static constexpr auto minWidth{ 720.0 };
-            static constexpr auto minHeight{ 480.0 };
-
-            const auto w{ std::max(minWidth, available.ActualWidth() * fraction) };
-            const auto h{ std::max(minHeight, available.ActualHeight() * fraction) };
+            const auto state{ Microsoft::Terminal::Settings::Model::ApplicationState::SharedInstance() };
+            const auto savedWidth{ state.SettingsDialogWidth() };
+            const auto savedHeight{ state.SettingsDialogHeight() };
+            resize->width = savedWidth > 0 ? savedWidth : available.ActualWidth() * SettingsDialogResize::DefaultFraction;
+            resize->height = savedHeight > 0 ? savedHeight : available.ActualHeight() * SettingsDialogResize::DefaultFraction;
+            resize->Clamp();
 
             const auto res{ dialog.Resources() };
-            res.Insert(winrt::box_value(L"ContentDialogMaxWidth"), winrt::box_value(w));
-            res.Insert(winrt::box_value(L"ContentDialogMinWidth"), winrt::box_value(std::min(w, minWidth)));
-            res.Insert(winrt::box_value(L"ContentDialogMaxHeight"), winrt::box_value(h));
-            res.Insert(winrt::box_value(L"ContentDialogMinHeight"), winrt::box_value(std::min(h, minHeight)));
+            res.Insert(winrt::box_value(L"ContentDialogMaxWidth"), winrt::box_value(resize->width));
+            res.Insert(winrt::box_value(L"ContentDialogMinWidth"), winrt::box_value(resize->width));
+            res.Insert(winrt::box_value(L"ContentDialogMaxHeight"), winrt::box_value(resize->height));
+            res.Insert(winrt::box_value(L"ContentDialogMinHeight"), winrt::box_value(resize->height));
         }
 
         // Let the page fill whatever the dialog ends up being, rather than
@@ -6331,6 +6607,11 @@ namespace winrt::TerminalApp::implementation
         // The close button is also what gives us Esc for free.
         dialog.CloseButtonText(RS_(L"SettingsUIDialogClose"));
         dialog.DefaultButton(Controls::ContentDialogButton::Close);
+
+        // The rest needs the dialog's template, which only exists once it opens.
+        dialog.Opened([resize](const Controls::ContentDialog& sender, const auto&) {
+            SettingsDialogResize::Attach(sender, resize);
+        });
 
         // XAML Islands allows one dialog per thread, and TerminalWindow::ShowDialog
         // already enforces that - so a second Ctrl+, while this is up replaces it
