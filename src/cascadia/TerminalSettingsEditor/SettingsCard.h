@@ -43,6 +43,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         DEPENDENCY_PROPERTY(hstring, ActionIconToolTip);
         DEPENDENCY_PROPERTY(bool, IsClickEnabled);
         DEPENDENCY_PROPERTY(bool, IsActionIconVisible);
+        DEPENDENCY_PROPERTY(bool, IsExperimental);
         DEPENDENCY_PROPERTY(Editor::SettingsCardContentAlignment, ContentAlignment);
         DEPENDENCY_PROPERTY(bool, IsForkFeature);
         DEPENDENCY_PROPERTY(bool, IsJsonOnlyUpstream);
@@ -118,6 +119,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _UpdateDescriptionHelp();
         void _UpdateTrait();
         void _UpdateHeaderIconVisibility();
+        void _UpdateExperimentalBadgeVisibility();
         void _UpdateContentVisibility();
         void _UpdateContentAlignmentState();
         void _CheckInitialVisualState();

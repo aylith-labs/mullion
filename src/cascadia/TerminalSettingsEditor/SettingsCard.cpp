@@ -26,6 +26,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     DependencyProperty SettingsCard::_ActionIconToolTipProperty{ nullptr };
     DependencyProperty SettingsCard::_IsClickEnabledProperty{ nullptr };
     DependencyProperty SettingsCard::_IsActionIconVisibleProperty{ nullptr };
+    DependencyProperty SettingsCard::_IsExperimentalProperty{ nullptr };
     DependencyProperty SettingsCard::_ContentAlignmentProperty{ nullptr };
     DependencyProperty SettingsCard::_IsForkFeatureProperty{ nullptr };
     DependencyProperty SettingsCard::_IsJsonOnlyUpstreamProperty{ nullptr };
@@ -51,6 +52,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     static constexpr std::wstring_view HeaderPresenter{ L"PART_HeaderPresenter" };
     static constexpr std::wstring_view DescriptionPresenter{ L"PART_DescriptionPresenter" };
     static constexpr std::wstring_view HeaderIconPresenterHolder{ L"PART_HeaderIconPresenterHolder" };
+    static constexpr std::wstring_view ExperimentalBadgePart{ L"PART_ExperimentalBadge" };
     static constexpr std::wstring_view ContentPresenterPart{ L"PART_ContentPresenter" };
     static constexpr std::wstring_view RootGridPart{ L"PART_RootGrid" };
     static constexpr std::wstring_view AylithImprintPart{ L"PART_AylithImprint" };
@@ -257,6 +259,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 xaml_typename<Editor::SettingsCard>(),
                 PropertyMetadata{ box_value(true), PropertyChangedCallback{ &SettingsCard::_OnIsActionIconVisibleChanged } });
         }
+        if (!_IsExperimentalProperty)
+        {
+            _IsExperimentalProperty = DependencyProperty::Register(
+                L"IsExperimental",
+                xaml_typename<bool>(),
+                xaml_typename<Editor::SettingsCard>(),
+                PropertyMetadata{ box_value(false) });
+        }
         if (!_ContentAlignmentProperty)
         {
             _ContentAlignmentProperty = DependencyProperty::Register(
@@ -342,6 +352,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _UpdateDescriptionVisibility();
         _UpdateTrait();
         _UpdateHeaderIconVisibility();
+        _UpdateExperimentalBadgeVisibility();
         _UpdateContentVisibility();
 
         // Register for imprint refreshes here, not in the constructor. get_weak() on
@@ -485,7 +496,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 // Don't override ButtonBase content (would clobber its own name) or plain text blocks.
                 if (!element.try_as<ButtonBase>() && !element.try_as<TextBlock>())
                 {
-                    Automation::AutomationProperties::SetName(element, headerString);
+                    Automation::AutomationProperties::SetName(element, BuildAccessibleName(headerString, IsExperimental()));
                 }
             }
         }
@@ -713,6 +724,17 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
     }
 
+    void SettingsCard::_UpdateExperimentalBadgeVisibility()
+    {
+        if (const auto child{ GetTemplateChild(hstring{ ExperimentalBadgePart }) })
+        {
+            if (const auto frameworkChild{ child.try_as<FrameworkElement>() })
+            {
+                frameworkChild.Visibility(IsExperimental() ? Visibility::Visible : Visibility::Collapsed);
+            }
+        }
+    }
+
     void SettingsCard::_UpdateHeaderIconVisibility()
     {
         if (const auto child{ GetTemplateChild(hstring{ HeaderIconPresenterHolder }) })
@@ -907,11 +929,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             {
                 if (const auto manualName{ AutomationProperties::GetName(card) }; !manualName.empty())
                 {
-                    return manualName;
+                    return BuildAccessibleName(manualName, card.IsExperimental());
                 }
                 if (const auto headerString{ unbox_value_or<hstring>(card.Header(), hstring{}) }; !headerString.empty())
                 {
-                    return headerString;
+                    return BuildAccessibleName(headerString, card.IsExperimental());
                 }
             }
             // Not clickable, or no header text: fall back to AutomationProperties.Name (matching

@@ -51,6 +51,13 @@
                             ResourceKey="ControlStrokeColorDefaultBrush" />
             <StaticResource x:Key="SettingsCardBorderBrushDisabled"
                             ResourceKey="ControlStrokeColorDefaultBrush" />
+
+            <StaticResource x:Key="ExperimentalInfoBadgeBackground"
+                            ResourceKey="SystemFillColorCautionBackgroundBrush" />
+            <StaticResource x:Key="ExperimentalInfoBadgeForeground"
+                            ResourceKey="SystemFillColorCautionBrush" />
+            <StaticResource x:Key="ExperimentalInfoBadgeBorderBrush"
+                            ResourceKey="SystemFillColorCautionBrush" />
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
@@ -80,6 +87,13 @@
                             ResourceKey="ControlStrokeColorDefaultBrush" />
             <StaticResource x:Key="SettingsCardBorderBrushDisabled"
                             ResourceKey="ControlStrokeColorDefaultBrush" />
+
+            <StaticResource x:Key="ExperimentalInfoBadgeBackground"
+                            ResourceKey="SystemFillColorCautionBackgroundBrush" />
+            <StaticResource x:Key="ExperimentalInfoBadgeForeground"
+                            ResourceKey="SystemFillColorCautionBrush" />
+            <StaticResource x:Key="ExperimentalInfoBadgeBorderBrush"
+                            ResourceKey="SystemFillColorCautionBrush" />
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="HighContrast">
@@ -109,6 +123,13 @@
                             ResourceKey="SystemColorHighlightTextColorBrush" />
             <StaticResource x:Key="SettingsCardBorderBrushDisabled"
                             ResourceKey="SystemControlDisabledTransparentBrush" />
+
+            <StaticResource x:Key="ExperimentalInfoBadgeBackground"
+                            ResourceKey="SystemColorWindowColorBrush" />
+            <StaticResource x:Key="ExperimentalInfoBadgeForeground"
+                            ResourceKey="SystemColorWindowTextColorBrush" />
+            <StaticResource x:Key="ExperimentalInfoBadgeBorderBrush"
+                            ResourceKey="SystemColorWindowTextColorBrush" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
@@ -149,6 +170,34 @@
 
     <local:TopCornerRadiusFilterConverter x:Key="TopCornerRadiusFilterConverter" />
     <local:BottomCornerRadiusFilterConverter x:Key="BottomCornerRadiusFilterConverter" />
+
+    <Style x:Key="ExperimentalInfoBadge"
+           TargetType="muxc:InfoBadge">
+        <Setter Property="Padding" Value="6,1,6,2" />
+        <Setter Property="Background" Value="{ThemeResource ExperimentalInfoBadgeBackground}" />
+        <Setter Property="Foreground" Value="{ThemeResource ExperimentalInfoBadgeForeground}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource ExperimentalInfoBadgeBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="muxc:InfoBadge">
+                    <Border x:Name="RootGrid"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.InfoBadgeCornerRadius}">
+                        <TextBlock x:Uid="SettingsCard_ExperimentalBadgeTextBlock"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <!--  ============ SettingsCard ============  -->
 
@@ -353,6 +402,12 @@
                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                               Glyph="&#xE897;" />
                                 </Border>
+                                <muxc:InfoBadge x:Name="PART_ExperimentalBadge"
+                                                Margin="6,0,0,0"
+                                                VerticalAlignment="Center"
+                                                AutomationProperties.AccessibilityView="Raw"
+                                                Style="{StaticResource ExperimentalInfoBadge}"
+                                                Visibility="Collapsed" />
                             </StackPanel>
 
                             <ContentPresenter x:Name="PART_DescriptionPresenter"
@@ -624,7 +679,8 @@
                                                 Header="{TemplateBinding Header}"
                                                 HeaderIcon="{TemplateBinding HeaderIcon}"
                                                 IsClickEnabled="False"
-                                                IsForkFeature="{TemplateBinding IsForkFeature}" />
+                                                IsForkFeature="{TemplateBinding IsForkFeature}"
+                                                IsExperimental="{TemplateBinding IsExperimental}" />
                         </muxc:Expander.Header>
                         <muxc:Expander.Content>
                             <!--  CornerRadius is filtered to bottom-only so the items panel visually stitches to the rounded bottom of the expander (matches WCT).  -->
