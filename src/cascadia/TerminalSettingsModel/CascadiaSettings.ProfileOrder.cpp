@@ -30,17 +30,27 @@ namespace
 
 // The profile a dropdown entry points at, as an object of *this* settings.
 //
-// An entry the editor added carries a Profile and no name; one read from JSON
-// carries a name until _resolveNewTabMenuProfiles fills in the Profile. And
-// after Copy() the Profile still belongs to the settings that were copied, so
-// it is looked up again here by GUID rather than used as it is.
+// An entry read from JSON carries a name. Its Profile is NOT null until
+// _resolveNewTabMenuProfiles runs: WINRT_PROPERTY value-initializes it, and a
+// value-initialized runtimeclass is a freshly activated empty Profile (which is
+// why the resolver writes nullptr over it). So the name goes first. An entry
+// the editor added has no name and a real Profile; after Copy() that Profile
+// still belongs to the settings that were copied, so it is looked up again by
+// GUID rather than used as it is.
 Model::Profile CascadiaSettings::_profileForMenuEntry(const Model::ProfileEntry& entry) const
 {
+    if (const auto name = winrt::get_self<implementation::ProfileEntry>(entry)->ProfileName(); !name.empty())
+    {
+        if (const auto profile = GetProfileByName(name))
+        {
+            return profile;
+        }
+    }
     if (const auto profile = entry.Profile())
     {
         return FindProfile(profile.Guid());
     }
-    return GetProfileByName(winrt::get_self<implementation::ProfileEntry>(entry)->ProfileName());
+    return nullptr;
 }
 
 // Depth-first walk of the dropdown. A null in `shown` marks where the
