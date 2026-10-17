@@ -40,6 +40,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         Editor::NewTabMenuEntryViewModel RequestAddProfileMatcherEntry();
         Editor::NewTabMenuEntryViewModel RequestAddRemainingProfilesEntry();
 
+        // A drag on the Profiles page, carried into the dropdown (MainPage::_ReorderProfiles).
+        void SortProfileEntries(const std::vector<winrt::guid>& order);
+        bool IsProfilePinned(const winrt::guid& profile) const;
+        bool UnpinProfile(const winrt::guid& profile);
+        bool PinProfileNextTo(const Model::Profile& profile, const winrt::guid& neighbor, bool before);
+
         hstring CurrentFolderName() const;
         void CurrentFolderName(const hstring& value);
         bool CurrentFolderInlining() const;

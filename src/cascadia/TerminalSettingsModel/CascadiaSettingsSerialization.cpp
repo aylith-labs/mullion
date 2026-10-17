@@ -1555,6 +1555,9 @@ CascadiaSettings::CascadiaSettings(SettingsLoader&& loader) :
     _windowSettings->Initialize(_globals);
 
     _resolveDefaultProfile();
+    // Fork: profiles.list follows the dropdown's order, so ctrl+shift+N and
+    // newTab's "index" number profiles the way the dropdown shows them.
+    ApplyNewTabMenuProfileOrder();
     _resolveNewTabMenuProfiles();
     _validateSettings();
 

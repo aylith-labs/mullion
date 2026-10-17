@@ -51,8 +51,7 @@
         <!--  Terminal profiles section  -->
         <local:SettingsExpander x:Name="TerminalProfilesHeader"
                                 x:Uid="Profiles_TerminalProfilesHeader"
-                                IsExpanded="True"
-                                ItemsSource="{x:Bind ViewModel.Profiles, Mode=OneWay}">
+                                IsExpanded="True">
             <local:SettingsExpander.HeaderIcon>
                 <FontIcon Glyph="&#xE7EE;" />
             </local:SettingsExpander.HeaderIcon>
@@ -156,38 +155,85 @@
                                 Placement="BottomEdgeAlignedLeft" />
                 </muxc:SplitButton.Flyout>
             </muxc:SplitButton>
-            <local:SettingsExpander.ItemTemplate>
-                <DataTemplate x:DataType="local:ProfileViewModel">
-                    <local:SettingsCard AutomationProperties.HelpText="{x:Bind AccessibleStateDescription, Mode=OneWay}"
-                                        AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
-                                        Click="Profile_Click"
-                                        Header="{x:Bind Name, Mode=OneWay}"
-                                        HeaderIcon="{x:Bind IconPreview, Mode=OneWay}"
-                                        IsClickEnabled="True"
-                                        Style="{StaticResource ClickableSettingsExpanderItemStyle}">
-                        <Grid>
-                            <muxc:InfoBadge x:Uid="Profile_HiddenBadge"
-                                            VerticalAlignment="Center"
-                                            Visibility="{x:Bind ShowHiddenBadge, Mode=OneWay}">
-                                <muxc:InfoBadge.IconSource>
-                                    <muxc:FontIconSource FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                                         FontSize="12"
-                                                         Glyph="&#xED1A;" />
-                                </muxc:InfoBadge.IconSource>
-                            </muxc:InfoBadge>
-                            <muxc:InfoBadge x:Uid="Profile_OrphanedBadge"
-                                            VerticalAlignment="Center"
-                                            Visibility="{x:Bind Orphaned, Mode=OneWay}">
-                                <muxc:InfoBadge.IconSource>
-                                    <muxc:FontIconSource FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                                         FontSize="12"
-                                                         Glyph="&#xE7BA;" />
-                                </muxc:InfoBadge.IconSource>
-                            </muxc:InfoBadge>
-                        </Grid>
-                    </local:SettingsCard>
-                </DataTemplate>
-            </local:SettingsExpander.ItemTemplate>
+            <!--
+                The profile rows live in a ListView rather than the expander's own Items, which
+                are an ItemsControl and cannot reorder. Dragging a row reorders profiles.list,
+                and the dropdown with it (Profiles::ProfilesList_DragItemsCompleted). The card
+                is a button and captures the pointer, so a drag starts from the gripper, which
+                sits in the card's deep left padding and leaves the layout unchanged.
+            -->
+            <local:SettingsExpander.ItemsHeader>
+                <ListView x:Name="ProfilesList"
+                          AllowDrop="True"
+                          CanDragItems="True"
+                          CanReorderItems="True"
+                          ContainerContentChanging="ProfilesList_ContainerContentChanging"
+                          DragItemsCompleted="ProfilesList_DragItemsCompleted"
+                          IsItemClickEnabled="False"
+                          ItemsSource="{x:Bind ViewModel.Profiles, Mode=OneWay}"
+                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                          ScrollViewer.VerticalScrollMode="Disabled"
+                          SelectionMode="None">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="MinHeight" Value="0" />
+                            <Setter Property="CornerRadius" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <!--  The card inside is the tab stop, as it was before the rows moved into a ListView.  -->
+                            <Setter Property="IsTabStop" Value="False" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:ProfileViewModel">
+                            <Grid>
+                                <local:SettingsCard AutomationProperties.HelpText="{x:Bind AccessibleStateDescription, Mode=OneWay}"
+                                                    AutomationProperties.Name="{x:Bind Name, Mode=OneWay}"
+                                                    Click="Profile_Click"
+                                                    Header="{x:Bind Name, Mode=OneWay}"
+                                                    HeaderIcon="{x:Bind IconPreview, Mode=OneWay}"
+                                                    IsClickEnabled="True"
+                                                    Style="{StaticResource ClickableSettingsExpanderItemStyle}">
+                                    <Grid>
+                                        <muxc:InfoBadge x:Uid="Profile_HiddenBadge"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{x:Bind ShowHiddenBadge, Mode=OneWay}">
+                                            <muxc:InfoBadge.IconSource>
+                                                <muxc:FontIconSource FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                                     FontSize="12"
+                                                                     Glyph="&#xED1A;" />
+                                            </muxc:InfoBadge.IconSource>
+                                        </muxc:InfoBadge>
+                                        <muxc:InfoBadge x:Uid="Profile_OrphanedBadge"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{x:Bind Orphaned, Mode=OneWay}">
+                                            <muxc:InfoBadge.IconSource>
+                                                <muxc:FontIconSource FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                                     FontSize="12"
+                                                                     Glyph="&#xE7BA;" />
+                                            </muxc:InfoBadge.IconSource>
+                                        </muxc:InfoBadge>
+                                    </Grid>
+                                </local:SettingsCard>
+                                <!--  Transparent, not null, so it is hit-testable and the press reaches the ListViewItem.  -->
+                                <Border x:Uid="Profiles_ReorderGripper"
+                                        Width="36"
+                                        Margin="0,1,0,0"
+                                        HorizontalAlignment="Left"
+                                        Background="Transparent">
+                                    <FontIcon HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                              FontSize="12"
+                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                              Glyph="&#xE76F;" />
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </local:SettingsExpander.ItemsHeader>
         </local:SettingsExpander>
     </StackPanel>
 </Page>

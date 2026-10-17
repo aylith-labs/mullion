@@ -23,6 +23,7 @@
     </ClCompile>
     <ClCompile Include="CascadiaSettings.cpp" />
     <ClCompile Include="CascadiaSettingsSerialization.cpp" />
+    <ClCompile Include="CascadiaSettings.ProfileOrder.cpp" />
     <ClCompile Include="GlobalAppSettings.cpp" />
     <ClCompile Include="WindowSettings.cpp" />
     <ClCompile Include="KeyChordSerialization.cpp" />

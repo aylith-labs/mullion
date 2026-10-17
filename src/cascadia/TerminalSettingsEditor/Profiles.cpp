@@ -139,6 +139,32 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
     }
 
+    // A ListViewItem's automation name is its item's ToString, which here is the
+    // runtime class name. Name it after the profile, as the card inside already is.
+    void Profiles::ProfilesList_ContainerContentChanging(const ListViewBase& /*sender*/, const ContainerContentChangingEventArgs& args)
+    {
+        if (const auto profile = args.Item().try_as<Editor::ProfileViewModel>())
+        {
+            Automation::AutomationProperties::SetName(args.ItemContainer(), profile.Name());
+        }
+    }
+
+    // By now the ListView has already moved the row within ViewModel.Profiles.
+    // A cancelled drag moves nothing, and reordering into the same order is a
+    // no-op downstream, so there is no need to tell the two apart here.
+    void Profiles::ProfilesList_DragItemsCompleted(const ListViewBase& /*sender*/, const DragItemsCompletedEventArgs& args)
+    {
+        const auto items = args.Items();
+        if (items.Size() == 0)
+        {
+            return;
+        }
+        if (const auto moved = items.GetAt(0).try_as<Editor::ProfileViewModel>())
+        {
+            _ViewModel.RequestReorderProfiles(moved);
+        }
+    }
+
     ProfilesPageViewModel::ProfilesPageViewModel()
     {
         _setProfiles(single_threaded_observable_vector<Editor::ProfileViewModel>());
@@ -194,6 +220,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     void ProfilesPageViewModel::RequestOpenProfile(const Editor::ProfileViewModel& profile)
     {
         OpenProfileRequested.raise(*this, profile);
+    }
+
+    void ProfilesPageViewModel::RequestReorderProfiles(const Editor::ProfileViewModel& moved)
+    {
+        ReorderProfilesRequested.raise(*this, moved);
     }
 
 }

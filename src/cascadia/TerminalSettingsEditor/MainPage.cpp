@@ -1601,6 +1601,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     // nothing at all.
     void MainPage::_ReevaluateDirtyState()
     {
+        // The dropdown decides profile order (CascadiaSettings.ProfileOrder.cpp).
+        // Applying it here, ahead of the fingerprint, catches every dropdown edit
+        // wherever in the folder tree it was made, and is a no-op otherwise.
+        if (_settingsClone.ApplyNewTabMenuProfileOrder())
+        {
+            _SyncProfileViewModelOrder();
+        }
+
         const auto fingerprint = _settingsClone.SerializedFingerprint();
         if (fingerprint.empty())
         {
@@ -1896,6 +1904,114 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _profilesPageVM.OpenProfileRequested([this](const auto&, const Editor::ProfileViewModel& profile) {
             _Navigate(profile);
         });
+        _profilesPageVM.ReorderProfilesRequested([this](const auto&, const Editor::ProfileViewModel& moved) {
+            _ReorderProfiles(moved.OriginalProfileGuid());
+        });
+    }
+
+    // Profile order, as profiles.list holds it, restricted to the profiles in `among`.
+    std::vector<winrt::guid> MainPage::_ProfileOrderAmong(const std::vector<winrt::guid>& among) const
+    {
+        std::vector<winrt::guid> order;
+        for (const auto& profile : _settingsClone.AllProfiles())
+        {
+            if (std::ranges::find(among, profile.Guid()) != among.end())
+            {
+                order.emplace_back(profile.Guid());
+            }
+        }
+        return order;
+    }
+
+    // A row was dragged on the Profiles page, and _profilesPageVM.Profiles() is
+    // already in the order it was dropped into.
+    //
+    // The dropdown decides profile order (CascadiaSettings.ProfileOrder.cpp), so
+    // the drop has to become a dropdown edit. Sorting the dropdown's own profile
+    // entries covers moves among them, and moves within "remaining profiles"
+    // need nothing at all. A profile dragged out of the remaining group next to
+    // an explicit entry gets an entry of its own there; an explicit one dragged
+    // in among the remaining profiles loses its entry. Anything the dropdown
+    // still cannot express - a profile dropped inside a matcher's group that it
+    // does not match - goes where the dropdown puts it, and the list shows that.
+    void MainPage::_ReorderProfiles(const winrt::guid& moved)
+    {
+        std::vector<winrt::guid> wanted;
+        for (const auto& profileVM : _profilesPageVM.Profiles())
+        {
+            wanted.emplace_back(profileVM.OriginalProfileGuid());
+        }
+
+        const auto newTabMenu = get_self<implementation::NewTabMenuViewModel>(_newTabMenuPageVM);
+        const auto tryOrder = [&]() {
+            auto order = wanted;
+            _settingsClone.ReorderProfiles(winrt::single_threaded_vector(std::move(order)).GetView());
+            newTabMenu->SortProfileEntries(wanted);
+            _settingsClone.ApplyNewTabMenuProfileOrder();
+            return _ProfileOrderAmong(wanted) == wanted;
+        };
+
+        if (!tryOrder())
+        {
+            const auto it = std::ranges::find(wanted, moved);
+            const auto previous = it != wanted.begin() && it != wanted.end() ? *(it - 1) : winrt::guid{};
+            const auto next = it != wanted.end() && it + 1 != wanted.end() ? *(it + 1) : winrt::guid{};
+
+            const auto profile = _settingsClone.FindProfile(moved);
+            const auto pinned = newTabMenu->IsProfilePinned(moved);
+            const auto besideNext = newTabMenu->IsProfilePinned(next);
+            const auto besidePrevious = !besideNext && newTabMenu->IsProfilePinned(previous);
+
+            if (profile && !profile.Hidden() && (besideNext || besidePrevious))
+            {
+                // Next to an explicit entry: an entry of its own, right there.
+                // For one that was already pinned this moves its entry, which
+                // is what carries it into or out of a folder.
+                if (pinned)
+                {
+                    newTabMenu->UnpinProfile(moved);
+                }
+                newTabMenu->PinProfileNextTo(profile, besideNext ? next : previous, besideNext);
+            }
+            else if (pinned && !newTabMenu->IsRemainingProfilesEntryMissing())
+            {
+                // Among the remaining profiles. Without a "remaining profiles"
+                // entry it would vanish from the dropdown instead, so then it
+                // stays pinned and snaps back.
+                newTabMenu->UnpinProfile(moved);
+            }
+            tryOrder();
+        }
+
+        _SyncProfileViewModelOrder();
+        OnAnyViewModelChanged();
+    }
+
+    // Move the Profiles page's rows to match AllProfiles(), touching only rows
+    // that are out of place. Rebuilding the list would reset the ListView under
+    // a drag that has only just finished.
+    void MainPage::_SyncProfileViewModelOrder()
+    {
+        const auto profileVMs = _profilesPageVM.Profiles();
+        uint32_t target = 0;
+        for (const auto& profile : _settingsClone.AllProfiles())
+        {
+            for (auto i = target; i < profileVMs.Size(); ++i)
+            {
+                const auto profileVM = profileVMs.GetAt(i);
+                if (profileVM.OriginalProfileGuid() != profile.Guid())
+                {
+                    continue;
+                }
+                if (i != target)
+                {
+                    profileVMs.RemoveAt(i);
+                    profileVMs.InsertAt(target, profileVM);
+                }
+                ++target;
+                break;
+            }
+        }
     }
 
     winrt::Windows::UI::Xaml::Media::Brush MainPage::BackgroundBrush()

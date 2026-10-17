@@ -70,6 +70,12 @@ namespace Microsoft.Terminal.Settings.Model
 
         Profile DuplicateProfile(Profile sourceProfile);
 
+        // Profile order follows the new tab dropdown (CascadiaSettings.ProfileOrder.cpp).
+        // Returns whether any profile moved.
+        Boolean ApplyNewTabMenuProfileOrder();
+        // Profiles named in `order` take its order, within the positions they hold now.
+        void ReorderProfiles(Windows.Foundation.Collections.IVectorView<Guid> order);
+
         ActionMap ActionMap { get; };
         Windows.Foundation.Collections.IVectorView<ExtensionPackage> Extensions { get; };
 

@@ -185,6 +185,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         Model::Profile GetProfileByName(const winrt::hstring& name) const;
         Model::Profile GetProfileByIndex(uint32_t index) const;
         Model::Profile DuplicateProfile(const Model::Profile& source);
+        bool ApplyNewTabMenuProfileOrder();
+        void ReorderProfiles(const winrt::Windows::Foundation::Collections::IVectorView<winrt::guid>& order);
 
         // load errors
         winrt::Windows::Foundation::Collections::IVectorView<Model::SettingsLoadWarnings> Warnings() const;
@@ -217,6 +219,10 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         void _resolveDefaultProfile() const;
         void _resolveNewTabMenuProfiles() const;
         void _resolveNewTabMenuProfilesSet(const winrt::Windows::Foundation::Collections::IVector<Model::NewTabMenuEntry> entries, winrt::Windows::Foundation::Collections::IMap<int, Model::Profile>& remainingProfiles, Model::RemainingProfilesEntry& remainingProfilesEntry) const;
+
+        Model::Profile _profileForMenuEntry(const Model::ProfileEntry& entry) const;
+        void _collectMenuProfiles(const winrt::Windows::Foundation::Collections::IVector<Model::NewTabMenuEntry>& entries, std::vector<Model::Profile>& shown, std::vector<Model::Profile>& claimed, bool& sawRemaining) const;
+        bool _permuteProfileSlots(const std::vector<Model::Profile>& wanted);
 
         void _validateSettings();
         void _validateAllSchemesExist();

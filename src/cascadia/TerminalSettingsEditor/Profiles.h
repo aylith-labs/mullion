@@ -30,6 +30,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void RequestOpenColorSchemes();
         void RequestAddProfile(const winrt::guid& sourceProfile);
         void RequestOpenProfile(const Editor::ProfileViewModel& profile);
+        void RequestReorderProfiles(const Editor::ProfileViewModel& moved);
 
         Editor::ProfileViewModel SelectedSourceProfile() const noexcept { return _SelectedSourceProfile; }
         void SelectSourceProfile(const Editor::ProfileViewModel& profile);
@@ -47,6 +48,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         til::typed_event<Windows::Foundation::IInspectable, Windows::Foundation::IInspectable> OpenColorSchemesRequested;
         til::typed_event<Windows::Foundation::IInspectable, winrt::guid> AddProfileRequested;
         til::typed_event<Windows::Foundation::IInspectable, Editor::ProfileViewModel> OpenProfileRequested;
+        til::typed_event<Windows::Foundation::IInspectable, Editor::ProfileViewModel> ReorderProfilesRequested;
 
     private:
         Editor::ProfileViewModel _SelectedSourceProfile{ nullptr };
@@ -62,6 +64,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void AddProfile_Click(const Microsoft::UI::Xaml::Controls::SplitButton& sender, const Microsoft::UI::Xaml::Controls::SplitButtonClickEventArgs& args);
         void AddProfileFlyout_Opening(const Windows::Foundation::IInspectable& sender, const Windows::Foundation::IInspectable& args);
         void Profile_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
+        void ProfilesList_ContainerContentChanging(const Windows::UI::Xaml::Controls::ListViewBase& sender, const Windows::UI::Xaml::Controls::ContainerContentChangingEventArgs& args);
+        void ProfilesList_DragItemsCompleted(const Windows::UI::Xaml::Controls::ListViewBase& sender, const Windows::UI::Xaml::Controls::DragItemsCompletedEventArgs& args);
 
         til::property_changed_event PropertyChanged;
         WINRT_PROPERTY(Editor::ProfilesPageViewModel, ViewModel, nullptr);

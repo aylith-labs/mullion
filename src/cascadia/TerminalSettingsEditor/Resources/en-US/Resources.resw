@@ -2213,6 +2213,14 @@
     <value>Terminal profiles</value>
     <comment>Section header on the Profiles landing page. Introduces the list of individual terminal profiles configured by the user.</comment>
   </data>
+  <data name="Profiles_TerminalProfilesHeader.Description" xml:space="preserve">
+    <value>Drag a profile by its handle to reorder it. The order is the dropdown menu's, and Ctrl+Shift+1 to 9 follow it.</value>
+    <comment>Description under the "Terminal profiles" section header. Explains that the profile rows can be dragged, and that their order is shared with the new tab dropdown menu and its numbered shortcuts.</comment>
+  </data>
+  <data name="Profiles_ReorderGripper.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Drag to reorder</value>
+    <comment>Tooltip on the drag handle at the left of each profile row on the Profiles landing page.</comment>
+  </data>
   <data name="Profiles_DefaultsNavigator.Header" xml:space="preserve">
     <value>Defaults</value>
     <comment>Title for the "Defaults" navigator on the Profiles landing page. Clicking this opens the page where defaults shared by all profiles can be edited.</comment>

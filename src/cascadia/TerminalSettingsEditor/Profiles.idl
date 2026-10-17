@@ -25,11 +25,14 @@ namespace Microsoft.Terminal.Settings.Editor
         void RequestOpenColorSchemes();
         void RequestAddProfile(Guid sourceProfile);
         void RequestOpenProfile(ProfileViewModel profile);
+        // Profiles has already been reordered by the drag; the argument is the profile that moved.
+        void RequestReorderProfiles(ProfileViewModel moved);
 
         event Windows.Foundation.TypedEventHandler<Object, IInspectable> OpenDefaultsRequested;
         event Windows.Foundation.TypedEventHandler<Object, IInspectable> OpenColorSchemesRequested;
         event Windows.Foundation.TypedEventHandler<Object, Guid> AddProfileRequested;
         event Windows.Foundation.TypedEventHandler<Object, ProfileViewModel> OpenProfileRequested;
+        event Windows.Foundation.TypedEventHandler<Object, ProfileViewModel> ReorderProfilesRequested;
     }
 
     [default_interface] runtimeclass Profiles : Windows.UI.Xaml.Controls.Page

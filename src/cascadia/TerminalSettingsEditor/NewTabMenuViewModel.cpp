@@ -477,6 +477,128 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return entryVM;
     }
 
+    // The GUID of the profile an explicit profile entry shows, or a null GUID for
+    // every other kind of entry (and for a profile entry that resolved to nothing).
+    static winrt::guid _pinnedProfileGuid(const Editor::NewTabMenuEntryViewModel& entry)
+    {
+        if (entry.Type() == NewTabMenuEntryType::Profile)
+        {
+            if (const auto profile = entry.as<Editor::ProfileEntryViewModel>().ProfileEntry().Profile())
+            {
+                return profile.Guid();
+            }
+        }
+        return {};
+    }
+
+    // The root list and every folder's list, each of which writes through to the
+    // settings model on its own VectorChanged.
+    static void _collectContainers(const IVector<Editor::NewTabMenuEntryViewModel>& entries, std::vector<IVector<Editor::NewTabMenuEntryViewModel>>& containers)
+    {
+        containers.emplace_back(entries);
+        for (const auto& entry : entries)
+        {
+            if (const auto folder = entry.try_as<Editor::FolderEntryViewModel>())
+            {
+                _collectContainers(folder.Entries(), containers);
+            }
+        }
+    }
+
+    // Within each list, put the explicit profile entries into `order`'s order,
+    // using only the positions they already occupy. Separators, folders,
+    // matchers and "remaining profiles" stay exactly where they are.
+    void NewTabMenuViewModel::SortProfileEntries(const std::vector<winrt::guid>& order)
+    {
+        const auto rank = [&](const Editor::NewTabMenuEntryViewModel& entry) {
+            return std::ranges::find(order, _pinnedProfileGuid(entry)) - order.begin();
+        };
+
+        std::vector<IVector<Editor::NewTabMenuEntryViewModel>> containers;
+        _collectContainers(_rootEntries, containers);
+        for (const auto& container : containers)
+        {
+            std::vector<uint32_t> slots;
+            std::vector<Editor::NewTabMenuEntryViewModel> entries;
+            for (uint32_t i = 0; i < container.Size(); ++i)
+            {
+                const auto entry = container.GetAt(i);
+                if (_pinnedProfileGuid(entry) != winrt::guid{})
+                {
+                    slots.emplace_back(i);
+                    entries.emplace_back(entry);
+                }
+            }
+            std::ranges::stable_sort(entries, {}, rank);
+            for (size_t k = 0; k < slots.size(); ++k)
+            {
+                if (container.GetAt(slots[k]) != entries[k])
+                {
+                    container.SetAt(slots[k], entries[k]);
+                }
+            }
+        }
+    }
+
+    bool NewTabMenuViewModel::IsProfilePinned(const winrt::guid& profile) const
+    {
+        if (profile == winrt::guid{})
+        {
+            return false;
+        }
+        std::vector<IVector<Editor::NewTabMenuEntryViewModel>> containers;
+        _collectContainers(_rootEntries, containers);
+        return std::ranges::any_of(containers, [&](const auto& container) {
+            for (const auto& entry : container)
+            {
+                if (_pinnedProfileGuid(entry) == profile)
+                {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    bool NewTabMenuViewModel::UnpinProfile(const winrt::guid& profile)
+    {
+        std::vector<IVector<Editor::NewTabMenuEntryViewModel>> containers;
+        _collectContainers(_rootEntries, containers);
+        for (const auto& container : containers)
+        {
+            for (uint32_t i = 0; i < container.Size(); ++i)
+            {
+                if (_pinnedProfileGuid(container.GetAt(i)) == profile)
+                {
+                    container.RemoveAt(i);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool NewTabMenuViewModel::PinProfileNextTo(const Model::Profile& profile, const winrt::guid& neighbor, bool before)
+    {
+        std::vector<IVector<Editor::NewTabMenuEntryViewModel>> containers;
+        _collectContainers(_rootEntries, containers);
+        for (const auto& container : containers)
+        {
+            for (uint32_t i = 0; i < container.Size(); ++i)
+            {
+                if (_pinnedProfileGuid(container.GetAt(i)) == neighbor)
+                {
+                    // Same construction as RequestAddSelectedProfileEntry.
+                    Model::ProfileEntry profileEntry;
+                    profileEntry.Profile(profile);
+                    container.InsertAt(before ? i : i + 1, make<ProfileEntryViewModel>(profileEntry));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     void NewTabMenuViewModel::GenerateFolderTree()
     {
         if (!_folderTreeCache)

@@ -108,6 +108,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _CreateAndNavigateToNewProfile(const Model::Profile& profile);
         void _DeleteProfile(const Windows::Foundation::IInspectable sender, const Editor::DeleteProfileEventArgs& args);
         void _AddProfileHandler(const winrt::guid profileGuid);
+        void _ReorderProfiles(const winrt::guid& moved);
+        void _SyncProfileViewModelOrder();
+        std::vector<winrt::guid> _ProfileOrderAmong(const std::vector<winrt::guid>& among) const;
 
         void _SetupProfileEventHandling(const winrt::Microsoft::Terminal::Settings::Editor::ProfileViewModel profile);
         void _SetupColorSchemesEventHandling();
