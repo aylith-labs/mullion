@@ -304,6 +304,12 @@ foreach ($xamlFile in Get-ChildItem -Path $SourceDir -Filter *.xaml)
             SubPage         = $ClassMap[$pageClass].SubPage
             ElementName     = $null # No specific element to navigate to, for the page itself
             SecondaryLabel  = $ClassMap[$pageClass].SecondaryLabel # Resource name for the result's sub-text (i.e. parent page name); $null if none
+            # The page's own entry speaks for the page, so a page the fork added is the
+            # fork's here too. Left unmarked, it made every fork page read as upstream's to
+            # the view filter, and Integrations -- whose only entry this is -- as having
+            # nothing of ours on it.
+            IsForkFeature   = $ForkPages -contains $filename
+            IsExperimental  = $false
             File            = $filename
         }
     }

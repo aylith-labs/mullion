@@ -117,7 +117,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
         for (const auto& item : items)
         {
-            if (const auto navItem = item.template try_as<MUX::Controls::NavigationViewItem>())
+            // Skipping what the view filter collapsed, so the window never opens on, or
+            // falls back to, a page the filter has taken out of the list.
+            if (const auto navItem = item.template try_as<MUX::Controls::NavigationViewItem>();
+                navItem && navItem.Visibility() == WUX::Visibility::Visible)
             {
                 return navItem;
             }
@@ -1535,11 +1538,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
 
         // Nav entries with nothing left to show go, and then any group heading left
-        // with no entries under it. The selected entry always stays: the page it opened
-        // is still on screen, and a selection with no visible item is its own confusion.
-        // The footer (Show descriptions, Open JSON) is not in MenuItems, so it is never
-        // touched.
-        const auto selected = SettingsNav().SelectedItem();
+        // with no entries under it. The footer (Show descriptions, Open JSON) is not in
+        // MenuItems, so it is never touched.
         const auto apply = [&](const auto& items) {
             if (!items)
             {
@@ -1568,21 +1568,40 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                     continue;
                 }
                 const auto tag = navItem.Tag().try_as<hstring>();
-                const auto keep = !tag ||
-                                  winrt::get_abi(navItem) == winrt::get_abi(selected) ||
-                                  ViewFilter::PageAdmits(mode, *tag);
+                const auto keep = !tag || ViewFilter::PageAdmits(mode, *tag);
                 navItem.Visibility(keep ? WUX::Visibility::Visible : WUX::Visibility::Collapsed);
                 headingHasItems |= keep;
             }
             closeGroup();
         };
+        MUX::Controls::NavigationViewItem first{ nullptr };
         if (_menuItemSource)
         {
             apply(_menuItemSource);
+            first = _firstNavigablePage(_menuItemSource);
         }
         else
         {
             apply(SettingsNav().MenuItems());
+            first = _firstNavigablePage(SettingsNav().MenuItems());
+        }
+
+        // The page on screen just left the list: move to the first one still in it,
+        // rather than sit on a page of leftovers. A fork page under the upstream filter
+        // has no rows left, but its non-row content -- the link preview, the rule list
+        // -- has no marks to hide by, so staying would show exactly the wrong half.
+        // Before the first navigation there is no selection, and SettingsNav_Loaded
+        // picks the first visible page itself.
+        const auto current = SettingsNav().SelectedItem().try_as<MUX::Controls::NavigationViewItem>();
+        if (current && current.Visibility() != WUX::Visibility::Visible && first)
+        {
+            SettingsNav().SelectedItem(first);
+            // Selecting programmatically raises no ItemInvoked, so navigate by hand, as
+            // SettingsNav_Loaded does.
+            if (const auto tag = first.Tag())
+            {
+                _Navigate(tag, BreadcrumbSubPage::None);
+            }
         }
     }
 
