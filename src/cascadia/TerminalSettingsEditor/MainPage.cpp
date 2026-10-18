@@ -420,6 +420,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _Navigate(destination, subPage);
 
         _UpdateSearchIndex();
+
+        // The clone is brand new, so it matches the file again: this is the baseline
+        // for both a reload and a Discard. Here and not in _Navigate, which every page
+        // switch goes through: re-baselining there declared unsaved edits clean, so
+        // Save greyed out over them, and auto-save never wrote an edit made in the
+        // moments before switching pages.
+        _RecordCleanState();
     }
 
     void MainPage::SetHostingWindow(uint64_t hostingWindow) noexcept
@@ -495,6 +502,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 {
                     _Navigate(tag, BreadcrumbSubPage::None);
                 }
+
+                // The first page is built after the constructor took its baseline,
+                // and nothing can have been edited yet: take it again, so a page
+                // that tidies the clone while it loads does not open as unsaved.
+                _RecordCleanState();
             }
         }
 
@@ -1349,10 +1361,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         {
             _SelectNavItemByTag(selectedNavTag);
         }
-
-        // The clone is brand new, so it matches the file again: this is the baseline
-        // for both a fresh open and a Discard.
-        _RecordCleanState();
     }
 
     void MainPage::SaveButton_Click(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
