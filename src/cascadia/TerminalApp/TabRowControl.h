@@ -74,6 +74,9 @@ namespace winrt::TerminalApp::implementation
         // Repeats shown as one row with a count. On unless switched off in the
         // flyout, and only for the life of the window.
         bool _groupPipeCalls{ true };
+        // Times as the local date and time rather than "3 minutes ago". Off
+        // unless switched on in the flyout, and only for the life of the window.
+        bool _absolutePipeTimes{ false };
     };
 }
 

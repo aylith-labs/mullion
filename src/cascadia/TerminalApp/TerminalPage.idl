@@ -119,8 +119,9 @@ namespace TerminalApp
     // and all, is the activity log's controlPipe event.
     struct ControlPipeCall
     {
-        // Local wall-clock time, "14:03:07".
-        String Time;
+        // When it was answered, in Unix seconds. The flyout shows it either as
+        // "3 minutes ago" or as the local date and time.
+        Int64 When;
         // The client's image name and pid, "powershell.exe (4242)".
         String Client;
         // The wire op, "send-input", or "unparsed".

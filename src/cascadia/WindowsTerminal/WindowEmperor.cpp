@@ -474,15 +474,6 @@ void WindowEmperor::_broadcastControlPipeCall(const ControlPipeCallRecord& recor
     // page has the whole text.
     static constexpr size_t MaxFlyoutDetail = 160;
 
-    std::wstring time;
-    {
-        SYSTEMTIME local{};
-        GetLocalTime(&local);
-        wchar_t buffer[16]{};
-        swprintf_s(buffer, L"%02u:%02u:%02u", static_cast<unsigned>(local.wHour), static_cast<unsigned>(local.wMinute), static_cast<unsigned>(local.wSecond));
-        time = buffer;
-    }
-
     std::wstring client;
     std::wstring program;
     {
@@ -508,7 +499,7 @@ void WindowEmperor::_broadcastControlPipeCall(const ControlPipeCallRecord& recor
     }
 
     winrt::TerminalApp::ControlPipeCall call{};
-    call.Time = winrt::hstring{ time };
+    call.When = _time64(nullptr);
     call.Client = winrt::hstring{ client };
     call.Operation = winrt::hstring{ record.description.op };
     call.Target = winrt::hstring{ record.description.target };

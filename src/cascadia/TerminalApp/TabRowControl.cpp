@@ -7,6 +7,7 @@
 
 #include "TabRowControl.g.cpp"
 
+#include <array>
 #include <unordered_map>
 
 using namespace winrt::Windows::ApplicationModel::DataTransfer;
@@ -19,6 +20,47 @@ namespace winrt
 {
     namespace MUX = Microsoft::UI::Xaml;
     namespace WUX = Windows::UI::Xaml;
+}
+
+namespace
+{
+    // "12 seconds ago" - pipe requests come seconds apart, so under a minute
+    // is worth counting - and BuildInfo's words from a minute up, so this and
+    // the About dialog describe an age the same way.
+    std::wstring _pipeTimeAgo(int64_t when)
+    {
+        const auto seconds = _time64(nullptr) - when;
+        if (seconds < 5)
+        {
+            return L"just now";
+        }
+        if (seconds < 60)
+        {
+            return fmt::format(FMT_COMPILE(L"{} seconds ago"), seconds);
+        }
+        return ::TerminalApp::BuildInfo::RelativeAge(when);
+    }
+
+    // The user's short date and time, as the Activity page writes them.
+    std::wstring _pipeDateTime(int64_t when)
+    {
+        // Unix seconds to a FILETIME, which counts 100 ns from 1601.
+        ULARGE_INTEGER ticks{};
+        ticks.QuadPart = (static_cast<uint64_t>(when) + 11'644'473'600ull) * 10'000'000ull;
+        const FILETIME utcFile{ ticks.LowPart, ticks.HighPart };
+        SYSTEMTIME utc{};
+        SYSTEMTIME local{};
+        std::array<wchar_t, 128> date{};
+        std::array<wchar_t, 128> time{};
+        if (FileTimeToSystemTime(&utcFile, &utc) &&
+            SystemTimeToTzSpecificLocalTime(nullptr, &utc, &local) &&
+            GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, DATE_SHORTDATE, &local, nullptr, date.data(), gsl::narrow_cast<int>(date.size()), nullptr) &&
+            GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, &local, nullptr, time.data(), gsl::narrow_cast<int>(time.size())))
+        {
+            return fmt::format(FMT_COMPILE(L"{} {}"), std::wstring_view{ date.data() }, std::wstring_view{ time.data() });
+        }
+        return std::to_wstring(when);
+    }
 }
 
 namespace winrt::TerminalApp::implementation
@@ -148,43 +190,15 @@ namespace winrt::TerminalApp::implementation
 
         const WUX::Media::FontFamily mono{ L"Cascadia Mono, Consolas, monospace" };
 
-        // The heading, with the grouping switch beside it.
-        WUX::Controls::Grid header;
-        header.Margin(WUX::Thickness{ 0, 0, 0, 4 });
-        {
-            WUX::Controls::ColumnDefinition grow;
-            grow.Width(WUX::GridLengthHelper::FromValueAndType(1, WUX::GridUnitType::Star));
-            header.ColumnDefinitions().Append(grow);
-            header.ColumnDefinitions().Append(WUX::Controls::ColumnDefinition{});
-        }
-
         WUX::Controls::TextBlock title;
         title.Text(RS_(L"PipeActivity_FlyoutTitle"));
         title.FontWeight(FontWeights::SemiBold());
-        title.VerticalAlignment(WUX::VerticalAlignment::Center);
-        header.Children().Append(title);
+        title.Margin(WUX::Thickness{ 0, 0, 0, 4 });
+        children.Append(title);
 
-        WUX::Controls::CheckBox group;
-        group.Content(winrt::box_value(RS_(L"PipeActivity_Group")));
-        group.IsChecked(_groupPipeCalls);
-        group.MinWidth(0);
-        group.Margin(WUX::Thickness{ 12, 0, 0, 0 });
-        WUX::Controls::Grid::SetColumn(group, 1);
-        const auto toggled = [weakThis = get_weak(), weakFlyout = winrt::make_weak(flyout)](const winrt::Windows::Foundation::IInspectable& sender, const auto&) {
-            const auto self = weakThis.get();
-            const auto open = weakFlyout.get();
-            const auto box = sender.try_as<WUX::Controls::CheckBox>();
-            if (!self || !open || !box)
-            {
-                return;
-            }
-            self->_groupPipeCalls = box.IsChecked() && box.IsChecked().Value();
-            self->_rebuildPipeActivityList(open);
+        const auto formatTime = [absolute = _absolutePipeTimes](int64_t when) {
+            return absolute ? _pipeDateTime(when) : _pipeTimeAgo(when);
         };
-        group.Checked(toggled);
-        group.Unchecked(toggled);
-        header.Children().Append(group);
-        children.Append(header);
 
         // Repeats of one request - same program, same sender and reason, same
         // op on the same target asking the same thing, answered the same way -
@@ -194,7 +208,7 @@ namespace winrt::TerminalApp::implementation
         struct Row
         {
             const winrt::TerminalApp::ControlPipeCall* newest;
-            std::wstring_view oldestTime;
+            int64_t oldest;
             uint32_t count;
         };
         std::vector<Row> rows;
@@ -207,7 +221,7 @@ namespace winrt::TerminalApp::implementation
                 {
                     break;
                 }
-                rows.push_back({ &call, {}, 1 });
+                rows.push_back({ &call, call.When, 1 });
                 continue;
             }
 
@@ -223,12 +237,12 @@ namespace winrt::TerminalApp::implementation
             {
                 auto& row = rows[found->second];
                 row.count++;
-                row.oldestTime = call.Time;
+                row.oldest = call.When;
             }
             else if (rows.size() < MaxListedPipeRows)
             {
                 byKey.emplace(std::move(key), rows.size());
-                rows.push_back({ &call, {}, 1 });
+                rows.push_back({ &call, call.When, 1 });
             }
         }
 
@@ -236,9 +250,10 @@ namespace winrt::TerminalApp::implementation
         {
             const auto& call = *row.newest;
 
-            // "14:03:07  send-input 1.0.3  ok" - and a failure is marked, because
-            // a refused write is the row worth noticing in a list of fine ones.
-            std::wstring headline{ std::wstring_view{ call.Time } };
+            // "3 minutes ago  send-input 1.0.3  ok" - and a failure is marked,
+            // because a refused write is the row worth noticing in a list of
+            // fine ones.
+            auto headline = formatTime(call.When);
             headline.append(L"  ");
             if (!call.Ok)
             {
@@ -304,10 +319,15 @@ namespace winrt::TerminalApp::implementation
                 context.append(L"  ");
                 context.append(std::wstring_view{ call.Detail });
             }
-            if (row.count > 1 && !row.oldestTime.empty() && row.oldestTime != std::wstring_view{ call.Time })
+            if (row.count > 1)
             {
-                context.append(L"  · ");
-                context.append(RS_fmt(L"PipeActivity_FirstSeen", row.oldestTime));
+                // Two repeats in the same second, or the same minute in words,
+                // would only print the headline's time again.
+                if (const auto oldest = formatTime(row.oldest); oldest != formatTime(call.When))
+                {
+                    context.append(L"  · ");
+                    context.append(RS_fmt(L"PipeActivity_FirstSeen", oldest));
+                }
             }
 
             WUX::Controls::TextBlock second;
@@ -331,9 +351,76 @@ namespace winrt::TerminalApp::implementation
             children.Append(entry);
         }
 
+        // The footer: the way to everything else, then the two view switches.
+        WUX::Controls::Grid footer;
+        footer.Margin(WUX::Thickness{ 0, 4, 0, 0 });
+        footer.ColumnSpacing(12);
+        {
+            WUX::Controls::ColumnDefinition grow;
+            grow.Width(WUX::GridLengthHelper::FromValueAndType(1, WUX::GridUnitType::Star));
+            footer.ColumnDefinitions().Append(grow);
+            for (auto i = 0; i < 2; ++i)
+            {
+                WUX::Controls::ColumnDefinition fit;
+                fit.Width(WUX::GridLengthHelper::Auto());
+                footer.ColumnDefinitions().Append(fit);
+            }
+        }
+
+        // Says which form the times are in now; a click flips it.
+        WUX::Controls::FontIcon clock;
+        clock.FontSize(12);
+        clock.Glyph(L"\xE823");
+        WUX::Controls::TextBlock clockLabel;
+        clockLabel.Text(_absolutePipeTimes ? RS_(L"PipeActivity_DateTime") : RS_(L"PipeActivity_TimeAgo"));
+        clockLabel.VerticalAlignment(WUX::VerticalAlignment::Center);
+        WUX::Controls::StackPanel clockContent;
+        clockContent.Orientation(WUX::Controls::Orientation::Horizontal);
+        clockContent.Spacing(6);
+        clockContent.Children().Append(clock);
+        clockContent.Children().Append(clockLabel);
+
+        WUX::Controls::Button timeFormat;
+        timeFormat.Content(clockContent);
+        timeFormat.VerticalAlignment(WUX::VerticalAlignment::Center);
+        WUX::Controls::ToolTipService::SetToolTip(timeFormat, winrt::box_value(RS_(L"PipeActivity_TimeFormatTip")));
+        timeFormat.Click([weakThis = get_weak(), weakFlyout = winrt::make_weak(flyout)](const auto&, const auto&) {
+            const auto self = weakThis.get();
+            const auto open = weakFlyout.get();
+            if (!self || !open)
+            {
+                return;
+            }
+            self->_absolutePipeTimes = !self->_absolutePipeTimes;
+            self->_rebuildPipeActivityList(open);
+        });
+        WUX::Controls::Grid::SetColumn(timeFormat, 1);
+        footer.Children().Append(timeFormat);
+
+        WUX::Controls::CheckBox group;
+        group.Content(winrt::box_value(RS_(L"PipeActivity_Group")));
+        group.IsChecked(_groupPipeCalls);
+        group.MinWidth(0);
+        group.VerticalAlignment(WUX::VerticalAlignment::Center);
+        WUX::Controls::Grid::SetColumn(group, 2);
+        const auto toggled = [weakThis = get_weak(), weakFlyout = winrt::make_weak(flyout)](const winrt::Windows::Foundation::IInspectable& sender, const auto&) {
+            const auto self = weakThis.get();
+            const auto open = weakFlyout.get();
+            const auto box = sender.try_as<WUX::Controls::CheckBox>();
+            if (!self || !open || !box)
+            {
+                return;
+            }
+            self->_groupPipeCalls = box.IsChecked() && box.IsChecked().Value();
+            self->_rebuildPipeActivityList(open);
+        };
+        group.Checked(toggled);
+        group.Unchecked(toggled);
+        footer.Children().Append(group);
+
         WUX::Controls::HyperlinkButton showAll;
         showAll.Content(winrt::box_value(RS_(L"PipeActivity_ShowAll")));
-        showAll.Margin(WUX::Thickness{ 0, 4, 0, 0 });
+        showAll.VerticalAlignment(WUX::VerticalAlignment::Center);
         showAll.Click([weakThis = get_weak(), weakFlyout = winrt::make_weak(flyout)](const auto&, const auto&) {
             if (const auto open = weakFlyout.get())
             {
@@ -344,7 +431,8 @@ namespace winrt::TerminalApp::implementation
                 self->ShowAllControlPipeCallsRequested.raise(*self, nullptr);
             }
         });
-        children.Append(showAll);
+        footer.Children().Append(showAll);
+        children.Append(footer);
     }
 
     // Method Description:
