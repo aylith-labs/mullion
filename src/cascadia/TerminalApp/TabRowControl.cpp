@@ -126,6 +126,23 @@ namespace winrt::TerminalApp::implementation
             return;
         }
 
+        // No wider than the monitor the badge was clicked on, less the
+        // presenter's padding and a margin. The cursor stands in for the badge,
+        // since XAML has no screen coordinates for it; from the keyboard it
+        // picks the nearest monitor, which is the window's own nearly always.
+        if (const auto root = XamlRoot())
+        {
+            POINT cursor{};
+            MONITORINFO monitor{ sizeof(monitor) };
+            if (::GetCursorPos(&cursor) &&
+                ::GetMonitorInfoW(::MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST), &monitor))
+            {
+                const auto scale = root.RasterizationScale();
+                const auto width = (monitor.rcWork.right - monitor.rcWork.left) / (scale > 0 ? scale : 1.0);
+                list.MaxWidth(std::max(list.MinWidth(), width - 64));
+            }
+        }
+
         auto children = list.Children();
         children.Clear();
 

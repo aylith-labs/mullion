@@ -154,10 +154,25 @@
                                        Visibility="{x:Bind HasUnseenPipeCalls, Mode=OneWay}" />
                         </StackPanel>
                         <Button.Flyout>
+                            <!--
+                                As wide as its longest row, up to the monitor's width:
+                                the stock presenter caps a flyout at 456 and scrolls
+                                sideways past that, which here only hid the ends of
+                                rows. Unconstrained so it is not held to the window;
+                                the content's MaxWidth is set from the monitor in
+                                _rebuildPipeActivityList, and rows trim beyond it.
+                            -->
                             <Flyout Opening="OnPipeActivityFlyoutOpening"
-                                    Placement="BottomEdgeAlignedRight">
+                                    Placement="BottomEdgeAlignedRight"
+                                    ShouldConstrainToRootBounds="False">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <Style TargetType="FlyoutPresenter">
+                                        <Setter Property="MaxWidth" Value="9999" />
+                                        <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                                        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                                    </Style>
+                                </Flyout.FlyoutPresenterStyle>
                                 <StackPanel MinWidth="320"
-                                            MaxWidth="560"
                                             Spacing="6">
                                     <!--
                                         The rows are built in code; these give a grouped
