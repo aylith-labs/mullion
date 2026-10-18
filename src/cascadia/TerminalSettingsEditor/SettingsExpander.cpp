@@ -6,6 +6,7 @@
 #include "SettingsExpander.g.cpp"
 #include "SettingsExpanderItemStyleSelector.g.cpp"
 #include "SettingsControlsHelpers.h"
+#include "SettingsViewFilter.h"
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Foundation::Collections;
@@ -235,6 +236,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             // Push our initial ItemsSource through to the host and stamp item-container styles.
             _UpdateItemsSource();
         }
+
+        if (!_trackedByViewFilter)
+        {
+            _trackedByViewFilter = true;
+            ViewFilter::Track(*this);
+        }
+        ViewFilter::ApplyAround(*this);
     }
 
     void SettingsExpander::_SetAccessibleName()

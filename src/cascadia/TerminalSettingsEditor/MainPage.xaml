@@ -181,8 +181,20 @@
                     -->
                     <Grid x:Name="HeaderSearchHost"
                           Grid.Column="1">
+                    <!--
+                        The search box and the view filter beside it move as one row, so
+                        the filter is in reach wherever the box is: in the pane, or up
+                        here with the pane down to its icons.
+                    -->
+                    <Grid x:Name="SearchRow"
+                          ColumnSpacing="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <AutoSuggestBox x:Name="SettingsSearchBox"
                                     x:Uid="Nav_SearchBox"
+                                    Grid.Column="0"
                                     HorizontalAlignment="Stretch"
                                     VerticalAlignment="Center"
                                     GotFocus="SettingsSearchBox_GotFocus"
@@ -233,6 +245,64 @@
                             </DataTemplate>
                         </AutoSuggestBox.ItemTemplate>
                     </AutoSuggestBox>
+
+                    <!--
+                        Which settings the window lists (SettingsViewFilter.h). A menu of
+                        four rather than a ComboBox so it fits beside the box at any pane
+                        width; the icon turns accent while a filter is on, because a page
+                        with rows missing must not look like a page that has none.
+                    -->
+                    <muxc:DropDownButton x:Name="ViewFilterButton"
+                                         x:Uid="Nav_ViewFilterButton"
+                                         Grid.Column="1"
+                                         VerticalAlignment="Center">
+                        <!--
+                            Two icons rather than one recoloured from code: a brush looked
+                            up from code is the app theme's, and this window can be in the
+                            other one. The label names the filter while one is on.
+                        -->
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="6">
+                            <FontIcon x:Name="ViewFilterIcon"
+                                      FontSize="14"
+                                      Glyph="&#xE71C;" />
+                            <FontIcon x:Name="ViewFilterActiveIcon"
+                                      FontSize="14"
+                                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                      Glyph="&#xE71C;"
+                                      Visibility="Collapsed" />
+                            <TextBlock x:Name="ViewFilterLabel"
+                                       VerticalAlignment="Center"
+                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                       Visibility="Collapsed" />
+                        </StackPanel>
+                        <muxc:DropDownButton.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <muxc:RadioMenuFlyoutItem x:Name="ViewFilterAllItem"
+                                                          x:Uid="Nav_ViewFilterAll"
+                                                          Click="ViewFilterItem_Click"
+                                                          GroupName="SettingsViewFilter"
+                                                          Tag="all" />
+                                <MenuFlyoutSeparator />
+                                <muxc:RadioMenuFlyoutItem x:Name="ViewFilterUpstreamItem"
+                                                          x:Uid="Nav_ViewFilterUpstream"
+                                                          Click="ViewFilterItem_Click"
+                                                          GroupName="SettingsViewFilter"
+                                                          Tag="upstream" />
+                                <muxc:RadioMenuFlyoutItem x:Name="ViewFilterForkItem"
+                                                          x:Uid="Nav_ViewFilterFork"
+                                                          Click="ViewFilterItem_Click"
+                                                          GroupName="SettingsViewFilter"
+                                                          Tag="fork" />
+                                <muxc:RadioMenuFlyoutItem x:Name="ViewFilterExperimentalItem"
+                                                          x:Uid="Nav_ViewFilterExperimental"
+                                                          Click="ViewFilterItem_Click"
+                                                          GroupName="SettingsViewFilter"
+                                                          Tag="experimental" />
+                            </MenuFlyout>
+                        </muxc:DropDownButton.Flyout>
+                    </muxc:DropDownButton>
+                    </Grid>
                     </Grid>
                 </Grid>
             </Grid>

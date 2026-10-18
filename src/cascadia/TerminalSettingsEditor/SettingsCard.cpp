@@ -5,6 +5,7 @@
 #include "SettingsCard.h"
 #include "SettingsCard.g.cpp"
 #include "SettingsControlsHelpers.h"
+#include "SettingsViewFilter.h"
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::System;
@@ -364,8 +365,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         {
             _registeredForImprint = true;
             g_liveCards.emplace_back(get_weak());
+            ViewFilter::Track(*this);
         }
         _UpdateForkImprint();
+        ViewFilter::ApplyAround(*this);
         // Initial visual states.
         _CheckInitialVisualState();
         _CheckHeaderIconState();

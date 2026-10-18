@@ -113,6 +113,7 @@
     </ClInclude>
     <ClInclude Include="pch.h" />
     <ClInclude Include="SearchIndex.h" />
+    <ClInclude Include="SettingsViewFilter.h" />
     <ClInclude Include="NavConstants.h" />
     <ClInclude Include="MainPage.h">
       <DependentUpon>MainPage.xaml</DependentUpon>
@@ -390,6 +391,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="SearchIndex.cpp" />
+    <ClCompile Include="SettingsViewFilter.cpp" />
     <ClCompile Include="MainPage.cpp">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </ClCompile>

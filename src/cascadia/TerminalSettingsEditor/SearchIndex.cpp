@@ -5,6 +5,7 @@
 #include "SearchIndex.h"
 #include "FilteredSearchResult.g.cpp"
 #include "NavConstants.h"
+#include "SettingsViewFilter.h"
 
 #include <winrt/Windows.ApplicationModel.Resources.Core.h>
 #include <ScopedResourceLoader.h>
@@ -300,12 +301,18 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             return results;
         }
 
+        // A remembered search for a row the view filter hides would land on nothing.
+        const auto viewFilter = ViewFilter::Current();
         for (const auto& name : resourceNames)
         {
             for (const auto& entry : index->mainIndex)
             {
                 if (std::wstring_view{ entry.Entry->ResourceName } == std::wstring_view{ name })
                 {
+                    if (!ViewFilter::Admits(viewFilter, entry.Entry->IsForkFeature, entry.Entry->IsExperimental))
+                    {
+                        break;
+                    }
                     results.Append(winrt::make<FilteredSearchResult>(index, &entry, nullptr, std::nullopt, entry.SecondaryLabelLocalized));
                     break;
                 }
@@ -371,6 +378,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             co_return single_threaded_observable_vector<Windows::Foundation::IInspectable>();
         }
 
+        // Read once, on the calling thread, so one search answers one filter however
+        // the user moves it meanwhile. A result for a row the filter hides would
+        // navigate to a page with nothing to show. Runtime objects (a profile, a scheme,
+        // an action) carry no marks, so they read as upstream's, like the rows that
+        // edit them.
+        const auto viewFilter = ViewFilter::Current();
+        const auto admits = [viewFilter](const LocalizedIndexEntry& entry) {
+            return ViewFilter::Admits(viewFilter, entry.Entry->IsForkFeature, entry.Entry->IsExperimental);
+        };
+
         co_await winrt::resume_background();
 
         // The search can be cancelled at any time by the caller.
@@ -384,6 +401,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             if (cancellationToken())
             {
                 break;
+            }
+            if (!admits(entry))
+            {
+                continue;
             }
 
             // Calculate best score across all searchable fields for entry
@@ -424,7 +445,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 // Check for direct runtime object name match first
                 const auto& objName = runtimeObj.Name();
                 const auto objNameMatch = fzf::matcher::Match(objName, filter);
-                if (objNameMatch && objNameMatch->Score >= MinimumMatchScore)
+                if (objNameMatch && objNameMatch->Score >= MinimumMatchScore && admits(partialSearchIndexEntry))
                 {
                     // navigates to runtime object main page (i.e. "PowerShell" Profiles_Base page)
                     scoredResults.emplace_back(objNameMatch->Score * WeightRuntimeObjectMatch,
@@ -436,6 +457,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                     if (cancellationToken())
                     {
                         break;
+                    }
+                    if (!admits(entry))
+                    {
+                        continue;
                     }
 
                     // Calculate best score across all searchable fields for entry
@@ -491,6 +516,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         // Simple runtime object matching (no associated search index, just match by display name)
         auto appendSimpleRuntimeObjectResults = [&](const auto& runtimeObjectList, const LocalizedIndexEntry& indexEntry, auto getDisplayName) {
+            if (!admits(indexEntry))
+            {
+                return;
+            }
             for (const auto& runtimeObj : runtimeObjectList)
             {
                 if (cancellationToken())

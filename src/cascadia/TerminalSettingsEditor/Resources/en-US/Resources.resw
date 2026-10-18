@@ -4492,6 +4492,30 @@ This action is applied immediately and cannot be undone.</value>
     <value>Print each setting's explanation under its name. With this off, hover the help glyph beside a setting to read it.</value>
     <comment>A description of what the "Show descriptions" switch does. Presented near "Nav_ShowDescriptions".</comment>
   </data>
+  <data name="Nav_ViewFilterButton.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Filter settings</value>
+    <comment>Accessible name for the button beside the settings search box that opens a menu choosing which settings are listed.</comment>
+  </data>
+  <data name="Nav_ViewFilterButton.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Show all settings, or only Windows Terminal's, Mullion's or the experimental ones</value>
+    <comment>{Locked="Mullion"} Tooltip for the button beside the settings search box. Mullion is the name of this build of Windows Terminal.</comment>
+  </data>
+  <data name="Nav_ViewFilterAll.Text" xml:space="preserve">
+    <value>All settings</value>
+    <comment>Menu item: list every setting.</comment>
+  </data>
+  <data name="Nav_ViewFilterUpstream.Text" xml:space="preserve">
+    <value>Windows Terminal</value>
+    <comment>{Locked="Windows Terminal"} Menu item: list only the settings Windows Terminal itself has, hiding the ones Mullion added. Also shown beside the filter button while this filter is on.</comment>
+  </data>
+  <data name="Nav_ViewFilterFork.Text" xml:space="preserve">
+    <value>Mullion</value>
+    <comment>{Locked="Mullion"} Menu item: list only the settings Mullion added to Windows Terminal. Also shown beside the filter button while this filter is on.</comment>
+  </data>
+  <data name="Nav_ViewFilterExperimental.Text" xml:space="preserve">
+    <value>Experimental</value>
+    <comment>Menu item: list only the settings marked experimental. Also shown beside the filter button while this filter is on.</comment>
+  </data>
   <data name="Settings_AutoSaveSwitch.OnContent" xml:space="preserve">
     <value>Auto-save</value>
     <comment>Label beside a switch next to the Save button. On means every change is written to settings.json as it is made.</comment>

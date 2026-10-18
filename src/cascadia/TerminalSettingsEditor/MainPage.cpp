@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "MainPage.h"
 #include "SettingsCard.h"
+#include "SettingsViewFilter.h"
 #include "MainPage.g.cpp"
 #include "Launch.h"
 #include "SessionRestore.h"
@@ -531,7 +532,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     void MainPage::_PlaceSearchBox(bool paneOpen)
     {
         using XamlPanel = winrt::Windows::UI::Xaml::Controls::Panel;
-        const auto box{ SettingsSearchBox() };
+        // The row, not the box: the view filter button travels with it.
+        const auto box{ SearchRow() };
         const XamlPanel pane{ PaneSearchHost() };
         const XamlPanel header{ HeaderSearchHost() };
         const auto& target{ paneOpen ? pane : header };
@@ -1464,6 +1466,106 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // agrees with the switch -- the same reason the provenance marks are seeded in
         // UpdateSettings.
         SettingsCard::DescriptionsVisible(showDescriptions);
+
+        // The view filter is the same kind of thing, and seeded for the same reason.
+        ViewFilter::Set(ViewFilter::FromToken(state.SettingsViewFilter()));
+        _UpdateViewFilterChrome();
+    }
+
+    void MainPage::ViewFilterItem_Click(const IInspectable& sender, const RoutedEventArgs& /*args*/)
+    {
+        const auto item = sender.try_as<MUX::Controls::RadioMenuFlyoutItem>();
+        if (!item)
+        {
+            return;
+        }
+        const auto token = unbox_value_or<hstring>(item.Tag(), hstring{});
+        const auto mode = ViewFilter::FromToken(token);
+
+        ViewFilter::Set(mode);
+        Model::ApplicationState::SharedInstance().SettingsViewFilter(hstring{ ViewFilter::ToToken(mode) });
+        _UpdateViewFilterChrome();
+    }
+
+    void MainPage::_UpdateViewFilterChrome()
+    {
+        const auto mode = ViewFilter::Current();
+
+        ViewFilterAllItem().IsChecked(mode == ViewFilter::Mode::All);
+        ViewFilterUpstreamItem().IsChecked(mode == ViewFilter::Mode::Upstream);
+        ViewFilterForkItem().IsChecked(mode == ViewFilter::Mode::Fork);
+        ViewFilterExperimentalItem().IsChecked(mode == ViewFilter::Mode::Experimental);
+
+        const auto filtering = mode != ViewFilter::Mode::All;
+        ViewFilterIcon().Visibility(filtering ? WUX::Visibility::Collapsed : WUX::Visibility::Visible);
+        ViewFilterActiveIcon().Visibility(filtering ? WUX::Visibility::Visible : WUX::Visibility::Collapsed);
+        ViewFilterLabel().Visibility(filtering ? WUX::Visibility::Visible : WUX::Visibility::Collapsed);
+        switch (mode)
+        {
+        case ViewFilter::Mode::Upstream:
+            ViewFilterLabel().Text(ViewFilterUpstreamItem().Text());
+            break;
+        case ViewFilter::Mode::Fork:
+            ViewFilterLabel().Text(ViewFilterForkItem().Text());
+            break;
+        case ViewFilter::Mode::Experimental:
+            ViewFilterLabel().Text(ViewFilterExperimentalItem().Text());
+            break;
+        default:
+            ViewFilterLabel().Text({});
+            break;
+        }
+
+        // Nav entries with nothing left to show go, and then any group heading left
+        // with no entries under it. The selected entry always stays: the page it opened
+        // is still on screen, and a selection with no visible item is its own confusion.
+        // The footer (Show descriptions, Open JSON) is not in MenuItems, so it is never
+        // touched.
+        const auto selected = SettingsNav().SelectedItem();
+        const auto apply = [&](const auto& items) {
+            if (!items)
+            {
+                return;
+            }
+            MUX::Controls::NavigationViewItemHeader heading{ nullptr };
+            auto headingHasItems = false;
+            const auto closeGroup = [&]() {
+                if (heading)
+                {
+                    heading.Visibility(headingHasItems ? WUX::Visibility::Visible : WUX::Visibility::Collapsed);
+                }
+            };
+            for (const auto& entry : items)
+            {
+                if (const auto header = entry.template try_as<MUX::Controls::NavigationViewItemHeader>())
+                {
+                    closeGroup();
+                    heading = header;
+                    headingHasItems = false;
+                    continue;
+                }
+                const auto navItem = entry.template try_as<MUX::Controls::NavigationViewItem>();
+                if (!navItem)
+                {
+                    continue;
+                }
+                const auto tag = navItem.Tag().try_as<hstring>();
+                const auto keep = !tag ||
+                                  winrt::get_abi(navItem) == winrt::get_abi(selected) ||
+                                  ViewFilter::PageAdmits(mode, *tag);
+                navItem.Visibility(keep ? WUX::Visibility::Visible : WUX::Visibility::Collapsed);
+                headingHasItems |= keep;
+            }
+            closeGroup();
+        };
+        if (_menuItemSource)
+        {
+            apply(_menuItemSource);
+        }
+        else
+        {
+            apply(SettingsNav().MenuItems());
+        }
     }
 
     void MainPage::ShowDescriptionsSwitch_Toggled(const IInspectable& sender, const RoutedEventArgs& /*args*/)

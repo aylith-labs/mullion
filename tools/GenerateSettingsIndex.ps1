@@ -120,6 +120,32 @@ $ProhibitedXamlFiles = @(
     "MainPage.xaml"
 )
 
+# Pages this fork added outright. Their rows carry no IsForkFeature of their own -- a
+# mark on every row of a page that is all ours would say nothing -- so the page is what
+# makes them the fork's, for the settings window's view filter. Keep in step with
+# ForkPages in src/cascadia/TerminalSettingsEditor/SettingsViewFilter.cpp.
+$ForkPages = @(
+    "Activity.xaml",
+    "Documentation.xaml",
+    "Integrations.xaml",
+    "LinkTooltip.xaml",
+    "SessionRestore.xaml"
+)
+
+# Whether a card or expander carries a provenance mark, by itself or from any expander
+# it sits inside. Only a literal True counts; nothing here binds these.
+function HasInheritedMark($node, $attribute)
+{
+    for ($current = $node; $null -ne $current -and $current.NodeType -eq [System.Xml.XmlNodeType]::Element; $current = $current.ParentNode)
+    {
+        if (($current.LocalName -eq "SettingsCard" -or $current.LocalName -eq "SettingsExpander") -and $current.GetAttribute($attribute) -eq "True")
+        {
+            return $true
+        }
+    }
+    return $false
+}
+
 # Grouped metadata for each page class
 $ClassMap = @{
     "Microsoft::Terminal::Settings::Editor::Launch" = @{
@@ -357,6 +383,9 @@ foreach ($xamlFile in Get-ChildItem -Path $SourceDir -Filter *.xaml)
             continue
         }
 
+        $isForkFeature = ($ForkPages -contains $filename) -or (HasInheritedMark $settingContainer "IsForkFeature")
+        $isExperimental = HasInheritedMark $settingContainer "IsExperimental"
+
         # Determine what to index for this container. A SettingContainer is indexable
         # either via its own x:Uid (its label comes from the Header, resource suffix
         # "/Header") OR, when it has none, via a content-labeled child control
@@ -465,6 +494,8 @@ foreach ($xamlFile in Get-ChildItem -Path $SourceDir -Filter *.xaml)
                 SubPage           = $subPage
                 ElementName       = $name
                 SecondaryLabel    = $buildSecondaryLabel
+                IsForkFeature     = $isForkFeature
+                IsExperimental    = $isExperimental
                 File              = $filename
             }
         }
@@ -477,6 +508,8 @@ foreach ($xamlFile in Get-ChildItem -Path $SourceDir -Filter *.xaml)
                 NavigationParam   = $null # VM param at runtime
                 SubPage           = $pageClass -match "Editor::NewTabMenu" ? "BreadcrumbSubPage::NewTabMenu_Folder" : $subPage
                 ElementName       = $name
+                IsForkFeature     = $isForkFeature
+                IsExperimental    = $isExperimental
                 File              = $filename
             }
         }
@@ -490,7 +523,10 @@ function FormatEntry($e)
     $formattedElementName = 'L"{0}"' -f $e.ElementName
     $formattedSecondaryLabel = [string]::IsNullOrEmpty($e.SecondaryLabel) ? 'L""' : ('USES_RESOURCE(L"{0}")' -f $e.SecondaryLabel)
 
-    return "            IndexEntry{{ {0}, {1}, {2}, {3}, {4} }}, // {5}" -f ($formattedResourceName, $formattedNavigationParam, $e.SubPage, $formattedElementName, $formattedSecondaryLabel, $e.File)
+    $formattedIsForkFeature = $e.IsForkFeature ? "true" : "false"
+    $formattedIsExperimental = $e.IsExperimental ? "true" : "false"
+
+    return "            IndexEntry{{ {0}, {1}, {2}, {3}, {4}, {5}, {6} }}, // {7}" -f ($formattedResourceName, $formattedNavigationParam, $e.SubPage, $formattedElementName, $formattedSecondaryLabel, $formattedIsForkFeature, $formattedIsExperimental, $e.File)
 }
 
 function FormatEntries($es) {
@@ -559,6 +595,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // Empty if the entry has no secondary label.
         // NOTE: wrapped in USES_RESOURCE() like ResourceName when non-empty.
         wil::zwstring_view SecondaryLabelResourceName;
+
+        // Provenance, for the settings window's view filter: a row this fork added
+        // (marked IsForkFeature, inside an expander that is, or on a page the fork
+        // added outright), and a row marked IsExperimental.
+        bool IsForkFeature{ false };
+        bool IsExperimental{ false };
     };
 
     const std::array<IndexEntry, $($buildTimeEntries.Count)>& LoadBuildTimeIndex();

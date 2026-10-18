@@ -73,6 +73,11 @@ namespace Microsoft.Terminal.Settings.Model
         Boolean SettingsShowDescriptions;
         Boolean SettingsAutoSave;
 
+        // Which settings the Settings window lists: "" for all of them, "upstream",
+        // "fork" or "experimental" (SettingsViewFilter.h). View state like the two
+        // above, so picking one is never an unsaved edit.
+        String SettingsViewFilter;
+
         // The settings the Settings search box was last used to reach, newest first.
         // Here for the same reason as the two above: it is a record of how the editor
         // was used, not a setting, and it has to survive being written the moment a

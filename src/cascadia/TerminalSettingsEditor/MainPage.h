@@ -62,6 +62,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void SettingsNav_Loaded(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void SettingsNav_Unloaded(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void ShowDescriptionsSwitch_Toggled(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
+        void ViewFilterItem_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void AutoSaveSwitch_Toggled(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void SettingsNav_ItemInvoked(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Microsoft::UI::Xaml::Controls::NavigationViewItemInvokedEventArgs& args);
         void SettingsNav_PaneOpened(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
@@ -123,6 +124,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         void _PreNavigateHelper();
         void _UpdateForkNavItems();
+        // The filter button's checked item and icon, and which nav entries are left,
+        // for the current SettingsViewFilter mode.
+        void _UpdateViewFilterChrome();
         void _LazyLoadProfileDefaultsViewModel();
         void _Navigate(const IInspectable& vm, BreadcrumbSubPage subPage = BreadcrumbSubPage::None, hstring elementToFocus = {});
         void _NavigateToSearchResult(const IInspectable& result);

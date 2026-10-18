@@ -65,6 +65,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _SubscribeToItemsVectorChanged();
         void _ApplyItemContainerStyles();
 
+        // Once, however many times the template is re-applied; see SettingsViewFilter.
+        bool _trackedByViewFilter{ false };
         Windows::UI::Xaml::Controls::ItemsControl _itemsHost{ nullptr };
         Windows::Foundation::Collections::IObservableVector<Windows::Foundation::IInspectable>::VectorChanged_revoker _itemsVectorChangedRevoker;
     };
