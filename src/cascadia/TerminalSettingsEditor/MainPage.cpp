@@ -169,6 +169,20 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _profilesPageVM{ winrt::make<ProfilesPageViewModel>() }
     {
         InitializeComponent();
+
+        // Every page the frame shows is filtered from its Loading, which comes after
+        // the page's tree is built and before anything in it is measured. Nothing
+        // here is captured: the filter keeps its own weak list of pages, and a page
+        // the frame drops takes this handler with it.
+        contentFrame().Navigated([](const auto&, const WUX::Navigation::NavigationEventArgs& args) {
+            if (const auto page{ args.Content().try_as<FrameworkElement>() })
+            {
+                page.Loading([](const FrameworkElement& sender, const auto&) {
+                    ViewFilter::ApplyToPage(sender);
+                });
+            }
+        });
+
         // The shortcuts list used to be given its scrolling here, by disabling
         // this ScrollViewer's while the Actions page was up, so the ListView
         // would be measured with a real height and virtualize instead of
@@ -529,26 +543,30 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     // duplicated, so the text, the recent-results history and every handler stay
     // on a single control. Done on the -ing events, not -ed, so the box is already
     // in place when the animation starts instead of jumping when it ends.
+    //
+    // The view filter button moves on the same events: beside the box in the header
+    // while the pane is closed, and up to the menu button's row while it is open.
     void MainPage::_PlaceSearchBox(bool paneOpen)
     {
         using XamlPanel = winrt::Windows::UI::Xaml::Controls::Panel;
-        // The row, not the box: the view filter button travels with it.
-        const auto box{ SearchRow() };
-        const XamlPanel pane{ PaneSearchHost() };
-        const XamlPanel header{ HeaderSearchHost() };
-        const auto& target{ paneOpen ? pane : header };
-        const auto& other{ paneOpen ? header : pane };
+        const auto move = [](const UIElement& element, const XamlPanel& target, const XamlPanel& other) {
+            uint32_t index{};
+            if (target.Children().IndexOf(element, index))
+            {
+                return;
+            }
+            if (other.Children().IndexOf(element, index))
+            {
+                other.Children().RemoveAt(index);
+            }
+            target.Children().Append(element);
+        };
 
-        uint32_t index{};
-        if (target.Children().IndexOf(box, index))
-        {
-            return;
-        }
-        if (other.Children().IndexOf(box, index))
-        {
-            other.Children().RemoveAt(index);
-        }
-        target.Children().Append(box);
+        const XamlPanel header{ HeaderSearchHost() };
+        const XamlPanel paneSearch{ PaneSearchHost() };
+        const XamlPanel paneFilter{ PaneFilterHost() };
+        move(SettingsSearchBox(), paneOpen ? paneSearch : header, paneOpen ? header : paneSearch);
+        move(ViewFilterButton(), paneOpen ? paneFilter : header, paneOpen ? header : paneFilter);
     }
 
     void MainPage::SettingsNav_PaneOpening(const MUX::Controls::NavigationView&, const IInspectable&)

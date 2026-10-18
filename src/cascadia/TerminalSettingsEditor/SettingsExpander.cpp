@@ -237,12 +237,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             _UpdateItemsSource();
         }
 
-        if (!_trackedByViewFilter)
-        {
-            _trackedByViewFilter = true;
-            ViewFilter::Track(*this);
-        }
-        ViewFilter::ApplyAround(*this);
+        // The rows are not measured yet, so deciding now leaves no gaps behind.
+        ViewFilter::ApplyToExpanderItems(*this);
     }
 
     void SettingsExpander::_SetAccessibleName()

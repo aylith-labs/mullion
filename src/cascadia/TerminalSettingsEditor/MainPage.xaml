@@ -179,15 +179,14 @@
                         and closes: in the pane, above the first heading, when there is room
                         for it there; up here only when the pane is down to its icons.
                     -->
-                    <Grid x:Name="HeaderSearchHost"
-                          Grid.Column="1">
                     <!--
-                        The search box and the view filter beside it move as one row, so
-                        the filter is in reach wherever the box is: in the pane, or up
-                        here with the pane down to its icons.
+                        The view filter button keeps the box company here, in the second
+                        column. With the pane open it moves too, but not beside the box: up
+                        to the pane's header row, beside the menu button (PaneFilterHost).
                     -->
-                    <Grid x:Name="SearchRow"
-                          ColumnSpacing="4">
+                    <Grid x:Name="HeaderSearchHost"
+                          Grid.Column="1"
+                          ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -251,10 +250,12 @@
                         four rather than a ComboBox so it fits beside the box at any pane
                         width; the icon turns accent while a filter is on, because a page
                         with rows missing must not look like a page that has none.
+                        MainPage::_PlaceSearchBox moves it with the pane.
                     -->
                     <muxc:DropDownButton x:Name="ViewFilterButton"
                                          x:Uid="Nav_ViewFilterButton"
                                          Grid.Column="1"
+                                         HorizontalAlignment="Right"
                                          VerticalAlignment="Center">
                         <!--
                             Two icons rather than one recoloured from code: a brush looked
@@ -303,10 +304,22 @@
                         </muxc:DropDownButton.Flyout>
                     </muxc:DropDownButton>
                     </Grid>
-                    </Grid>
                 </Grid>
             </Grid>
         </muxc:NavigationView.Header>
+
+        <!--
+            The view filter's home while the pane is open: the menu button's row, which
+            is otherwise empty to the right of the button. MUX collapses PaneHeader in
+            the compact state (NavigationView.xaml, ListSizeCompact), which is when the
+            button goes back beside the search box in the header.
+        -->
+        <muxc:NavigationView.PaneHeader>
+            <Grid x:Name="PaneFilterHost"
+                  Margin="0,0,12,0"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Center" />
+        </muxc:NavigationView.PaneHeader>
 
         <!--
             The search box's home while the pane is open: under the menu button,

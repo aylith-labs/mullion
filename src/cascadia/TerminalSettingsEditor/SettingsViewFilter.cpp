@@ -17,12 +17,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
         // Read by search off the UI thread, written on it.
         std::atomic<Mode> g_mode{ Mode::All };
 
-        // Every card and expander that has applied its template, so a change of mode
-        // can reach the panels they sit in. Weak, and compacted on each walk, for the
-        // same reason as SettingsCard's own registry: XAML owns their lifetime and
-        // nothing reliably tells us when a page is torn down.
-        std::vector<winrt::weak_ref<UIElement>> g_tracked;
-
         // An element this filter collapsed, and the Visibility it had of its own.
         //
         // Visibility is not ours to take. About twenty cards bind it in markup
@@ -51,6 +45,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
             ForkPage{ L"Integrations_Nav", L"Microsoft.Terminal.Settings.Editor.Integrations" },
             ForkPage{ L"LinkTooltip_Nav", L"Microsoft.Terminal.Settings.Editor.LinkTooltip" },
             ForkPage{ L"SessionRestore_Nav", L"Microsoft.Terminal.Settings.Editor.SessionRestore" },
+        };
+
+        // Pages that are lists of other pages rather than settings: every profile, every
+        // color scheme. Nothing on them is a setting to filter, and their rows are built
+        // from data (Profiles keeps its in a ListView inside an expander's ItemsHeader),
+        // so hiding by marks only ever emptied them. Whether to show them at all is the
+        // nav entry's business (PageAdmits); once open, they are left whole.
+        constexpr std::array HubPageClasses{
+            std::wstring_view{ L"Microsoft.Terminal.Settings.Editor.Profiles" },
+            std::wstring_view{ L"Microsoft.Terminal.Settings.Editor.ColorSchemes" },
         };
 
         // The header row of an expander is itself a SettingsCard, named in the
@@ -132,15 +136,37 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
             return static_cast<bool>(element.try_as<Editor::SettingsExpander>());
         }
 
-        bool _admitsElement(const Mode mode, const UIElement& element)
+        // A clickable card opens another page -- the Profiles list, a profile's
+        // Appearance / Terminal / Advanced -- rather than being a setting itself, and
+        // what it leads to carries the marks, not the card. Hiding it would strand
+        // the settings it leads to: the Profiles page, all navigators, came up blank
+        // under the fork filter although a profile's Terminal page has one of ours.
+        // So under the fork and experimental filters it stays. Under the upstream
+        // filter it is judged like any row, because every navigator here is
+        // upstream's unless marked.
+        bool _isNavigator(const UIElement& element)
+        {
+            const auto card{ element.try_as<Editor::SettingsCard>() };
+            return card && card.IsClickEnabled();
+        }
+
+        bool _admitsElement(const Mode mode, const UIElement& element, const Marks& inherited)
         {
             if (mode == Mode::All)
             {
                 return true;
             }
-            const auto inherited = _inheritedMarks(element);
+            if (mode != Mode::Upstream && _isNavigator(element))
+            {
+                return true;
+            }
             const auto own = _marksOf(element, mode != Mode::Upstream);
             return Admits(mode, own.fork || inherited.fork, own.experimental || inherited.experimental);
+        }
+
+        bool _admitsElement(const Mode mode, const UIElement& element)
+        {
+            return mode == Mode::All || _admitsElement(mode, element, _inheritedMarks(element));
         }
 
         HiddenByFilter* _find(const UIElement& element)
@@ -198,9 +224,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
             element.Visibility(own);
         }
 
-        // Filters one panel's rows, then its section headings, then walks up: a
-        // section whose panel ends up empty may leave the heading above *it* with
-        // nothing to head.
+        // Filters one panel's rows, then its section headings, then -- if it sits in
+        // another StackPanel -- the panel itself. Run children first (_applyBelow), so
+        // a nested section that ends up empty is already collapsed by the time the
+        // panel holding its heading is looked at.
         //
         // A heading is a TextBlock sitting directly in the panel, heading everything
         // after it up to the next one -- which is how every page here lays out its
@@ -266,20 +293,62 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
             closeSection();
 
             // A nested section panel (Appearance groups its sections this way) whose
-            // every row is gone collapses too, so it leaves no gap and the walk up can
-            // see it as filtered.
-            const auto parent = winrt::Windows::UI::Xaml::Media::VisualTreeHelper::GetParent(panel).try_as<StackPanel>();
-            if (parent)
+            // every row is gone collapses too, so it leaves no gap and the panel above
+            // sees it as filtered.
+            if (winrt::Windows::UI::Xaml::Media::VisualTreeHelper::GetParent(panel).try_as<StackPanel>())
             {
                 _setFilteredOut(panel, mode != Mode::All && panelFiltered && !panelShown);
-                _applyToPanel(mode, parent);
             }
         }
 
-        Panel _panelOf(const UIElement& element)
+        // An expander's rows, decided from the expander rather than from the visual
+        // tree: they are not in it yet when the expander applies its template, and
+        // that is the moment to decide, before anything has measured them. A row
+        // hidden after its panel measured it keeps the space it was measured at.
+        void _applyToItems(const Mode mode, const Editor::SettingsExpander& expander)
         {
-            return winrt::Windows::UI::Xaml::Media::VisualTreeHelper::GetParent(element).try_as<Panel>();
+            const auto items = expander.Items();
+            if (!items)
+            {
+                return;
+            }
+            auto inherited = _inheritedMarks(expander);
+            inherited.fork |= expander.IsForkFeature();
+            inherited.experimental |= expander.IsExperimental();
+            for (const auto& item : items)
+            {
+                if (const auto element{ item.try_as<UIElement>() }; element && _isFilterTarget(element))
+                {
+                    _setFilteredOut(element, !_admitsElement(mode, element, inherited));
+                }
+            }
         }
+
+        // Everything under a node, children first. Walks the visual tree, so it sees
+        // what has been built: a page's own panels as soon as it is constructed, and
+        // an expander's rows once its template is applied. Rows of an expander whose
+        // template is not applied yet are reached through its Items instead.
+        void _applyBelow(const Mode mode, const DependencyObject& node)
+        {
+            const auto count = winrt::Windows::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(node);
+            for (int32_t i = 0; i < count; ++i)
+            {
+                _applyBelow(mode, winrt::Windows::UI::Xaml::Media::VisualTreeHelper::GetChild(node, i));
+            }
+            if (const auto expander{ node.try_as<Editor::SettingsExpander>() })
+            {
+                _applyToItems(mode, expander);
+            }
+            if (const auto panel{ node.try_as<Panel>() })
+            {
+                _applyToPanel(mode, panel);
+            }
+        }
+
+        // Pages the filter has been applied to, so a change of mode reaches the one on
+        // screen. Weak, and compacted on each walk: XAML owns them, and nothing
+        // reliably says when the settings window lets one go.
+        std::vector<winrt::weak_ref<FrameworkElement>> g_pages;
     }
 
     Mode Current() noexcept
@@ -294,32 +363,15 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
             return;
         }
 
-        // Each panel once, however many tracked rows it holds.
-        std::vector<Panel> panels;
-        std::vector<winrt::weak_ref<UIElement>> alive;
-        alive.reserve(g_tracked.size());
-        for (const auto& weak : g_tracked)
-        {
-            const auto element = weak.get();
-            if (!element)
-            {
-                continue;
-            }
-            alive.emplace_back(weak);
-            if (const auto panel = _panelOf(element))
-            {
-                if (std::none_of(panels.begin(), panels.end(), [&](const auto& p) { return _same(p, panel); }))
-                {
-                    panels.emplace_back(panel);
-                }
-            }
-        }
-        g_tracked = std::move(alive);
+        // Outside layout (a menu click), so hiding a row here gives its space back.
+        std::erase_if(g_pages, [](const auto& weak) { return !weak.get(); });
         std::erase_if(g_collapsed, [](const auto& entry) { return !entry->element.get(); });
-
-        for (const auto& panel : panels)
+        for (const auto& weak : g_pages)
         {
-            _applyToPanel(mode, panel);
+            if (const auto page = weak.get())
+            {
+                _applyBelow(mode, page);
+            }
         }
     }
 
@@ -424,25 +476,44 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
         return !indexed && Admits(mode, IsForkPageTag(navigationTag), false);
     }
 
-    void Track(const UIElement& element)
+    void ApplyToPage(const FrameworkElement& page)
     {
-        g_tracked.emplace_back(winrt::make_weak(element));
-    }
+        const auto className = winrt::get_class_name(page);
+        if (std::find(HubPageClasses.begin(), HubPageClasses.end(), std::wstring_view{ className }) != HubPageClasses.end())
+        {
+            return;
+        }
 
-    void ApplyAround(const UIElement& element)
-    {
-        const auto mode = Current();
+        if (std::none_of(g_pages.begin(), g_pages.end(), [&](const auto& weak) {
+                const auto alive = weak.get();
+                return alive && _same(alive, page);
+            }))
+        {
+            g_pages.emplace_back(winrt::make_weak(page));
+        }
+
         // The common case, and the one every page load pays for: nothing filtered,
         // nothing to restore. Entries for elements XAML has since released do not
         // count, or a filter used once would make every later page pay the walk.
         std::erase_if(g_collapsed, [](const auto& entry) { return !entry->element.get(); });
+        const auto mode = Current();
         if (mode == Mode::All && g_collapsed.empty())
         {
             return;
         }
-        if (const auto panel = _panelOf(element))
+        _applyBelow(mode, page);
+    }
+
+    void ApplyToExpanderItems(const UIElement& expander)
+    {
+        const auto mode = Current();
+        if (mode == Mode::All && g_collapsed.empty())
         {
-            _applyToPanel(mode, panel);
+            return;
+        }
+        if (const auto settingsExpander{ expander.try_as<Editor::SettingsExpander>() })
+        {
+            _applyToItems(mode, settingsExpander);
         }
     }
 }

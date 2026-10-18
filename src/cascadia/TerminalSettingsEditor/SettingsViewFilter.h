@@ -48,9 +48,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation::ViewFilt
     // as a whole, as the fork's if it is one of IsForkPageTag's and upstream's if not.
     bool PageAdmits(Mode mode, std::wstring_view navigationTag);
 
-    // Called by a SettingsCard or SettingsExpander once its template is applied. Track
-    // remembers it, so a later change of mode reaches the page it is on; ApplyAround
-    // filters the panel it sits in, now.
-    void Track(const Windows::UI::Xaml::UIElement& element);
-    void ApplyAround(const Windows::UI::Xaml::UIElement& element);
+    // Filters a settings page, and remembers it so a later change of mode reaches it.
+    // MainPage calls it from the page's Loading: before layout, which is the point. A
+    // row collapsed after its panel has measured it keeps the space it was measured
+    // at -- the gaps the first version of this left were exactly that, rows hiding
+    // themselves from their own OnApplyTemplate in the middle of a measure pass.
+    void ApplyToPage(const Windows::UI::Xaml::FrameworkElement& page);
+
+    // A SettingsExpander's rows, from its OnApplyTemplate. They are not in the visual
+    // tree yet at that point, nor measured, so this is still ahead of layout.
+    void ApplyToExpanderItems(const Windows::UI::Xaml::UIElement& expander);
 }
