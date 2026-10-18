@@ -64,18 +64,45 @@ namespace ControlUnitTests
             wil::unique_handle Handle;
         };
 
-        void CollectChildren(DWORD parent, const std::vector<PROCESSENTRY32W>& all, std::vector<Descendant>& into)
+        // 0 when it cannot be read, which CollectChildren takes as "unknown".
+        uint64_t CreatedAt(HANDLE process)
+        {
+            FILETIME created{}, exited{}, kernel{}, user{};
+            if (!process || !GetProcessTimes(process, &created, &exited, &kernel, &user))
+            {
+                return 0;
+            }
+            return (uint64_t{ created.dwHighDateTime } << 32) | created.dwLowDateTime;
+        }
+
+        void CollectChildren(DWORD parent, uint64_t parentCreated, const std::vector<PROCESSENTRY32W>& all, std::vector<Descendant>& into)
         {
             for (const auto& entry : all)
             {
                 if (entry.th32ParentProcessID == parent && entry.th32ProcessID != parent)
                 {
                     Descendant d{ entry.th32ProcessID, BaseNameOf(entry.szExeFile), wil::unique_handle{ OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ProcessID) } };
+                    // A parent pid is only a number: once that parent exits,
+                    // the pid is reused, and a process that outlived its own
+                    // parent - csrss.exe, whose smss.exe is long gone - then
+                    // reads as a child of whoever got it. A real child cannot
+                    // predate its parent.
+                    const auto created = CreatedAt(d.Handle.get());
+                    if (created != 0 && parentCreated != 0 && created < parentCreated)
+                    {
+                        continue;
+                    }
                     const auto pid = d.Pid;
                     into.push_back(std::move(d));
-                    CollectChildren(pid, all, into);
+                    CollectChildren(pid, created, all, into);
                 }
             }
+        }
+
+        void CollectChildren(DWORD parent, const std::vector<PROCESSENTRY32W>& all, std::vector<Descendant>& into)
+        {
+            const wil::unique_handle self{ OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, parent) };
+            CollectChildren(parent, CreatedAt(self.get()), all, into);
         }
 
         std::vector<PROCESSENTRY32W> Snapshot()
