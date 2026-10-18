@@ -69,6 +69,8 @@ public class CaptureNative {
     [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+    [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr c);
+    [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int attr, out RECT r, int size);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
 
     public static List<IntPtr> WindowsFor(uint pid) {
@@ -95,6 +97,10 @@ public class CaptureNative {
     }
 }
 '@
+
+# Per-monitor aware, so GetWindowRect and DWM's frame bounds are both in real
+# pixels. Unaware, the window rect comes back virtualised and the two disagree.
+[void][CaptureNative]::SetThreadDpiAwarenessContext([IntPtr](-4))
 
 $handles = [CaptureNative]::WindowsFor([uint32]$ProcessId)
 if ($handles.Count -eq 0) {
@@ -135,7 +141,38 @@ try {
     }
     finally { $graphics.ReleaseHdc($hdc) }
 
-    $bitmap.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png)
+    # PrintWindow renders the whole window rect, and that includes the
+    # invisible resize border on the left, right and bottom: it comes back as a
+    # solid black band (11 px at 150%) that every capture before this carried.
+    # DWM's extended frame bounds are the window as it is drawn on screen.
+    $frame = New-Object CaptureNative+RECT
+    $crop = New-Object System.Drawing.Rectangle 0, 0, $width, $height
+    if ([CaptureNative]::DwmGetWindowAttribute($hwnd, 9, [ref]$frame, 16) -eq 0) {
+        $crop = New-Object System.Drawing.Rectangle ($frame.L - $rect.L), ($frame.T - $rect.T), ($frame.R - $frame.L), ($frame.B - $frame.T)
+    }
+
+    # Then the window's own 1-2 px border line, which is near-black in either
+    # theme. Only a line that is dark all along its length goes, and never
+    # more than three, so dark terminal content is left alone.
+    $dark = { param($x, $y) $p = $bitmap.GetPixel($x, $y); ($p.R + $p.G + $p.B) -lt 30 }
+    $lineIsDark = {
+        param([bool]$vertical, [int]$at, [int]$from, [int]$length)
+        for ($i = $from; $i -lt $from + $length; $i += [Math]::Max(1, [int]($length / 64))) {
+            $isDark = if ($vertical) { & $dark $at $i } else { & $dark $i $at }
+            if (-not $isDark) { return $false }
+        }
+        return $true
+    }
+    for ($n = 0; $n -lt 3 -and $crop.Width -gt 2 -and (& $lineIsDark $true $crop.Left $crop.Top $crop.Height); $n++) { $crop.X++; $crop.Width-- }
+    for ($n = 0; $n -lt 3 -and $crop.Width -gt 2 -and (& $lineIsDark $true ($crop.Right - 1) $crop.Top $crop.Height); $n++) { $crop.Width-- }
+    for ($n = 0; $n -lt 3 -and $crop.Height -gt 2 -and (& $lineIsDark $false $crop.Top $crop.Left $crop.Width); $n++) { $crop.Y++; $crop.Height-- }
+    for ($n = 0; $n -lt 3 -and $crop.Height -gt 2 -and (& $lineIsDark $false ($crop.Bottom - 1) $crop.Left $crop.Width); $n++) { $crop.Height-- }
+
+    $cropped = $bitmap.Clone($crop, $bitmap.PixelFormat)
+    try { $cropped.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png) }
+    finally { $cropped.Dispose() }
+    $width = $crop.Width
+    $height = $crop.Height
 }
 finally {
     $graphics.Dispose()
