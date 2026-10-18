@@ -44,13 +44,6 @@
         <input type="search" id="search" placeholder="Search features" autocomplete="off" />
         <kbd aria-hidden="true">/</kbd>
       </div>
-      <div class="chip-row" id="category-chips" role="group" aria-label="Category">
-        <button type="button" class="chip" data-cat="all" aria-pressed="true">All</button>
-        <button type="button" class="chip" data-cat="automation" aria-pressed="false">Automation</button>
-        <button type="button" class="chip" data-cat="links" aria-pressed="false">Links</button>
-        <button type="button" class="chip" data-cat="ui" aria-pressed="false">UI &amp; theming</button>
-        <button type="button" class="chip" data-cat="deploy" aria-pressed="false">Deploy system</button>
-      </div>
       <div class="toolbar-end">
         <label class="visually-hidden" for="sort-select">Sort by</label>
         <select class="select" id="sort-select">
@@ -66,6 +59,14 @@
           <button type="button" data-view="preview" aria-pressed="false">Preview</button>
           <button type="button" data-view="table" aria-pressed="false">Table</button>
         </div>
+      </div>
+      <div class="chip-row" id="category-chips" role="group" aria-label="Category">
+        <button type="button" class="chip" data-cat="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-cat="automation" aria-pressed="false">Automation</button>
+        <button type="button" class="chip" data-cat="links" aria-pressed="false">Links</button>
+        <button type="button" class="chip" data-cat="ui" aria-pressed="false">UI &amp; theming</button>
+        <button type="button" class="chip" data-cat="settings" aria-pressed="false">Settings UI</button>
+        <button type="button" class="chip" data-cat="deploy" aria-pressed="false">Deploy system</button>
       </div>
     </div>
   </div>
@@ -114,7 +115,7 @@
   var FEATURES = window.FEATURES || [];
   var DETAILS = window.FEATURE_DETAILS || {};
   var VIEWS = ["cards", "preview", "table"];
-  var CATS = ["all", "automation", "links", "ui", "deploy"];
+  var CATS = ["all", "automation", "links", "ui", "settings", "deploy"];
   var SORTS = ["date-desc", "date-asc", "size-desc", "size-asc", "alpha", "cat"];
 
   // Filters live in the URL, so a filtered list can be linked to (the home
