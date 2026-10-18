@@ -46,7 +46,7 @@
       </div>
       <div class="toolbar-end">
         <label class="visually-hidden" for="sort-select">Sort by</label>
-        <select class="select" id="sort-select">
+        <select id="sort-select">
           <option value="date-desc">Newest first</option>
           <option value="date-asc">Oldest first</option>
           <option value="size-desc">Largest change</option>
@@ -183,7 +183,7 @@
     return '<div class="meta-row"><span>Added ' + Mullion.timeTag(f.dateAdded) + "</span>" + stats(f) + "</div>";
   }
 
-  function badge(f) { return f.standout ? '<span class="tag tag-success">Standout</span>' : ""; }
+  function badge(f) { return f.standout ? Mullion.standoutTag() : ""; }
 
   function firstImage(f) {
     var d = DETAILS[f.id];
@@ -262,6 +262,7 @@
       buttons[j].setAttribute("aria-pressed", String(buttons[j].getAttribute("data-view") === state.view));
     }
     document.getElementById("sort-select").value = state.sort;
+    sortDropdown.refresh();
     var ths = document.querySelectorAll("th[data-sort-col]");
     for (var k = 0; k < ths.length; k++) {
       var col = ths[k].getAttribute("data-sort-col");
@@ -282,6 +283,7 @@
     render();
   });
 
+  var sortDropdown = Mullion.dropdown(document.getElementById("sort-select"));
   document.getElementById("sort-select").addEventListener("change", function (e) { state.sort = e.target.value; render(); });
 
   document.querySelector(".view-switch").addEventListener("click", function (e) {

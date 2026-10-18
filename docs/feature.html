@@ -84,7 +84,7 @@
     "</nav>";
   html += '<div class="meta">' +
     '<span class="tag tag-accent">' + esc(feature.catLabel) + "</span>" +
-    (feature.standout ? '<span class="tag tag-success">Standout</span>' : "") +
+    (feature.standout ? Mullion.standoutTag() : "") +
     '<span class="tag">Added&nbsp;' + Mullion.timeTag(feature.dateAdded) + "</span>" +
     "</div>";
   html += "<h1>" + esc(feature.title) + "</h1>";

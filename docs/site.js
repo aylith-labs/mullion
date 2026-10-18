@@ -362,7 +362,155 @@
     window.addEventListener("resize", function () { if (isOpen()) { position(); } });
   }
 
+  // A styled dropdown in front of a native <select>. The select stays in the
+  // page, hidden, as the source of truth: code keeps reading .value and
+  // listening for "change", and calls refresh() after setting .value itself.
+  // Keyboard follows the ARIA listbox pattern: arrows, Home/End, type-ahead,
+  // Enter or Space to pick, Esc or Tab to close.
+  var CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+  var CHEVRON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>';
+  var dropdownCount = 0;
+
+  function dropdown(select) {
+    var id = "dd" + (++dropdownCount);
+    var wrap = el("div", { "class": "dropdown" });
+    var label = select.id ? document.querySelector('label[for="' + select.id + '"]') : null;
+    var trigger = el("button", {
+      type: "button", "class": "dropdown-trigger", "aria-haspopup": "listbox",
+      "aria-expanded": "false", "aria-controls": id + "-list"
+    });
+    if (label) { label.id = label.id || id + "-label"; trigger.setAttribute("aria-labelledby", label.id + " " + id + "-value"); }
+    trigger.innerHTML = '<span class="dropdown-value" id="' + id + '-value"></span>' + CHEVRON;
+    var list = el("ul", { "class": "dropdown-menu", role: "listbox", id: id + "-list", tabindex: "-1", hidden: "" });
+    if (label) { list.setAttribute("aria-labelledby", label.id); }
+    var opts = Array.prototype.slice.call(select.options);
+    opts.forEach(function (o, i) {
+      var li = el("li", { role: "option", id: id + "-opt" + i, "data-value": o.value }, CHECK + "<span>" + o.innerHTML + "</span>");
+      list.appendChild(li);
+    });
+    var items = list.children;
+    select.parentNode.insertBefore(wrap, select);
+    wrap.appendChild(select);
+    wrap.appendChild(trigger);
+    wrap.appendChild(list);
+    select.hidden = true;
+    select.tabIndex = -1;
+
+    var active = 0, typed = "", typedAt = 0;
+
+    function setActive(i) {
+      active = Math.max(0, Math.min(items.length - 1, i));
+      for (var k = 0; k < items.length; k++) { items[k].classList.toggle("active", k === active); }
+      list.setAttribute("aria-activedescendant", items[active].id);
+      items[active].scrollIntoView({ block: "nearest" });
+    }
+    function refresh() {
+      var i = Math.max(0, select.selectedIndex);
+      for (var k = 0; k < items.length; k++) { items[k].setAttribute("aria-selected", String(k === i)); }
+      document.getElementById(id + "-value").innerHTML = opts[i] ? opts[i].innerHTML : "";
+    }
+    function isOpen() { return !list.hidden; }
+    function open() {
+      if (isOpen()) { return; }
+      list.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+      wrap.classList.toggle("drop-up", trigger.getBoundingClientRect().bottom + list.offsetHeight + 8 > window.innerHeight &&
+        trigger.getBoundingClientRect().top > list.offsetHeight + 8);
+      setActive(Math.max(0, select.selectedIndex));
+      list.focus();
+    }
+    function close(focusTrigger) {
+      if (!isOpen()) { return; }
+      list.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+      if (focusTrigger) { trigger.focus(); }
+    }
+    function pick(i) {
+      var changed = select.selectedIndex !== i;
+      select.selectedIndex = i;
+      refresh();
+      close(true);
+      if (changed) { select.dispatchEvent(new Event("change", { bubbles: true })); }
+    }
+
+    trigger.addEventListener("click", function () { if (isOpen()) { close(true); } else { open(); } });
+    trigger.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); open(); }
+    });
+    list.addEventListener("click", function (e) {
+      var li = e.target.closest("li[role=option]");
+      if (li) { pick(Array.prototype.indexOf.call(items, li)); }
+    });
+    list.addEventListener("mousemove", function (e) {
+      var li = e.target.closest("li[role=option]");
+      if (li) { var i = Array.prototype.indexOf.call(items, li); if (i !== active) { setActive(i); } }
+    });
+    list.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setActive(active + 1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); setActive(active - 1); }
+      else if (e.key === "Home" || e.key === "PageUp") { e.preventDefault(); setActive(0); }
+      else if (e.key === "End" || e.key === "PageDown") { e.preventDefault(); setActive(items.length - 1); }
+      else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(active); }
+      else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(true); }
+      else if (e.key === "Tab") { close(false); }
+      else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        var now = Date.now();
+        typed = (now - typedAt > 700 ? "" : typed) + e.key.toLowerCase();
+        typedAt = now;
+        for (var k = 0; k < items.length; k++) {
+          var n = (active + (typed.length === 1 ? 1 : 0) + k) % items.length;
+          if (items[n].textContent.toLowerCase().indexOf(typed) === 0) { setActive(n); break; }
+        }
+      }
+    });
+    document.addEventListener("pointerdown", function (e) { if (isOpen() && !wrap.contains(e.target)) { close(false); } });
+    list.addEventListener("focusout", function (e) { if (isOpen() && !wrap.contains(e.relatedTarget)) { close(false); } });
+
+    refresh();
+    return { refresh: refresh, trigger: trigger };
+  }
+
+  // The "Standout" tag: hand-picked headline features, explained on hover or focus.
+  var STANDOUT_TIP = "A headline feature: one of the bigger additions, picked by hand";
+  function standoutTag() {
+    return '<span class="tag tag-success has-tip" tabindex="0" data-tip="' + STANDOUT_TIP + '" aria-describedby="tooltip">Standout</span>';
+  }
+
+  // One floating tooltip for every [data-tip], placed under its anchor (above
+  // when there is no room) and kept inside the viewport, which a CSS-only
+  // tooltip cannot do for a tag near either edge.
+  var tip = null, tipFor = null;
+  function showTip(anchor) {
+    tipFor = anchor;
+    tip.textContent = anchor.getAttribute("data-tip");
+    tip.classList.add("shown");
+    var r = anchor.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    var left = Math.min(Math.max(8, r.left + r.width / 2 - t.width / 2), window.innerWidth - t.width - 8);
+    var top = r.bottom + 8 + t.height > window.innerHeight ? r.top - 8 - t.height : r.bottom + 8;
+    tip.style.left = Math.round(left) + "px";
+    tip.style.top = Math.round(top) + "px";
+  }
+  function hideTip() { if (tip) { tip.classList.remove("shown"); } tipFor = null; }
+  function wireTips() {
+    // Created up front so aria-describedby="tooltip" always resolves.
+    tip = el("div", { "class": "tooltip", role: "tooltip", id: "tooltip" });
+    document.body.appendChild(tip);
+    document.addEventListener("mouseover", function (e) {
+      var a = e.target.closest && e.target.closest("[data-tip]");
+      if (a && a !== tipFor) { showTip(a); } else if (!a && tipFor) { hideTip(); }
+    });
+    document.addEventListener("focusin", function (e) {
+      var a = e.target.closest && e.target.closest("[data-tip]");
+      if (a) { showTip(a); } else { hideTip(); }
+    });
+    document.addEventListener("focusout", hideTip);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { hideTip(); } });
+    window.addEventListener("scroll", hideTip, { passive: true });
+  }
+
   function onReady() {
+    wireTips();
     wirePopover();
     syncPictures();
     formatDates();
@@ -378,6 +526,8 @@
     formatDates: formatDates,
     syncPictures: syncPictures,
     timeTag: timeTag,
+    dropdown: dropdown,
+    standoutTag: standoutTag,
     relative: relative,
     effectiveTheme: effectiveTheme
   };

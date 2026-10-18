@@ -286,6 +286,51 @@ button, input, select { font: inherit; color: inherit; }
 }
 .tag-accent { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent-text); }
 .tag-success { background: var(--success-bg); border-color: transparent; color: var(--success); }
+/* A tag that explains itself on hover. It sits above a card's stretched
+   title link, which would otherwise swallow the hover. */
+.has-tip { position: relative; z-index: 1; cursor: help; }
+
+.tooltip {
+  position: fixed; z-index: 200; max-width: min(18rem, calc(100vw - 16px));
+  padding: 7px 10px; border-radius: 6px;
+  background: var(--card); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-pop);
+  font-size: 0.8rem; font-weight: 400; line-height: 1.4; letter-spacing: 0;
+  pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0.12s;
+}
+.tooltip.shown { opacity: 1; visibility: visible; transition-delay: 0.15s; }
+
+/* Styled dropdown (Mullion.dropdown in site.js) over a hidden native select. */
+.dropdown { position: relative; display: inline-flex; }
+.dropdown-trigger {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; min-width: 11rem; height: var(--control-h, 38px); padding: 0 10px 0 12px;
+  border-radius: 6px; border: 1px solid var(--border); border-bottom-color: var(--text-tertiary);
+  background: var(--card); color: var(--text); font-size: var(--control-fs, 0.88rem);
+  cursor: pointer; text-align: left; white-space: nowrap;
+}
+.dropdown-trigger:hover { background: var(--control-hover); }
+.dropdown-trigger[aria-expanded="true"] { border-color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.dropdown-trigger svg, .dropdown-menu svg { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.dropdown-trigger svg { color: var(--text-tertiary); transition: transform 0.15s; }
+.dropdown-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+.dropdown-value { overflow: hidden; text-overflow: ellipsis; }
+.dropdown-menu {
+  position: absolute; z-index: 50; top: calc(100% + 4px); right: 0; min-width: 100%;
+  margin: 0; padding: 4px; list-style: none; max-height: 20rem; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-pop);
+}
+.dropdown.drop-up .dropdown-menu { top: auto; bottom: calc(100% + 4px); }
+.dropdown-menu:focus { outline: none; }
+.dropdown-menu li {
+  display: flex; align-items: center; gap: 8px; position: relative;
+  padding: 0 12px 0 8px; height: 34px; border-radius: 4px;
+  font-size: var(--control-fs, 0.88rem); color: var(--text); cursor: pointer; white-space: nowrap;
+}
+.dropdown-menu li svg { visibility: hidden; color: var(--accent-text); }
+.dropdown-menu li[aria-selected="true"] svg { visibility: visible; }
+.dropdown-menu li[aria-selected="true"] { font-weight: 600; }
+.dropdown-menu li.active { background: var(--control-hover); }
+.dropdown-menu:focus-visible li.active { outline: 2px solid var(--focus); outline-offset: -2px; }
 
 .kicker {
   font-size: 0.74rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.07em;
@@ -451,13 +496,15 @@ button, input, select { font: inherit; color: inherit; }
 @media (min-width: 900px) {
   .toolbar-wrap { position: sticky; top: 56px; z-index: 30; background: var(--bg); border-bottom: 1px solid var(--border); }
 }
+/* Search, sort and layout share one height and one type size, so the row
+   reads as a single bar rather than three controls that happen to touch. */
+.toolbar { --control-h: 38px; --control-fs: 0.88rem; }
 .search-box { position: relative; flex: 1 1 16rem; min-width: 0; }
-@media (min-width: 900px) { .search-box { max-width: 22rem; } }
 .search-box svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: none; stroke: var(--text-tertiary); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
 .search-box input {
-  width: 100%; padding: 9px 40px 9px 34px;
+  width: 100%; height: var(--control-h); padding: 0 40px 0 34px;
   border-radius: 6px; border: 1px solid var(--border); border-bottom-color: var(--text-tertiary);
-  background: var(--card); color: var(--text); font-size: 0.93rem;
+  background: var(--card); color: var(--text); font-size: var(--control-fs);
 }
 .search-box input:focus { outline: none; border-color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
 .search-box kbd {
@@ -481,16 +528,12 @@ button, input, select { font: inherit; color: inherit; }
 .toolbar-end { display: flex; gap: 10px; align-items: center; margin-left: auto; flex-wrap: wrap; }
 @media (max-width: 640px) {
   .toolbar-end { margin-left: 0; width: 100%; }
-  .toolbar-end .select { flex: 1 1 auto; min-width: 0; }
+  .toolbar-end .dropdown { flex: 1 1 auto; min-width: 0; }
 }
-.select {
-  padding: 7px 30px 7px 10px; border-radius: 6px; border: 1px solid var(--border);
-  background: var(--card); color: var(--text); font-size: 0.86rem; cursor: pointer;
-}
-.view-switch { display: inline-flex; border-radius: 6px; border: 1px solid var(--border); overflow: hidden; background: var(--card); }
+.view-switch { display: inline-flex; height: var(--control-h, 38px); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; background: var(--card); }
 .view-switch button {
   border: 0; border-left: 1px solid var(--border); background: transparent; color: var(--muted);
-  padding: 7px 12px; font-size: 0.86rem; cursor: pointer;
+  padding: 0 14px; font-size: var(--control-fs, 0.88rem); cursor: pointer;
 }
 .view-switch button:first-child { border-left: 0; }
 .view-switch button:hover { background: var(--control-hover); color: var(--text); }
