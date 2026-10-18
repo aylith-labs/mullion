@@ -509,6 +509,18 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
     }
 
+    // A reorder hands CascadiaSettings new profile vectors rather than changing
+    // the old one in place (see _permuteProfileSlots), so the add-profile picker
+    // goes on listing the old order until it is told to fetch AvailableProfiles
+    // again. Re-fetching can clear the picker's selection through its two-way
+    // binding, so the selection is put back afterwards.
+    void NewTabMenuViewModel::ProfileOrderChanged()
+    {
+        const auto selected = SelectedProfile();
+        _NotifyChanges(L"AvailableProfiles");
+        SelectedProfile(selected);
+    }
+
     // Within each list, put the explicit profile entries into `order`'s order,
     // using only the positions they already occupy. Separators, folders,
     // matchers and "remaining profiles" stay exactly where they are.

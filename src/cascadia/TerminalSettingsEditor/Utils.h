@@ -4,6 +4,7 @@
 #pragma once
 
 #include <winrt/Microsoft.Terminal.Settings.Editor.h>
+#include "ViewModelHelpers.h"
 
 // This macro must be used alongside GETSET_BINDABLE_ENUM_SETTING.
 // Use this in your class's constructor after Initialize_Component().
@@ -86,6 +87,9 @@ public:                                                                         
         {                                                                                                                                \
             auto setting = winrt::unbox_value<enumType>(ee.EnumValue());                                                                 \
             viewModelSettingGetSet(setting);                                                                                             \
+            /* Mullion: the setter above raises nothing, so say so here, or Save */                                                      \
+            /* waits on the one-second sweep to notice the change. */                                                                    \
+            ViewModelChangeHook::Notify();                                                                                               \
         }                                                                                                                                \
     }                                                                                                                                    \
                                                                                                                                          \

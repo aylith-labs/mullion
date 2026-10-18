@@ -2201,6 +2201,10 @@
     <value>⚠ You have unsaved changes.</value>
     <comment>{Locked="⚠"} A disclaimer that appears when the unsaved changes to the settings are present.</comment>
   </data>
+  <data name="Settings_UnsavedOnCloseWarning.Text" xml:space="preserve">
+    <value>⚠ You have unsaved changes. Save them, or close again to discard them.</value>
+    <comment>{Locked="⚠"} Shown beside the Save button when the Settings UI is closed with unsaved changes. The close was refused; closing a second time discards the changes.</comment>
+  </data>
   <data name="Nav_Profiles.Content" xml:space="preserve">
     <value>Profiles</value>
     <comment>Header for the "profiles" menu item. Navigates to a landing page that lists profile-related settings (defaults, color schemes, the list of terminal profiles, and the add-profile button).</comment>

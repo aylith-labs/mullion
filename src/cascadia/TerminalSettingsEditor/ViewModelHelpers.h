@@ -19,9 +19,10 @@ namespace ViewModelChangeHook
     // This only ever means "something may have changed". VIEW_MODEL_OBSERVABLE_PROPERTY
     // is used for pure UI state too (the current folder, the selected sub-page), so the
     // verdict has to come from comparing the serialized settings, never from the fact
-    // that this ran. It is also not sufficient on its own: a
-    // GETSET_BINDABLE_ENUM_SETTING writes straight through to the settings model and
-    // raises nothing at all, which is why MainPage keeps a slower backstop as well.
+    // that this ran. It is also not sufficient on its own: a write that goes straight
+    // through to the settings model raises nothing at all, which is why MainPage keeps
+    // a slower backstop as well. GETSET_BINDABLE_ENUM_SETTING is the commonest such
+    // write, so it calls Notify itself.
     inline void (*AnyViewModelChanged)(){ nullptr };
 
     inline void Notify()

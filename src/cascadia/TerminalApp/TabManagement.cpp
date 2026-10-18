@@ -16,6 +16,7 @@
 #include <til/io.h>
 
 #include "TabRowControl.h"
+#include "SettingsPaneContent.h"
 #include "DebugTapConnection.h"
 #include "DesktopNotification.h"
 #include "..\TerminalSettingsModel\FileUtils.h"
@@ -489,6 +490,11 @@ namespace winrt::TerminalApp::implementation
     {
         winrt::com_ptr<TerminalPage> strong;
 
+        if (const auto tabImpl{ _GetTabImpl(tab) }; tabImpl && _SettingsRefusesClose(tabImpl->GetRootPane()))
+        {
+            co_return;
+        }
+
         if (tab.ReadOnly())
         {
             const auto weak = get_weak();
@@ -817,6 +823,20 @@ namespace winrt::TerminalApp::implementation
         }
     }
 
+    // Mullion: a Settings pane holding edits nobody saved gets a say before it is
+    // closed, as the dialog host's Close button does (MainPage::ConfirmClose).
+    // True means it refused, and the page is now saying why; closing again goes
+    // ahead.
+    bool TerminalPage::_SettingsRefusesClose(const std::shared_ptr<Pane>& pane)
+    {
+        return pane && pane->WalkTree([](const auto& p) -> bool {
+            const auto content{ p->GetContent() };
+            const auto settings{ content ? content.try_as<SettingsPaneContent>() : nullptr };
+            const auto page{ settings ? settings->SettingsUI() : nullptr };
+            return page && !page.ConfirmClose();
+        });
+    }
+
     // Method Description:
     // - Disables read-only mode on pane if the user wishes to close it and read-only mode is enabled.
     // Arguments:
@@ -825,6 +845,11 @@ namespace winrt::TerminalApp::implementation
     // - bool indicating whether the (read-only) pane can be closed.
     winrt::Windows::Foundation::IAsyncOperation<bool> TerminalPage::_PaneConfirmCloseReadOnly(std::shared_ptr<Pane> pane)
     {
+        if (_SettingsRefusesClose(pane))
+        {
+            co_return false;
+        }
+
         if (pane->ContainsReadOnly())
         {
             const auto weak = get_weak();

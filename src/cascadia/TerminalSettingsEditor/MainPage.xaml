@@ -411,7 +411,8 @@
                             HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Vertical">
-                    <TextBlock x:Uid="Settings_UnsavedSettingsWarning"
+                    <TextBlock x:Name="UnsavedOnCloseWarning"
+                               x:Uid="Settings_UnsavedOnCloseWarning"
                                Foreground="Goldenrod"
                                TextAlignment="Left"
                                Visibility="Collapsed" />

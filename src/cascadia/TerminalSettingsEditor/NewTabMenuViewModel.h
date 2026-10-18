@@ -45,6 +45,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         bool IsProfilePinned(const winrt::guid& profile) const;
         bool UnpinProfile(const winrt::guid& profile);
         bool PinProfileNextTo(const Model::Profile& profile, const winrt::guid& neighbor, bool before);
+        void ProfileOrderChanged();
 
         hstring CurrentFolderName() const;
         void CurrentFolderName(const hstring& value);

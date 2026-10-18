@@ -6613,6 +6613,19 @@ namespace winrt::TerminalApp::implementation
             SettingsDialogResize::Attach(sender, resize);
         });
 
+        // Closing throws the page away, unsaved edits with it, so the page gets a
+        // say first (MainPage::ConfirmClose). Only the close button, which Esc also
+        // presses: a Hide() from another dialog taking over is not the user closing.
+        if (const auto settingsPage{ root.try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>() })
+        {
+            dialog.CloseButtonClick([weakPage = winrt::make_weak(settingsPage)](const auto&, const Controls::ContentDialogButtonClickEventArgs& args) {
+                if (const auto page = weakPage.get(); page && !page.ConfirmClose())
+                {
+                    args.Cancel(true);
+                }
+            });
+        }
+
         // XAML Islands allows one dialog per thread, and TerminalWindow::ShowDialog
         // already enforces that - so a second Ctrl+, while this is up replaces it
         // rather than stacking, which is the behaviour we want anyway.

@@ -51,6 +51,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         MainPage(const Model::CascadiaSettings& settings, const Model::WindowSettings& windowSettings);
 
         void UpdateSettings(const Model::CascadiaSettings& settings, const Model::WindowSettings& windowSettings);
+        bool ConfirmClose();
 
         safe_void_coroutine SettingsSearchBox_TextChanged(const Windows::UI::Xaml::Controls::AutoSuggestBox& sender, const Windows::UI::Xaml::Controls::AutoSuggestBoxTextChangedEventArgs& args);
         void SettingsSearchBox_QuerySubmitted(const Windows::UI::Xaml::Controls::AutoSuggestBox& sender, const Windows::UI::Xaml::Controls::AutoSuggestBoxQuerySubmittedEventArgs& args);
@@ -184,6 +185,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::hstring _describedFingerprint;
         void _DescribeUnsavedChanges(const winrt::hstring& fingerprint);
         bool _unsavedChanges{ false };
+        bool _closeWarned{ false };
         bool _autoSave{ false };
         // Set while _ReadEditorChromePreferences is pushing stored values into the two
         // switches, so their Toggled handlers can tell "restoring" from "the user just

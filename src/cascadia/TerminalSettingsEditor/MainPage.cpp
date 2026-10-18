@@ -617,11 +617,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 // anything -- so the tick also checks for itself and gives up when the
                 // page is no longer in a live tree. A reparent that fires Unloaded
                 // without a Loaded is covered by the same check.
-                // Through the projected FrameworkElement, not the implementation
-                // type: weakThis.get() hands back a com_ptr to the implementation,
-                // which does not carry the projection's own members.
-                const auto element = page.try_as<WUX::FrameworkElement>();
-                if (!element || !element.IsLoaded())
+                // The same element SettingsNav_Unloaded asks, so the two never
+                // disagree about whether the page is still up.
+                if (!self->SettingsNav().IsLoaded())
                 {
                     self->_dirtyCheckTimer.Stop();
                     return;
@@ -645,7 +643,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // reach here loses at most one more sweep. The hook stays armed either way: it
         // is cheap, it resolves a weak reference, and Loaded can bring this same page
         // back.
-        if (_dirtyCheckTimer)
+        //
+        // But only when the page really has left the tree. The dialog host moves the
+        // page into its popup as it opens, and the Unloaded for the place it left
+        // arrives a couple of hundred milliseconds *after* the Loaded for where it
+        // landed (twice, seen under cdb), with no Loaded following it. Stopping on
+        // that left the sweep dead for as long as the dialog was open.
+        if (_dirtyCheckTimer && !SettingsNav().IsLoaded())
         {
             _dirtyCheckTimer.Stop();
         }
@@ -1589,6 +1593,32 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto enabled = !_autoSave && _unsavedChanges;
         SaveButton().IsEnabled(enabled);
         ResetButton().IsEnabled(enabled);
+
+        // Nothing left to lose, so a close warning no longer applies.
+        if (!enabled && _closeWarned)
+        {
+            _closeWarned = false;
+            UnsavedOnCloseWarning().Visibility(WUX::Visibility::Collapsed);
+        }
+    }
+
+    // Mullion: dismissing the page throws its clone away, and with auto-save off
+    // that clone may hold edits nobody saved. So the first attempt to close is
+    // refused and the footer says why, and a second one goes ahead: two deliberate
+    // closes are a decision to discard, one is more likely a reflex.
+    bool MainPage::ConfirmClose()
+    {
+        // A fresh verdict: the last edit may not have been looked at yet, and with
+        // auto-save on this is what writes it.
+        _ReevaluateDirtyState();
+        if (_autoSave || !_unsavedChanges || _closeWarned)
+        {
+            return true;
+        }
+
+        _closeWarned = true;
+        UnsavedOnCloseWarning().Visibility(WUX::Visibility::Visible);
+        return false;
     }
 
     void MainPage::OnAnyViewModelChanged()
@@ -2019,6 +2049,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 ++target;
                 break;
             }
+        }
+
+        if (_newTabMenuPageVM)
+        {
+            get_self<implementation::NewTabMenuViewModel>(_newTabMenuPageVM)->ProfileOrderChanged();
         }
     }
 
