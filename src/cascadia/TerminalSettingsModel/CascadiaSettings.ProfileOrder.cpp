@@ -173,9 +173,15 @@ bool CascadiaSettings::_permuteProfileSlots(const std::vector<Model::Profile>& w
         }
     }
 
-    // In place, not a new vector: the settings editor holds on to these.
-    _allProfiles.ReplaceAll(all);
-    _activeProfiles.ReplaceAll(active);
+    // New vectors, not ReplaceAll. A Reset on _allProfiles reaches whatever is
+    // bound to it, and the Dropdown Menu page's profile picker stays subscribed
+    // after that page is navigated away from: its x:Bind handler then runs on a
+    // torn-down page and access-violates (seen in the test slot under cdb, on
+    // the first dirty check after leaving that page). Every other reader fetches
+    // AllProfiles() afresh; the picker keeps the old order until it rebinds,
+    // which only affects the order it lists profiles in.
+    _allProfiles = winrt::single_threaded_observable_vector(std::move(all));
+    _activeProfiles = winrt::single_threaded_observable_vector(std::move(active));
     return true;
 }
 

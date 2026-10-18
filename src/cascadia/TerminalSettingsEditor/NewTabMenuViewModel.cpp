@@ -327,6 +327,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         _rootEntries = _ConvertToViewModelEntries(_Settings.WindowSettingsDefaults().NewTabMenu(), _Settings);
         _rootEntriesChangedRevoker = _rootEntries.VectorChanged(winrt::auto_revoke, [this](auto&&, const IVectorChangedEventArgs& args) {
+            // Moving, adding or removing an entry raises no PropertyChanged, and the
+            // dropdown decides profile order, so tell MainPage directly. It is
+            // debounced there and runs after this write-through has finished.
+            ViewModelChangeHook::Notify();
             switch (args.CollectionChange())
             {
             case CollectionChange::Reset:
@@ -787,6 +791,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _Entries = _ConvertToViewModelEntries(_FolderEntry.RawEntries(), _Settings);
 
         _entriesChangedRevoker = _Entries.VectorChanged(winrt::auto_revoke, [this](auto&&, const IVectorChangedEventArgs& args) {
+            // As for the root list (NewTabMenuViewModel::UpdateSettings).
+            ViewModelChangeHook::Notify();
             switch (args.CollectionChange())
             {
             case CollectionChange::Reset:
