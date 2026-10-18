@@ -131,9 +131,9 @@ and never work around it.
 - Nothing goes back — see "never open a pull request" above. Upstream is a source, not a destination.
 - **This file is `AGENTS.md`, and it replaced upstream's.** Upstream's `AGENTS.md` is their AI
   policy for contributions to microsoft/terminal, which governs nothing here: nothing here is a
-  contribution to them. When a merge touches `AGENTS.md`, keep ours. `CLAUDE.md` is upstream's
-  one-line `@AGENTS.md`, byte for byte, which is what loads this file into Claude Code and why
-  that file never conflicts. Put nothing else in it.
+  contribution to them. When a merge touches `AGENTS.md`, keep ours. There is no `CLAUDE.md`:
+  Claude Code reads `AGENTS.md` itself, and upstream deleted theirs too (#20786). Don't add one
+  back, or there are two files to keep in step.
 
 ### Remotes
 
