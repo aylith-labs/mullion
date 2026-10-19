@@ -57,8 +57,12 @@ $localStateSettings = Join-Path $localStateDir 'settings.json'
 $localStateState = Join-Path $localStateDir 'state.json'
 $savedSettings = $null
 $savedState = $null
-if (Test-Path $localStateSettings) { $savedSettings = Get-Content $localStateSettings -Raw -ErrorAction SilentlyContinue }
-if (Test-Path $localStateState) { $savedState = Get-Content $localStateState -Raw -ErrorAction SilentlyContinue }
+# -Encoding UTF8 on the read as well as the write: Windows PowerShell 5.1 reads
+# a BOM-less file as the ANSI code page, so a glyph icon such as U+E969 came
+# back as three Latin-1 characters, and the next launch reported the icon as
+# a missing resource.
+if (Test-Path $localStateSettings) { $savedSettings = Get-Content $localStateSettings -Raw -Encoding UTF8 -ErrorAction SilentlyContinue }
+if (Test-Path $localStateState) { $savedState = Get-Content $localStateState -Raw -Encoding UTF8 -ErrorAction SilentlyContinue }
 
 # Always unregister first: re-registering the same version from a DIFFERENT
 # folder is a silent no-op that leaves the old build running, and re-registering
