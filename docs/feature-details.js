@@ -783,6 +783,7 @@ window.FEATURE_DETAILS = {
       "Type <code>@shaltctrl</code> to find <code>ctrl+alt+shift</code> chords without spelling them in order.",
     ],
     media: [
+      { base: "shortcut-search-name", caption: "Filtering by name: the matched letters in bold." },
       { base: "shortcut-search-chord", caption: "An @ search by key chord, with the matching key caps in bold." },
     ],
     notes: [
@@ -929,6 +930,10 @@ window.FEATURE_DETAILS = {
       "Run <code>mullion.exe</code>. Its settings are created under <code>settings\\</code> beside it.",
       "Open Settings: the bottom bar says it is running in portable mode. Open About: the version is the source commit it was built from.",
       "To cut a new one, run the <em>Portable customer acquisition</em> workflow with a green Build run's id. The verified ZIP and its proofs come back as the <code>portable-customer-verified</code> artifact.",
+    ],
+    media: [
+      { base: "portable-settings", caption: "A portable copy’s Settings: the bottom bar says it is running in portable mode." },
+      { base: "portable-about", caption: "About in a portable copy: no package version, so the version is the source commit." },
     ],
     notes: [
       "Windows 10 version 2004 or later. It is a portable ZIP, not a signed MSIX installer.",
