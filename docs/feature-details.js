@@ -127,12 +127,15 @@ window.FEATURE_DETAILS = {
 
   "slack-links": {
     problem:
-      "Tools that emit Slack-style links write them as <code>&lt;https://example.com|the label&gt;</code>. A terminal that doesn't understand that shows the whole thing as literal text, punctuation and all.",
+      "Tools that emit Slack-style links write them as <code>&lt;https://example.com|the label&gt;</code>. Plain URL detection allows a pipe inside a URL, so the link it found was <code>https://example.com|the</code>: the address with the first word of the label stuck to it.",
     how:
-      "The bracketed form is recognised and rendered as its label, linking to its target — the same text, minus the plumbing.",
+      "The bracketed form is recognised as one link, from the opening bracket to the closing one, label included. Hovering or clicking anywhere on it uses the URL before the pipe; the text on screen stays exactly as the program printed it.",
     steps: [
       "Print one: <code>printf '&lt;https://example.com|the label&gt;\\n'</code>.",
-      "It renders as <em>the label</em>, and clicking it opens the URL.",
+      "Hover any part of it, label included: the card shows <code>https://example.com</code>, and clicking opens it.",
+    ],
+    media: [
+      { base: "slack-links", caption: "A Slack-style link is one link from bracket to bracket; the card shows the URL before the pipe." },
     ],
   },
 
@@ -148,6 +151,9 @@ window.FEATURE_DETAILS = {
     settings: [
       { key: "profiles.defaults.colorScheme", def: "—", note: "A scheme name, or a <code>{ light, dark }</code> pair." },
       { key: "theme", def: "\"system\"", note: "This fork follows the OS by default; upstream ships \"dark\"." },
+    ],
+    media: [
+      { base: "color-schemes-pane", caption: "The pane follows the app theme: One Half Light in light mode, Dimidium in dark." },
     ],
   },
 
@@ -218,6 +224,9 @@ window.FEATURE_DETAILS = {
     settings: [
       { key: "ciPollIntervalMinutes", def: "15", note: "How often to check. 0 never checks." },
     ],
+    media: [
+      { base: "ci-poll-setting", caption: "CI build update poll interval, on the Compatibility page." },
+    ],
     notes: [
       "The check runs genuinely hidden. On a machine where Windows Terminal is the default terminal host, a hidden console process still gets a Terminal window created for it before the hide request applies — so these launches go through a wrapper that avoids that handoff entirely.",
     ],
@@ -250,6 +259,10 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipRules", def: "[]", note: "The rules, in precedence order. Per rule: <code>match</code> (<code>link</code> or <code>text</code>), <code>schemes</code>, <code>pattern</code>, <code>fileTypeGroup</code>, <code>extensions</code>, <code>showDelay</code>, <code>hideDelay</code>, <code>maxWidth</code>, <code>buttons</code>, <code>showInPane</code>, <code>primaryAction</code>, <code>alternativeAction</code>, <code>actions</code>, <code>integration</code>, <code>preview</code>." },
       { key: "hyperlink.manualRuleOrder", def: "false", note: "Off, rules are grouped by service and sorted by name. On, they become one flat list you drag into order." },
       { key: "hyperlink.tooltipShowRule", def: "false", note: "Name the rule the card came from, or say that none matched. The name opens that rule in Settings." },
+    ],
+    media: [
+      { base: "link-rules-editor", caption: "A rule open in the editor. The Rule Preview card shows what the pattern finds in a line of output, and the named capture it reads back." },
+      { base: "link-rules-matched", caption: "With Show which rule matched on, the card names the rule that produced it." },
     ],
     notes: [
       "The automatic group order is GitHub, Unblocked Code, Jira, Slack, Stith, shefrd, git, files, then anything else. Unblocked sits above Jira on purpose: a specific <code>UNB-123</code> task id has to be tried before Jira's broad <code>PROJECT-number</code> pattern would claim it.",
@@ -284,6 +297,9 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.alternativeAction", def: "\"open\"", note: "As above." },
       { key: "safeUriSchemes", def: "[\"stith\"]", note: "Schemes that open without the unsafe-URI confirmation. Upstream's default is empty. Setting your own list replaces this one; an empty list confirms them all." },
     ],
+    media: [
+      { base: "click-chords-settings", caption: "Make links clickable, expanded: which links a click reaches, and the two chords, each a modifier, a gesture and an action." },
+    ],
     notes: [
       "The pickers in Settings offer <em>Do nothing</em> and the built-in buttons. An id under <code>actions</code> is written in settings.json; once it is there the picker shows it rather than appearing blank.",
       "This replaces the earlier fork-only single-click switch, so plain click and Ctrl+click both open out of the box.",
@@ -308,6 +324,10 @@ window.FEATURE_DETAILS = {
     settings: [
       { key: "integrations", def: "{}", note: "Per integration id: <code>enabled</code>, <code>settings</code>, and <code>fields</code> / <code>tabs</code> as overrides — a key not mentioned takes the manifest's default. Never credentials." },
       { key: "hyperlink.integrationDisplayMode", def: "\"above\"", note: "Where the integration's logo sits on the card: <code>none</code>, <code>above</code> or <code>left</code>." },
+    ],
+    media: [
+      { base: "integration-previews-github", caption: "Hovering a GitHub issue link: the issue’s title, state, author and comment count, with its description and comments behind tabs." },
+      { base: "integration-previews-settings", caption: "Part of an integration’s page: credentials kept in Windows Credential Manager, never in settings.json, and which fields the card shows." },
     ],
     notes: [
       "Field choices are stored as overrides, not as the list of fields to show. A list could not tell \"I turned that off\" from \"that did not exist when I chose\", so every field a manifest gained later stayed hidden from anyone who had ever ticked a box. The older list form is still read.",
@@ -344,6 +364,10 @@ window.FEATURE_DETAILS = {
       "Hover the path of a PDF or an image and press <code>Show in pane</code>. Use <code>Fit</code> and the zoom buttons, and the page picker for a PDF.",
       "In a WSL pane, run <code>realpath ~/.bashrc</code> and hover the result. The file inside the distro previews the same way.",
     ],
+    media: [
+      { base: "file-previews-markdown", caption: "A Markdown file under the pointer, rendered, with its frontmatter as metadata and the Formatted / Raw switch." },
+      { base: "file-previews-pane", caption: "A PDF in the pane: page picker, Fit and fixed zoom levels." },
+    ],
     notes: [
       "A rule's own preview switches still apply: a rule with <code>Show preview</code> off, or naming an integration, decides for the files it matches.",
       "A bare POSIX path printed in a non-WSL pane is looked for in each registered distribution, off the UI thread, and accepted only when exactly one has it. Otherwise the card says it was not found, or that it exists in several and the path should name the distribution.",
@@ -366,6 +390,9 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.previewInPane", def: "false", note: "Send a hovered link's details to a pane instead of a card. A rule can override it with <code>showInPane</code>." },
       { key: "hyperlink.tooltipNested", def: "false", note: "Preview links found inside a hover card's own content. In the pane they always are." },
     ],
+    media: [
+      { base: "preview-pane-follow", caption: "A link’s details in a pane beside the output it came from, with Pin link and the follow switch at the bottom." },
+    ],
     notes: [
       "The pane has a <code>Refresh</code> button, which refetches and, for a local file, rereads it.",
     ],
@@ -384,6 +411,9 @@ window.FEATURE_DETAILS = {
     ],
     settings: [
       { key: "profiles.list[].pathTranslationStyle", def: "\"none\"", note: "How dropped paths are rewritten: <code>none</code>, <code>wsl</code>, <code>cygwin</code>, <code>msys2</code> or <code>mingw</code>. Generated WSL profiles get <code>wsl</code>." },
+    ],
+    media: [
+      { base: "path-smarts-tilde", caption: "A <code>~/</code> path at the end of a sentence in a WSL pane, resolved to the distro user’s home, with the full stop left out." },
     ],
     notes: [
       "A <code>~/</code> path hovered before that distribution's home is cached shows nothing yet rather than a guessed path. Opening the link, and the card's buttons, look the home up on a background thread, so they work even then.",
@@ -409,6 +439,10 @@ window.FEATURE_DETAILS = {
       { key: "newTabButtonPosition", def: "\"bottom\"", note: "bottom or afterTabs. Read only for a left or right strip." },
       { key: "tabWidthMode", def: "\"equal\"", note: "Upstream's. Ignored, and greyed out in Settings, while the strip is vertical." },
     ],
+    media: [
+      { base: "tab-edges-left", caption: "The strip on the left: six tabs named after what they run, every title readable in full, and the active tab’s title up in the title bar." },
+      { base: "tab-edges-settings", caption: "The Tab strip group under Personalization. With the tabs on the left, Tab width mode is greyed out, because a column has no width to divide." },
+    ],
     notes: [
       "The sidebar width is not saved. Every new window starts at 200 px.",
       "<code>toggleVerticalTabs</code> has no default key and only changes the in-memory setting, like <code>toggleAlwaysOnTop</code>. The next settings reload puts back whatever settings.json says, so use the Settings UI to make a position stick.",
@@ -432,6 +466,10 @@ window.FEATURE_DETAILS = {
     settings: [
       { key: "dockWindow", def: "\"off\"", note: "off, top, bottom, left or right." },
       { key: "dockSize", def: "50", note: "Percent of the monitor's work area the docked window covers, clamped to 10–90." },
+    ],
+    media: [
+      { base: "window-dock-left", caption: "Docked to the left edge at 35% of the screen. The window runs full height and stops at the taskbar." },
+      { base: "window-dock-settings", caption: "Dock the window, under Personalization, with the size slider inside it." },
     ],
     notes: [
       "Dragging the inner edge resizes the window, but it doesn't change <code>dockSize</code>. The setting is still the size the window docks at.",
@@ -461,6 +499,10 @@ window.FEATURE_DETAILS = {
       { key: "warning.confirmOnClose", def: "\"automatic\"", note: "never, automatic, always, or Mullion's moreThanTabs." },
       { key: "warning.confirmOnCloseTabThreshold", def: "3", note: "How many tabs moreThanTabs allows before it asks. The Settings tab is not counted." },
     ],
+    media: [
+      { base: "small-knobs-tab-numbers", caption: "Tab numbers before each title, and before the bell a tab shows when its program rang." },
+      { base: "small-knobs-settings", caption: "Interaction: the pane resize step, and the close confirmation set to warn only above a tab count." },
+    ],
     notes: [
       "The icon and close-button dropdowns show the override, not the value in effect. On a built-in theme the two agree. A custom theme that sets them shows its own value in the window and the default in the dropdown until you change the control.",
       "Tab numbers keep counting past 9, but only the first nine positions have default key bindings.",
@@ -483,6 +525,9 @@ window.FEATURE_DETAILS = {
     settings: [
       { key: "motion", def: "\"system\"", note: "system, full or reduced." },
       { key: "disableAnimations", def: "false", note: "The older switch, now JSON-only. Under system, true still forces animations off; full and reduced ignore it." },
+    ],
+    media: [
+      { base: "motion-settings", caption: "Motion under Personalization: Follow Windows, Always animate or Never animate." },
     ],
     notes: [
       "Pane split and close animations still check the Windows switch themselves. With animation effects off in Windows, <code>Always animate</code> does not bring those back.",
@@ -508,6 +553,10 @@ window.FEATURE_DETAILS = {
       { key: "schemes[].adjustIndistinguishableColors", def: "—", note: "never, indexed, always or automatic. Unset, the profile decides." },
       { key: "profiles.defaults.adjustIndistinguishableColors", def: "\"automatic\"", note: "Upstream's profile setting. A scheme's value now beats it; a value on the profile itself still beats the scheme." },
     ],
+    media: [
+      { base: "scheme-contrast-compare", caption: "The same foreground-on-background grid under one scheme, set to Never on the left and Always on the right." },
+      { base: "scheme-contrast-setting", caption: "The setting on a colour scheme’s page, with Use the profile’s setting as the no-opinion choice." },
+    ],
     notes: [
       "An unfocused appearance that sets nothing takes the scheme's value, even when the focused appearance set its own.",
     ],
@@ -526,6 +575,10 @@ window.FEATURE_DETAILS = {
       "Open the new-tab dropdown. The profiles are in the order you set, and the Ctrl+Shift+N labels count straight down it.",
       "Open Settings → Dropdown Menu, move an entry or put a profile in a folder, then go back to Profiles: the list has reordered to match.",
       "Press Ctrl+Shift+2. It opens the second profile the dropdown shows.",
+    ],
+    media: [
+      { base: "profile-order-drag", caption: "The Profiles page mid-drag: a profile lifted by its gripper on its way down the list." },
+      { base: "profile-order-dropdown", caption: "The new-tab dropdown. The Ctrl+Shift+N labels count 1, 2, 3 down the menu, in the order it shows." },
     ],
     notes: [
       "With the default dropdown, which is nothing but remaining profiles, the dropdown's order is the list's order, so a drag simply reorders <code>profiles.list</code>.",
@@ -552,6 +605,9 @@ window.FEATURE_DETAILS = {
       { key: "compatibility.notifyWhenFocused", def: "false", note: "Show this profile's notifications even from the active pane of a focused window." },
       { key: "compatibility.allowOSC777", def: "false", note: "Upstream's: whether applications may send OSC 777 notifications at all." },
     ],
+    media: [
+      { base: "focused-notifications-setting", caption: "The switch under Profiles → Terminal Emulation, next to the OSC 777 setting." },
+    ],
     upstream:
       "No upstream issue or PR asks for this. Upstream's notification sources are OSC 777 (microsoft/terminal#7718, closed) and the bell notification (#20011, merged). Activity notifications are an open PR, #20014.",
   },
@@ -566,6 +622,10 @@ window.FEATURE_DETAILS = {
       "On the About tab, check the commit and build time, and use Copy build info to put the details on the clipboard.",
       "Switch to Release notes. The newest build is open; expand older ones to see what each brought. Hover a title for the exact time.",
       "Report an issue opens a new issue on github.com/aylith-labs/mullion.",
+    ],
+    media: [
+      { base: "about-dialog-about", caption: "The About tab: the version, commit, branch, build time and executable path, with links to Mullion’s source and docs." },
+      { base: "about-dialog-release-notes", caption: "Release notes: one entry per CI build of main, the running one marked this build, each listing the commits it brought." },
     ],
   },
 
@@ -582,6 +642,10 @@ window.FEATURE_DETAILS = {
     ],
     settings: [
       { key: "settingsUIHost", def: "\"tab\"", note: "tab, dialog, or window. Honoured by <code>openSettings</code> with target <code>settingsUI</code>, which is what <code>Ctrl+,</code> runs." },
+    ],
+    media: [
+      { base: "settings-window-dialog", caption: "Settings as a dialog over the window, with the terminal still there behind it." },
+      { base: "settings-window-option", caption: "Open settings in, on the Interaction page, with its three choices." },
     ],
     notes: [
       "<code>{ \"action\": \"openSettings\", \"target\": \"settingsUITab\" }</code> always opens a tab in the current window whatever <code>settingsUIHost</code> says, for a binding that should keep the old behaviour.",
@@ -602,6 +666,10 @@ window.FEATURE_DETAILS = {
       "Hover Save: the tooltip names the setting and its old and new value.",
       "Try to close the Settings tab. It stays, and the footer reads <em>You have unsaved changes. Save them, or close again to discard them.</em> Close again to discard.",
       "Turn on <code>Auto-save</code> beside Save. Both buttons go grey, and every change from now on is written to settings.json straight away.",
+    ],
+    media: [
+      { base: "settings-save-tooltip", caption: "Hovering Save lists exactly what a save would change, old value to new." },
+      { base: "settings-save-close", caption: "Closing with unsaved changes is refused once, and the footer says why." },
     ],
     notes: [
       "The auto-save switch is editor chrome, kept in state.json as <code>settingsAutoSave</code> (off by default) rather than in settings.json — otherwise turning it on would itself count as an unsaved change.",
@@ -627,6 +695,10 @@ window.FEATURE_DETAILS = {
       { key: "aylith.imprint", def: "false", note: "Draw ◆ beside settings that exist here but not in Windows Terminal." },
       { key: "aylith.imprintJsonOnly", def: "false", note: "Draw ◇ beside settings Windows Terminal has but only exposes in settings.json." },
     ],
+    media: [
+      { base: "fork-marks-compat", caption: "The two switches on Compatibility, each carrying the fork’s own mark, with the same mark on the pages it added." },
+      { base: "fork-marks-page", caption: "Personalization with both marks on: hollow ◇ on settings upstream hides in JSON, ◆ on the fork’s own." },
+    ],
     notes: [
       "The marks are hidden from UI Automation, so a screen reader does not read a stray diamond after every name — which also means an automated check cannot count them; they have to be checked on screen.",
       "The same marks are what the Settings filter uses to decide what is Mullion's.",
@@ -643,6 +715,9 @@ window.FEATURE_DETAILS = {
       "Change a value inside it and press Save. The page rebuilds and the group is still open.",
       "Go to another page and come back: still open.",
       "Close the Terminal and start it again. Settings → Link Tooltip opens with that group expanded.",
+    ],
+    media: [
+      { base: "settings-accordions-linktooltip", caption: "Link Tooltip as groups, one of them open, each master switch in its header." },
     ],
     notes: [
       "Expansion is view state, so it lives in state.json and is never an unsaved change.",
@@ -664,6 +739,10 @@ window.FEATURE_DETAILS = {
       "Search for a setting, choose a result, then click into the empty search box again — that setting is first in the list it offers.",
       "Collapse the pane with the menu button. The search box moves beside the breadcrumb and stays typeable.",
     ],
+    media: [
+      { base: "settings-nav-pane", caption: "The grouped navigation pane, with the search box above the first heading and Show descriptions at the foot." },
+      { base: "settings-nav-help", caption: "Descriptions off: the help badge beside a setting shows its description on hover." },
+    ],
     notes: [
       "Both the descriptions switch and the search history are kept in state.json (<code>settingsShowDescriptions</code>, <code>settingsSearchHistory</code>), so neither counts as an unsaved change.",
       "Results that lead to a particular profile, colour scheme or Dropdown Menu folder are not kept in the history, because no stored string can rebuild them.",
@@ -682,6 +761,10 @@ window.FEATURE_DETAILS = {
       "Type in the search box: only Mullion settings come up.",
       "Choose <code>Windows Terminal</code> for the reverse, or <code>All settings</code> to put everything back.",
     ],
+    media: [
+      { base: "settings-filter-menu", caption: "The filter’s four choices, beside the menu button." },
+      { base: "settings-filter-mullion", caption: "Filtered to Mullion: the navigation and the page keep only what this fork added." },
+    ],
     notes: [
       "The choice is kept in state.json (<code>settingsViewFilter</code>), not settings.json, so changing it is never an unsaved edit, and it survives a restart.",
       "With the pane collapsed to its icons, the filter button moves back beside the search box in the page header.",
@@ -698,6 +781,9 @@ window.FEATURE_DETAILS = {
       "Type <code>split</code> in the search box. Only the split-pane actions are left, with the matched letters in bold.",
       "Clear it and type <code>@ctrl shift</code>: every action bound to a chord with both modifiers, those caps in bold.",
       "Type <code>@shaltctrl</code> to find <code>ctrl+alt+shift</code> chords without spelling them in order.",
+    ],
+    media: [
+      { base: "shortcut-search-chord", caption: "An @ search by key chord, with the matching key caps in bold." },
     ],
     notes: [
       "The Windows key cap is drawn as an icon rather than text, so <code>@win</code> filters correctly but that one cap is not bolded.",
@@ -717,6 +803,10 @@ window.FEATURE_DETAILS = {
       "Open Link tooltips, then click the link to <em>regular expression</em> in its table — that topic opens inside Settings.",
       "Use the breadcrumb at the top to go back to the topic list.",
       "Go to Shortcuts and click <code>Learn more about shortcuts</code>: it opens the Keyboard shortcuts topic rather than a website. Extensions (<code>Learn more about extensions</code>) and the Dropdown Menu's profile matcher (<code>Learn more about regular expressions</code>) do the same.",
+    ],
+    media: [
+      { base: "in-app-docs-list", caption: "The Documentation page and its topics." },
+      { base: "in-app-docs-topic", caption: "A topic open, with the breadcrumb back to the list." },
     ],
     notes: [
       "The regular-expressions topic corrects what the old link implied: the profile matcher's patterns are ICU, not .NET, and they must match the whole value — <code>Ubuntu</code> does not match <code>Ubuntu 22.04</code>, <code>Ubuntu.*</code> does.",
@@ -739,6 +829,10 @@ window.FEATURE_DETAILS = {
     settings: [
       { key: "activityLog", def: "true", note: "Record every process started and every console program handed over. Command lines are written whole, so an argument holding a token lands in the file." },
       { key: "activityLogMaxKilobytes", def: "4096", note: "Size at which <code>activity.jsonl</code> rotates to <code>activity.1.jsonl</code>. Values below 64 are treated as 64." },
+    ],
+    media: [
+      { base: "activity-log-events", caption: "Settings → Activity, grouped by identical commands: repeats are one row with a count and when the first was seen." },
+      { base: "activity-log-pane", caption: "The activity pane beside a shell." },
     ],
     notes: [
       "Nothing is written until settings have loaded, so a crash before then cannot leave a record either way.",
@@ -767,6 +861,10 @@ window.FEATURE_DETAILS = {
       { key: "controlPipe", def: "true", note: "Serve the pipe at all. Off removes the endpoint, and with it everything here." },
       { key: "activityLog", def: "true", note: "Off stops pipe requests being written to the log. The tab-row badge still counts them." },
     ],
+    media: [
+      { base: "pipe-activity-badge", caption: "The tab-row badge after seven pipe requests nobody has looked at yet." },
+      { base: "pipe-activity-flyout", caption: "The list: repeated requests folded into one counted row, a refused request with no reason, and the way through to the full record." },
+    ],
     notes: [
       "Every window gets every request: the badge says the pipe is in use, not which window was touched. A window opened later has no badge until the next request.",
       "The text typed through <code>send-input</code> is never put into a trace, because session titles and command lines would end up in telemetry. It is written to the activity log, which is a file in your own package folder and exists so you can see what was typed into your shells and by whom.",
@@ -787,6 +885,9 @@ window.FEATURE_DETAILS = {
       "The Dev slot needs <code>-IncludeDev</code> on top of <code>-Force</code>, because a windowless Dev process can still hold a live shell. Check the <code>holds:</code> lines first.",
       "Launch the slot again. A build carrying the watchdog does this by itself: a process left with no window is gone five seconds later.",
     ],
+    media: [
+      { base: "no-windowless-repair", caption: "Repair-TerminalSlots.ps1 reporting the Test slot: windows counted per process, hidden ones included." },
+    ],
     notes: [
       "The script re-reads each process's path immediately before stopping it, and refuses if the pid now belongs to something outside the slot's payload.",
       "Exit code 1 means zombies are still present, so it can gate a script.",
@@ -805,6 +906,10 @@ window.FEATURE_DETAILS = {
       "Stage it: <code>pwsh tools\\Fetch-CIBuild.ps1 -Commit 5c5c73f</code>, or <code>-RunId &lt;id&gt;</code>. It lands in <code>C:\\TerminalSlots\\dev-staged-ci</code>, over anything newer already there.",
       "Close the Dev windows and run <code>C:\\TerminalSlots\\Promote-DevSlot.ps1 -Staged C:\\TerminalSlots\\dev-staged-ci -Marker C:\\TerminalSlots\\dev-pending-ci.json</code>. It waits until every Dev process has exited, and never closes one itself.",
       "The build you went back from is now <code>C:\\TerminalSlots\\dev.rollback.1</code>, and the one before it <code>dev.rollback.2</code>.",
+    ],
+    media: [
+      { base: "rollback-slots", caption: "C:\\TerminalSlots after a few promotions: the live payload, and the builds before it kept beside it." },
+      { base: "rollback-fetch", caption: "Fetch-CIBuild.ps1 -Commit with an unknown sha refuses, naming it, before anything is staged." },
     ],
     notes: [
       "The promote button in the Dev window will not offer a build pinned this way: it only offers a staged build newer than the one running, a rule that exists because a stale marker once installed an older build over a newer one. Going back is done with the helper by hand — which is also the only option when the Dev slot won't start at all.",

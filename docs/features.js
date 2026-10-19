@@ -66,7 +66,7 @@ window.FEATURES = [
     cat: "links", catLabel: "Links",
     dateAdded: "2026-08-20",
     commits: ["c2dd09a42"], files: 6, ins: 61, del: 8,
-    desc: "&lt;url|label&gt; links — the format Slack and many CLIs emit — become clickable with the label shown, instead of just the raw bracketed text.",
+    desc: "&lt;url|label&gt; links — the format Slack and many CLIs emit — are one link from bracket to bracket, label included, and open the URL before the pipe instead of a URL with the label stuck to it.",
   },
   {
     id: "wsl-links", title: "WSL file:// link resolution",

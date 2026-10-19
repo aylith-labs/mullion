@@ -189,6 +189,16 @@
   // quoting out of an HTML attribute nested inside a JS string -- which is
   // three levels of escaping and exactly the kind of thing that breaks
   // silently and only in the case that matters.
+  // Every capture is taken at 150% scaling. Shown at its own size divided by
+  // that, a small one (a menu, one settings card) stays the size it is on
+  // screen instead of being stretched across the column; a wide one still
+  // shrinks to fit.
+  var CAPTURE_SCALE = 1.5;
+  function fitToCapture(el) {
+    var w = el.tagName === "VIDEO" ? el.videoWidth : el.naturalWidth;
+    if (w) { el.style.maxWidth = Math.round(w / CAPTURE_SCALE) + "px"; }
+  }
+
   var figures = host.querySelectorAll("figure[data-base]");
   for (var i = 0; i < figures.length; i++) {
     (function (fig) {
@@ -217,9 +227,11 @@
         });
         var recovered = function () {
           this.classList.remove("absent");
+          fitToCapture(this);
           refresh();
         };
         shots[j].addEventListener(shots[j].tagName === "VIDEO" ? "loadeddata" : "load", recovered);
+        if (shots[j].tagName === "IMG" && shots[j].complete && shots[j].naturalWidth) { fitToCapture(shots[j]); }
       }
     })(figures[i]);
   }
