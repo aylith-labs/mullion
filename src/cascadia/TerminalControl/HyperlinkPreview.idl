@@ -178,6 +178,8 @@ namespace Microsoft.Terminal.Control
         void InvokeLinkAction(String text, IControlSettings settings, String actionId);
         Windows.UI.Xaml.FrameworkElement CreatePreviewView(String text, IControlSettings settings, Int32 depth);
         Windows.Foundation.IAsyncOperation<HyperlinkPreview> GetFilePreviewAsync(String resolvedFilePath);
+        // A file on another machine (file://<host>/<path>), read through shefrd in this WSL distribution.
+        Windows.Foundation.IAsyncOperation<HyperlinkPreview> GetRemoteFilePreviewAsync(String remoteFileUri, String distro);
         Windows.Foundation.IAsyncOperation<HyperlinkPreview> GetPreviewAsync(String text, String integrationHint);
         // Same, but ignores (and replaces) anything cached -- what to call
         // after an action has changed the thing being previewed.

@@ -16,6 +16,7 @@
 #include "pch.h"
 #endif
 #include "../TerminalApp/FilePreviewReader.h"
+#include "../TerminalApp/RemoteFileRead.h"
 #include <filesystem>
 #include "../UIMarkdown/SyntaxHighlight.h"
 #include "../UIMarkdown/MarkdownBlocks.h"
@@ -92,6 +93,7 @@ namespace ControlUnitTests
         TEST_METHOD(JiraAdfBlocks);
         TEST_METHOD(SharedPathResolution);
         TEST_METHOD(PreviewFieldPresentation);
+        TEST_METHOD(RemoteReadReplies);
 #ifndef FILE_PREVIEW_STANDALONE
         TEST_METHOD(YamlFrontmatter);
 #endif
@@ -296,6 +298,44 @@ void ControlUnitTests::FilePreviewTests::PreviewFieldPresentation()
     VERIFY_IS_FALSE(IsZeroCount(L"AT-0"));
 }
 
+void ControlUnitTests::FilePreviewTests::RemoteReadReplies()
+{
+    using Status = RemoteReadStatus;
+    const auto parse = [](std::string_view output) { return ParseRemoteReadReply(output, 16); };
+
+    const auto ok = parse(R"({"ok":true,"kind":"file","size":5,"mtime":"2026-10-20T18:00:00Z","truncated":false,"bytes":5})" "\nhello");
+    VERIFY_IS_TRUE(ok.status == Status::Ok);
+    VERIFY_ARE_EQUAL(std::string{ "hello" }, ok.bytes);
+    VERIFY_IS_FALSE(ok.truncated);
+
+    // A login shell's own output ahead of the reply is skipped, and binary bytes survive.
+    const auto noisy = parse(std::string{ "motd line\n" R"({"ok": true, "kind": "file", "size": 40, "truncated": true, "bytes": 3})" "\n" } + std::string{ "a\0\n", 3 });
+    VERIFY_IS_TRUE(noisy.status == Status::Ok);
+    VERIFY_IS_TRUE(noisy.bytes == std::string("a\0\n", 3));
+    VERIFY_IS_TRUE(noisy.truncated);
+    VERIFY_IS_TRUE(noisy.size == 40);
+
+    VERIFY_IS_TRUE(parse(R"({"ok":false,"error":"not_found"})" "\n").status == Status::NotFound);
+    VERIFY_IS_TRUE(parse(R"({"ok":false,"error":"not_regular"})").status == Status::NotRegular);
+    VERIFY_IS_TRUE(parse(R"({"ok":false,"error":"too_large"})").status == Status::TooLarge);
+    VERIFY_IS_TRUE(parse(R"({"ok":false,"error":"denied"})").status == Status::Denied);
+    VERIFY_IS_TRUE(parse(R"({"ok":false,"error":"not_connected"})").status == Status::NotConnected);
+    VERIFY_IS_TRUE(parse(R"({"ok":false,"error":"unsupported"})").status == Status::Unsupported);
+    VERIFY_IS_TRUE(parse(R"({"ok":false,"error":"something new"})").status == Status::Unavailable);
+
+    // Anything that is not the contract is quietly unavailable: no command, usage text, a
+    // short payload, more bytes than were allowed, or a count larger than the file.
+    VERIFY_IS_TRUE(parse("").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse("sh: 1: exec: shefrd: not found\n").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse("error: unrecognized subcommand 'read'\n").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse(R"({"ok":true,"kind":"file","size":5,"truncated":false,"bytes":5})" "\nhel").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse(R"({"ok":true,"kind":"file","size":99,"truncated":true,"bytes":17})" "\n01234567890123456").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse(R"({"ok":true,"kind":"file","size":2,"truncated":false,"bytes":3})" "\nabc").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse(R"({"ok":true,"kind":"dir","size":3,"truncated":false,"bytes":3})" "\nabc").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse(R"({"ok":true,"kind":"file","size":-1,"truncated":false,"bytes":3})" "\nabc").status == Status::Unavailable);
+    VERIFY_IS_TRUE(parse(R"({"ok":true,"kind":"file","size":3,"truncated":false,"bytes":3})").status == Status::Unavailable);
+}
+
 void ControlUnitTests::FilePreviewTests::SharedPathResolution()
 {
     const auto windows = Lintel::PathCandidates(LR"(Z:\home\stevenp\x.png)", true, L"Ubuntu", { L"Debian" });
@@ -349,7 +389,8 @@ int main()
         tests.JiraAdfBlocks();
         tests.SharedPathResolution();
         tests.PreviewFieldPresentation();
-        std::cout << "All 12 native file preview tests passed.\n";
+        tests.RemoteReadReplies();
+        std::cout << "All 13 native file preview tests passed.\n";
         return 0;
     }
     catch (const winrt::hresult_error& error)

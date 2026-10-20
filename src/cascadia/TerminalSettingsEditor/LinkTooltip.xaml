@@ -411,6 +411,17 @@
                                   Style="{StaticResource ToggleSwitchInExpanderStyle}" />
                 </local:SettingsCard>
 
+                <!--
+                    Off by default: each hover of such a path starts wsl.exe and asks
+                    shefrd to read the file over the SSH connection it already holds.
+                -->
+                <local:SettingsCard x:Name="HyperlinkRemoteFilePreviews"
+                                    x:Uid="Globals_HyperlinkRemoteFilePreviews"
+                                    IsForkFeature="True">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.HyperlinkRemoteFilePreviews, Mode=TwoWay}"
+                                  Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                </local:SettingsCard>
+
                 <local:SettingsCard x:Name="SafeUriSchemes"
                                     x:Uid="Globals_SafeUriSchemes">
                     <TextBox IsSpellCheckEnabled="False"

@@ -390,4 +390,14 @@ void TerminalCoreUnitTests::TerminalApiTest::SetWorkingDirectory()
 
     stateMachine.ProcessString(L"\x1b]9;9;D:\\中文\x1b\\");
     VERIFY_ARE_EQUAL(term.GetWorkingDirectory(), L"D:\\中文");
+
+    // OSC 7 on another machine keeps the host and leaves the local directory alone,
+    // rather than turning it into \\host\... for a split to open over SMB.
+    stateMachine.ProcessString(L"\x1b]7;file://nitromarchy/home/stevenp\x1b\\");
+    VERIFY_ARE_EQUAL(term.GetWorkingDirectoryHost(), L"nitromarchy");
+    VERIFY_ARE_EQUAL(term.GetWorkingDirectory(), L"D:\\中文");
+
+    stateMachine.ProcessString(L"\x1b]7;file://localhost/C:/Users\x1b\\");
+    VERIFY_IS_TRUE(term.GetWorkingDirectoryHost().empty());
+    VERIFY_ARE_EQUAL(term.GetWorkingDirectory(), L"C:\\Users");
 }

@@ -111,6 +111,7 @@ public:
     void SetOptionalFeatures(winrt::Microsoft::Terminal::Core::ICoreSettings settings);
     bool IsXtermBracketedPasteModeEnabled() const noexcept;
     std::wstring_view GetWorkingDirectory() noexcept;
+    std::wstring_view GetWorkingDirectoryHost() noexcept;
 
     til::point GetViewportRelativeCursorPosition() const noexcept;
 
@@ -164,6 +165,7 @@ public:
     void CopyToClipboard(wil::zwstring_view content) override;
     void SetTaskbarProgress(const ::Microsoft::Console::VirtualTerminal::DispatchTypes::TaskbarState state, const size_t progress) override;
     void SetWorkingDirectory(std::wstring_view uri) override;
+    void SetWorkingDirectoryHost(std::wstring_view host) override;
     void PlayMidiNote(const int noteNumber, const int velocity, const std::chrono::microseconds duration) override;
     void ShowWindow(bool showOrHide) override;
     void UseAlternateScreenBuffer(const TextAttribute& attrs) override;
@@ -402,6 +404,7 @@ private:
 
     std::wstring _answerbackMessage;
     std::wstring _workingDirectory;
+    std::wstring _workingDirectoryHost;
     bool _highContrastMode = false;
 
     // This default fake font value is only used to check if the font is a raster font.

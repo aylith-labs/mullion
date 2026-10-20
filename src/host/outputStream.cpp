@@ -335,6 +335,10 @@ void ConhostInternalGetSet::SetWorkingDirectory(const std::wstring_view /*uri*/)
 {
 }
 
+void ConhostInternalGetSet::SetWorkingDirectoryHost(const std::wstring_view /*host*/)
+{
+}
+
 // Routine Description:
 // - Plays a single MIDI note, blocking for the duration.
 // Arguments:

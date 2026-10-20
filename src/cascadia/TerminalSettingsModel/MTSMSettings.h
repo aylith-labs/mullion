@@ -78,6 +78,7 @@ Author(s):
     X(bool, HyperlinkTooltipHint, "hyperlink.tooltipHint", true)                                                                                                                                      \
     X(bool, HyperlinkTooltipShowRule, "hyperlink.tooltipShowRule", false)                                                                                                                             \
     X(bool, HyperlinkPreviewInPane, "hyperlink.previewInPane", false)                                                                                                                                 \
+    X(bool, HyperlinkRemoteFilePreviews, "hyperlink.remoteFilePreviews", false)                                                                                                                       \
     X(Model::PaneTitlebarVisibility, PaneTitlebarVisibility, "paneTitlebarVisibility", Model::PaneTitlebarVisibility::MultiplePanes)                                                                   \
     X(Model::HyperlinkIntegrationDisplayMode, HyperlinkIntegrationDisplayMode, "hyperlink.integrationDisplayMode", Model::HyperlinkIntegrationDisplayMode::Above)                                    \
     X(Model::HyperlinkActionPlacement, HyperlinkActionPlacement, "hyperlink.actionPlacement", Model::HyperlinkActionPlacement::FarFromLink)                                                               \

@@ -500,6 +500,7 @@ namespace winrt::Microsoft::Terminal::Settings
         _HyperlinkTooltipHint = windowSettings.HyperlinkTooltipHint();
         _HyperlinkTooltipShowRule = windowSettings.HyperlinkTooltipShowRule();
         _HyperlinkPreviewInPane = windowSettings.HyperlinkPreviewInPane();
+        _HyperlinkRemoteFilePreviews = windowSettings.HyperlinkRemoteFilePreviews();
         _HyperlinkIntegrationDisplayMode = static_cast<Control::HyperlinkIntegrationDisplayMode>(windowSettings.HyperlinkIntegrationDisplayMode());
         _HyperlinkActionPlacement = static_cast<Control::HyperlinkActionPlacement>(windowSettings.HyperlinkActionPlacement());
 

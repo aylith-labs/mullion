@@ -6,6 +6,7 @@
 #include <winrt/Windows.UI.Xaml.Shapes.h>
 #include "LinkPreviewPaneContent.h"
 #include "../TerminalSettingsAppAdapterLib/TerminalSettings.h"
+#include "../../types/inc/utils.hpp"
 #include "LinkPreviewPaneContent.g.cpp"
 
 using namespace winrt::Microsoft::Terminal;
@@ -160,7 +161,14 @@ namespace winrt::TerminalApp::implementation
         Control::HyperlinkPreview preview{ nullptr };
         try
         {
-            if (hint.empty() && !filePath.empty())
+            if (hint.empty() && ::Microsoft::Console::Utils::SplitRemoteFileUri(std::wstring_view{ filePath }))
+            {
+                const auto distro = _linkSettings ? ::Microsoft::Console::Utils::WslDistroForCommandline(_linkSettings.Commandline(), _linkSettings.PathTranslationStyle() == Control::PathTranslationStyle::WSL) : std::wstring{};
+                const auto operation = provider.GetRemoteFilePreviewAsync(filePath, winrt::hstring{ distro });
+                _filePreviewOperation = operation;
+                preview = co_await operation;
+            }
+            else if (hint.empty() && !filePath.empty())
             {
                 const auto operation = provider.GetFilePreviewAsync(filePath);
                 _filePreviewOperation = operation;

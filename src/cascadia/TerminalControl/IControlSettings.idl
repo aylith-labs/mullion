@@ -189,6 +189,8 @@ namespace Microsoft.Terminal.Control
         Boolean HyperlinkTooltipShowRule { get; };
         // Hovering opens the detail pane instead of the card.
         Boolean HyperlinkPreviewInPane { get; };
+        // A path in a pane whose OSC 7 names another machine is previewed through shefrd.
+        Boolean HyperlinkRemoteFilePreviews { get; };
         HyperlinkIntegrationDisplayMode HyperlinkIntegrationDisplayMode { get; };
         HyperlinkActionPlacement HyperlinkActionPlacement { get; };
         Windows.Foundation.Collections.IVector<HyperlinkTooltipRule> HyperlinkTooltipRules { get; };

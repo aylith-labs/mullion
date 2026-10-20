@@ -57,6 +57,7 @@
     X(bool, HyperlinkTooltipHint, true)                                                                           \
     X(bool, HyperlinkTooltipShowRule, false)                                                                      \
     X(bool, HyperlinkPreviewInPane, false)                                                                        \
+    X(bool, HyperlinkRemoteFilePreviews, false)                                                                   \
     X(bool, ScrollToChangeOpacity, true)                                                                          \
     X(winrt::Windows::Foundation::IReference<winrt::Microsoft::Terminal::Core::Color>, TabColor, nullptr)         \
     X(winrt::Windows::Foundation::IReference<winrt::Microsoft::Terminal::Core::Color>, StartingTabColor, nullptr) \

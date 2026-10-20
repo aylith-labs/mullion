@@ -321,6 +321,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(_WindowSettings, HyperlinkTooltipHint);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(_WindowSettings, HyperlinkTooltipShowRule);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(_WindowSettings, HyperlinkPreviewInPane);
+        PERMANENT_OBSERVABLE_PROJECTED_SETTING(_WindowSettings, HyperlinkRemoteFilePreviews);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(_WindowSettings, HyperlinkIntegrationDisplayMode);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(_WindowSettings, HyperlinkActionPlacement);
 

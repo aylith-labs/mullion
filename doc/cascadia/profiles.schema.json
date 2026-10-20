@@ -2640,6 +2640,11 @@
           "description": "When set to true, hovering a link opens its details in a pane instead of in the tooltip card.",
           "type": "boolean"
         },
+        "hyperlink.remoteFilePreviews": {
+          "default": false,
+          "description": "When set to true, a file path in a pane whose OSC 7 names another machine is previewed by running `shefrd machine read` in WSL, instead of being looked up in WSL. Text files only.",
+          "type": "boolean"
+        },
         "hyperlink.integrationDisplayMode": {
           "default": "above",
           "description": "Where an integration's preview sits relative to the link on the tooltip card.",

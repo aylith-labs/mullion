@@ -1458,6 +1458,16 @@ bool Utils::IsLocalHostname(std::wstring_view host) noexcept
     return false;
 }
 
+std::wstring_view Utils::FileUriHost(std::wstring_view uri) noexcept
+{
+    if (!til::starts_with_insensitive_ascii(uri, L"file://"))
+    {
+        return {};
+    }
+    const auto rest = uri.substr(7);
+    return rest.substr(0, std::min(rest.find_first_of(L"/\\?#"), rest.size()));
+}
+
 Utils::FileHostKind Utils::ClassifyFileHost(std::wstring_view host) noexcept
 {
     if (host.empty() || IsLocalHostname(host))
@@ -1496,6 +1506,94 @@ bool Utils::IsRemoteUncPath(std::wstring_view path) noexcept
     const std::wstring_view server{ rest.data(), static_cast<size_t>(end - rest.begin()) };
     // An empty server or "." (the device namespace) is never a file anyone meant to preview.
     return server.empty() || server == L"." || ClassifyFileHost(server) == FileHostKind::Remote;
+}
+
+std::wstring Utils::RemoteFileUri(std::wstring_view host, std::wstring_view posixPath)
+{
+    std::wstring uri{ L"file://" };
+    uri.append(host);
+    if (!posixPath.starts_with(L'/'))
+    {
+        uri.push_back(L'/');
+    }
+    for (const auto ch : posixPath)
+    {
+        switch (ch)
+        {
+        case L'%':
+            uri.append(L"%25");
+            break;
+        case L' ':
+            uri.append(L"%20");
+            break;
+        case L'#':
+            uri.append(L"%23");
+            break;
+        case L'?':
+            uri.append(L"%3F");
+            break;
+        default:
+            uri.push_back(ch);
+        }
+    }
+    return uri;
+}
+
+std::optional<std::pair<std::wstring, std::wstring>> Utils::SplitRemoteFileUri(std::wstring_view uri)
+{
+    const auto host = FileUriHost(uri);
+    if (host.empty() || ClassifyFileHost(host) != FileHostKind::Remote)
+    {
+        return std::nullopt;
+    }
+    const auto encoded = _decodeNonAsciiEscapes(StripUriFragment(uri.substr(7 + host.size())));
+    std::wstring path;
+    for (size_t i = 0; i < encoded.size(); ++i)
+    {
+        if (encoded[i] == L'%' && i + 2 < encoded.size() && iswxdigit(encoded[i + 1]) && iswxdigit(encoded[i + 2]))
+        {
+            path.push_back(static_cast<wchar_t>(std::stoi(encoded.substr(i + 1, 2), nullptr, 16)));
+            i += 2;
+        }
+        else
+        {
+            path.push_back(encoded[i]);
+        }
+    }
+    if (path.starts_with(L"/~/"))
+    {
+        path.erase(0, 1);
+    }
+    if (!path.starts_with(L'/') && !path.starts_with(L"~/"))
+    {
+        return std::nullopt;
+    }
+    return std::pair{ std::wstring{ host }, std::move(path) };
+}
+
+std::wstring Utils::QuoteCommandLineArgument(std::wstring_view argument)
+{
+    if (!argument.empty() && argument.find_first_of(L" \t\n\v\"") == std::wstring_view::npos)
+    {
+        return std::wstring{ argument };
+    }
+    std::wstring quoted{ L"\"" };
+    size_t backslashes = 0;
+    for (const auto ch : argument)
+    {
+        if (ch == L'\\')
+        {
+            ++backslashes;
+            continue;
+        }
+        // Backslashes are literal unless a quote follows them, so only then double them.
+        quoted.append(ch == L'"' ? backslashes * 2 + 1 : backslashes, L'\\');
+        backslashes = 0;
+        quoted.push_back(ch);
+    }
+    quoted.append(backslashes * 2, L'\\');
+    quoted.push_back(L'"');
+    return quoted;
 }
 
 std::wstring Utils::ResolveFileUriTarget(std::wstring_view uriString, std::wstring_view profileDistro)

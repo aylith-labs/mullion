@@ -152,10 +152,20 @@ namespace Microsoft::Console::Utils
         Remote
     };
     bool IsLocalHostname(std::wstring_view host) noexcept;
+    // The authority of a file:// URI ("" for file:///x and for anything that is not one).
+    std::wstring_view FileUriHost(std::wstring_view uri) noexcept;
     FileHostKind ClassifyFileHost(std::wstring_view host) noexcept;
     // True for a \\server\... or //server/... path whose server is not Local or Wsl,
     // including the \\.\ device namespace. \\?\C:\... is a local long path and is not.
     bool IsRemoteUncPath(std::wstring_view path) noexcept;
+
+    // A file on another machine, carried as file://<host>/<path>. The path is POSIX, or
+    // ~/... for the remote user's home (file://<host>/~/...).
+    std::wstring RemoteFileUri(std::wstring_view host, std::wstring_view posixPath);
+    // The host and decoded path of such a URI, or nothing when its host is not Remote.
+    std::optional<std::pair<std::wstring, std::wstring>> SplitRemoteFileUri(std::wstring_view uri);
+    // One argument for CreateProcess, quoted the way CommandLineToArgvW reads it back.
+    std::wstring QuoteCommandLineArgument(std::wstring_view argument);
 
     // Which WSL distro, if any, a pane launched with this commandline is running, for
     // resolving the POSIX paths it prints. `declaresWslPathTranslation` is the profile's

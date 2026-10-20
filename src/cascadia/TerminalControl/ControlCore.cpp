@@ -1598,6 +1598,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         return hstring{ _terminal->GetWorkingDirectory() };
     }
 
+    hstring ControlCore::WorkingDirectoryHost() const
+    {
+        const auto lock = _terminal->LockForReading();
+        return hstring{ _terminal->GetWorkingDirectoryHost() };
+    }
+
     bool ControlCore::BracketedPasteEnabled() const noexcept
     {
         const auto lock = _terminal->LockForReading();

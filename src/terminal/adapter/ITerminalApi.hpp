@@ -82,6 +82,8 @@ namespace Microsoft::Console::VirtualTerminal
         virtual void CopyToClipboard(const wil::zwstring_view content) = 0;
         virtual void SetTaskbarProgress(const DispatchTypes::TaskbarState state, const size_t progress) = 0;
         virtual void SetWorkingDirectory(const std::wstring_view uri) = 0;
+        // The machine an OSC 7 directory is on when that is not this one, or empty.
+        virtual void SetWorkingDirectoryHost(const std::wstring_view host) = 0;
         virtual void PlayMidiNote(const int noteNumber, const int velocity, const std::chrono::microseconds duration) = 0;
 
         virtual bool ResizeWindow(const til::CoordType width, const til::CoordType height) = 0;

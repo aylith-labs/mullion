@@ -37,6 +37,7 @@ class UtilsTests
     TEST_METHOD(TestResolveFileUriTarget);
     TEST_METHOD(TestStripUriFragment);
     TEST_METHOD(TestFileHosts);
+    TEST_METHOD(TestRemoteFileUri);
     TEST_METHOD(TestIsValidDirectory);
     TEST_METHOD(TestWslDistroIgnoresWindowsShells);
 
@@ -734,6 +735,45 @@ void UtilsTests::TestFileHosts()
     VERIFY_IS_FALSE(IsRemoteUncPath(LR"(/home/stevenp/x.md)"));
     VERIFY_IS_FALSE(IsRemoteUncPath(L""));
     VERIFY_IS_FALSE(IsRemoteUncPath(std::wstring{ LR"(\\)" } + self + LR"(\share\x)"));
+
+    VERIFY_ARE_EQUAL(std::wstring{ L"nitromarchy" }, std::wstring{ FileUriHost(L"file://nitromarchy/home/stevenp") });
+    VERIFY_ARE_EQUAL(std::wstring{ L"nitromarchy" }, std::wstring{ FileUriHost(L"FILE://nitromarchy") });
+    VERIFY_ARE_EQUAL(std::wstring{ L"server" }, std::wstring{ FileUriHost(LR"(file://server\share)") });
+    VERIFY_ARE_EQUAL(std::wstring{ L"" }, std::wstring{ FileUriHost(L"file:///home/stevenp") });
+    VERIFY_ARE_EQUAL(std::wstring{ L"" }, std::wstring{ FileUriHost(L"https://nitromarchy/x") });
+    VERIFY_ARE_EQUAL(std::wstring{ L"" }, std::wstring{ FileUriHost(L"/home/stevenp") });
+}
+
+void UtilsTests::TestRemoteFileUri()
+{
+    VERIFY_ARE_EQUAL(std::wstring{ L"file://nitromarchy/home/stevenp/x.md" }, RemoteFileUri(L"nitromarchy", L"/home/stevenp/x.md"));
+    VERIFY_ARE_EQUAL(std::wstring{ L"file://nitromarchy/~/notes/a%20b%23c%3F%25.md" }, RemoteFileUri(L"nitromarchy", L"~/notes/a b#c?%.md"));
+
+    const auto split = [](std::wstring_view uri) { return SplitRemoteFileUri(uri); };
+    for (const auto path : { L"/home/stevenp/x.md", L"~/notes/a b#c?%.md", L"/tmp/\u00E9 \u4E2D.txt" })
+    {
+        const auto parts = split(RemoteFileUri(L"nitromarchy", path));
+        VERIFY_IS_TRUE(parts.has_value());
+        VERIFY_ARE_EQUAL(std::wstring{ L"nitromarchy" }, parts->first);
+        VERIFY_ARE_EQUAL(std::wstring{ path }, parts->second);
+    }
+    VERIFY_ARE_EQUAL(std::wstring{ L"/tmp/\u00E9.txt" }, split(L"file://nitromarchy/tmp/%C3%A9.txt")->second);
+    VERIFY_ARE_EQUAL(std::wstring{ L"/etc/hosts" }, split(L"file://nitromarchy/etc/hosts#L3")->second);
+
+    // Only another machine's file: this one's and WSL's resolve locally, and a URI without a path is nothing.
+    VERIFY_IS_FALSE(split(L"file:///home/stevenp/x.md").has_value());
+    VERIFY_IS_FALSE(split(L"file://localhost/home/stevenp/x.md").has_value());
+    VERIFY_IS_FALSE(split(L"file://wsl.localhost/Ubuntu/etc/hosts").has_value());
+    VERIFY_IS_FALSE(split(L"file://nitromarchy").has_value());
+    VERIFY_IS_FALSE(split(L"https://nitromarchy/x").has_value());
+
+    VERIFY_ARE_EQUAL(std::wstring{ L"plain" }, QuoteCommandLineArgument(L"plain"));
+    VERIFY_ARE_EQUAL(std::wstring{ L"\"\"" }, QuoteCommandLineArgument(L""));
+    VERIFY_ARE_EQUAL(std::wstring{ L"\"a b\"" }, QuoteCommandLineArgument(L"a b"));
+    VERIFY_ARE_EQUAL(std::wstring{ LR"("say \"hi\"")" }, QuoteCommandLineArgument(LR"(say "hi")"));
+    VERIFY_ARE_EQUAL(std::wstring{ LR"("a\\\"b")" }, QuoteCommandLineArgument(LR"(a\"b)"));
+    VERIFY_ARE_EQUAL(std::wstring{ LR"("trail\ \\")" }, QuoteCommandLineArgument(LR"(trail\ \)"));
+    VERIFY_ARE_EQUAL(std::wstring{ LR"(C:\x\y)" }, QuoteCommandLineArgument(LR"(C:\x\y)"));
 }
 
 void UtilsTests::TestStripUriFragment()

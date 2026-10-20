@@ -307,6 +307,11 @@ std::wstring_view Terminal::GetWorkingDirectory() noexcept
     return _workingDirectory;
 }
 
+std::wstring_view Terminal::GetWorkingDirectoryHost() noexcept
+{
+    return _workingDirectoryHost;
+}
+
 // Method Description:
 // - Resize the terminal as the result of some user interaction.
 // Arguments:

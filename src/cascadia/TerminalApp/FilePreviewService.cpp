@@ -6,6 +6,8 @@
 #include "../TerminalControl/HyperlinkRules.h"
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include "FilePreviewReader.h"
+#include "RemoteFileRead.h"
+#include "../../inc/ProcessCaptureImpl.h"
 #include "../../inc/LintelPaths.h"
 #include "../../inc/LintelHomes.h"
 #include "../../types/inc/utils.hpp"
@@ -237,6 +239,104 @@ namespace winrt::TerminalApp::implementation
         catch (const hresult_error& error) { preview.Error(error.message()); }
         catch (...) { preview.Error(L"File could not be read. It may be missing, inaccessible, or damaged."); }
         if (cancellation()) throw hresult_canceled();
+        co_return preview;
+    }
+
+    // Long enough for a cold wsl.exe and a round trip to a LAN machine; a hover that waits longer is not a hover.
+    static constexpr unsigned long RemoteReadTimeoutMs = 5000;
+
+    // The file lives on another machine, so nothing here touches the filesystem: shefrd in
+    // WSL reads it over the SSH connection it already holds. Text files only, under
+    // the same 1 MiB limit as a local file. FilePath stays empty, so Markdown has no base to
+    // resolve a relative image against and nothing reaches for a local or UNC copy.
+    Windows::Foundation::IAsyncOperation<Control::HyperlinkPreview> HyperlinkPreviewService::GetRemoteFilePreviewAsync(hstring remoteFileUri, hstring distro)
+    {
+        const auto cancellation = co_await get_cancellation_token();
+        co_await resume_background();
+        if (cancellation()) throw hresult_canceled();
+        Control::HyperlinkPreview preview;
+        preview.IntegrationName(L"File");
+        preview.IntegrationIcon(L"\uE8A5");
+        preview.SourceText(remoteFileUri);
+        const auto parts = ::Microsoft::Console::Utils::SplitRemoteFileUri(std::wstring_view{ remoteFileUri });
+        if (!parts) co_return Control::HyperlinkPreview{ nullptr };
+        const auto host = parts->first;
+        const auto posixPath = parts->second;
+        const auto name = posixPath.substr(posixPath.find_last_of(L'/') + 1);
+        const auto& fileType = Lintel::FindFileType(posixPath);
+        preview.IntegrationName(fileType.name);
+        preview.IntegrationIcon(fileType.icon);
+        auto fields = single_threaded_vector<Control::HyperlinkPreviewField>();
+        Control::HyperlinkPreviewField title;
+        title.Kind(Control::HyperlinkPreviewFieldKind::Title);
+        title.Value(name);
+        fields.Append(title);
+        Control::HyperlinkPreviewField metadata;
+        metadata.IconUri(fileType.icon);
+        const auto describe = [&](std::wstring_view detail) {
+            metadata.Value(std::wstring{ fileType.name } + L" \u00B7 on " + host + L" \u00B7 " + std::wstring{ detail });
+        };
+        // Said plainly: these are facts about the file. Everything else -- no reader, no
+        // connection, a refusal, a timeout, a reply that is not one -- is quietly unavailable.
+        static constexpr auto unavailable = L"Preview unavailable";
+        // The same split as a local file: these formats need a file on disk to render.
+        auto ext = std::filesystem::path{ posixPath }.extension().wstring();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
+        static constexpr std::wstring_view needsDisk[]{ L".pdf", L".png", L".jpg", L".jpeg", L".gif", L".bmp", L".tif", L".tiff", L".docx", L".xlsx", L".pptx" };
+        if (std::find(std::begin(needsDisk), std::end(needsDisk), ext) != std::end(needsDisk))
+        {
+            describe(unavailable);
+        }
+        else
+        {
+            std::wstring commandLine{ L"wsl.exe" };
+            if (!distro.empty()) commandLine += L" -d " + ::Microsoft::Console::Utils::QuoteCommandLineArgument(distro);
+            const auto script = fmt::format(LR"(exec shefrd machine read "$1" "$2" --max-bytes {} 2>/dev/null)", TextLimit);
+            for (const auto& argument : { std::wstring{ L"--exec" }, std::wstring{ L"sh" }, std::wstring{ L"-lc" }, script, std::wstring{ L"sh" }, host, posixPath })
+            {
+                commandLine += L' ' + ::Microsoft::Console::Utils::QuoteCommandLineArgument(argument);
+            }
+            const auto capture = ::TerminalUtils::CaptureProcessEx(std::move(commandLine), {}, RemoteReadTimeoutMs, TextLimit + 64 * 1024);
+            if (cancellation()) throw hresult_canceled();
+            auto reply = ParseRemoteReadReply(capture.Output, TextLimit);
+            switch (reply.status)
+            {
+            case RemoteReadStatus::Ok:
+            {
+                auto decoded = DecodeText(std::move(reply.bytes), reply.truncated);
+                if (!decoded)
+                {
+                    describe(L"No built-in preview for this binary format or text encoding");
+                    break;
+                }
+                std::wostringstream sizeLabel;
+                if (reply.size < 1024) sizeLabel << reply.size << (reply.size == 1 ? L" byte" : L" bytes");
+                else if (reply.size < 1024 * 1024) sizeLabel << std::fixed << std::setprecision(1) << static_cast<double>(reply.size) / 1024 << L" KiB";
+                else sizeLabel << std::fixed << std::setprecision(1) << static_cast<double>(reply.size) / (1024 * 1024) << L" MiB";
+                describe(sizeLabel.str());
+                Control::HyperlinkPreviewTab section;
+                section.Label(L"Text");
+                section.Body(*decoded);
+                preview.FileSections(single_threaded_vector<Control::HyperlinkPreviewTab>({ section }));
+                preview.FileKind(fileType.language == L"markdown" ? L"markdown" : L"text");
+                break;
+            }
+            case RemoteReadStatus::NotFound:
+                describe(L"Not found");
+                break;
+            case RemoteReadStatus::NotRegular:
+                describe(L"Not a regular file");
+                break;
+            case RemoteReadStatus::TooLarge:
+                describe(L"Too large to preview");
+                break;
+            default:
+                describe(unavailable);
+                break;
+            }
+        }
+        fields.Append(metadata);
+        preview.Fields(fields);
         co_return preview;
     }
 }

@@ -444,6 +444,14 @@
     <value>Chooses where a hovered link's details appear. Separate from the "Show in pane" button, which puts a link in a pane on demand.</value>
     <comment>{Locked="Show in pane"} Additional text presented near "Globals_HyperlinkPreviewInPane.Header".</comment>
   </data>
+  <data name="Globals_HyperlinkRemoteFilePreviews.Header" xml:space="preserve">
+    <value>Preview files on remote machines</value>
+    <comment>Header for a control to toggle previewing files that live on another machine, such as one a shefrd pane is connected to.</comment>
+  </data>
+  <data name="Globals_HyperlinkRemoteFilePreviews.Description" xml:space="preserve">
+    <value>When a pane reports that it is on another machine, its file paths are read from that machine through shefrd instead of from WSL. Text files only; images, PDFs and Office files are not previewed. Shows "Preview unavailable" when that machine is not connected.</value>
+    <comment>{Locked="shefrd","WSL"} Additional text presented near "Globals_HyperlinkRemoteFilePreviews.Header".</comment>
+  </data>
   <data name="Globals_HyperlinkTooltipActions.Header" xml:space="preserve">
     <value>Show buttons on the link tooltip</value>
     <comment>Header for a control to toggle whether the link tooltip carries action buttons.</comment>

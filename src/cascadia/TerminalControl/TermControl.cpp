@@ -3466,6 +3466,17 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             }
         }
 
+        // A path on another machine must not open the WSL file that happens to share its name.
+        if (!_remoteFileTargetFor(args.Uri()).empty())
+        {
+            if (!_hoveredUri.empty())
+            {
+                _raiseShowHyperlinkPreviewRequested();
+            }
+            _hideHyperlinkCard();
+            co_return;
+        }
+
         OpenHyperlink.raise(*strongThis, args);
     }
 
@@ -3836,11 +3847,14 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // may not be known yet -- an integration that has to resolve it fills the line in
         // when the preview lands.
         const auto linkTarget = _hoveredLinkTarget();
-        const auto shownTarget = _currentHyperlinkTooltipSettings.isTextMatch ? std::wstring{ linkTarget } : target;
+        const auto remote = ::Microsoft::Console::Utils::SplitRemoteFileUri(target);
+        const auto shownTarget = remote                                      ? L"on " + remote->first :
+                                 _currentHyperlinkTooltipSettings.isTextMatch ? std::wstring{ linkTarget } :
+                                                                                target;
         const auto showTarget = !shownTarget.empty() && shownTarget != std::wstring_view{ _hoveredUri };
         if (showTarget)
         {
-            HyperlinkCardTarget().Text(winrt::hstring{ L"\u2192 " + shownTarget });
+            HyperlinkCardTarget().Text(winrt::hstring{ remote ? shownTarget : L"\u2192 " + shownTarget });
         }
         HyperlinkCardTarget().Visibility(showTarget ? Visibility::Visible : Visibility::Collapsed);
 
@@ -3851,7 +3865,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         HyperlinkOpenButton().Visibility(hasLink && _currentHyperlinkTooltipSettings.showOpen ? Visibility::Visible : Visibility::Collapsed);
         HyperlinkCopyLinkButton().Visibility(hasLink && _currentHyperlinkTooltipSettings.showCopyLink ? Visibility::Visible : Visibility::Collapsed);
         const auto fileActions = !target.empty() && _currentHyperlinkTooltipSettings.showCopyPath;
-        const auto fileReveal = !target.empty() && _currentHyperlinkTooltipSettings.showReveal;
+        // Explorer has nothing to show for a file on another machine.
+        const auto fileReveal = !target.empty() && !remote && _currentHyperlinkTooltipSettings.showReveal;
         HyperlinkCopyPathButton().Visibility(fileActions ? Visibility::Visible : Visibility::Collapsed);
         HyperlinkRevealButton().Visibility(fileReveal ? Visibility::Visible : Visibility::Collapsed);
         // Show in pane needs somewhere to send the request and something worth
@@ -3925,6 +3940,33 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _hyperlinkShowTimer.Start();
     }
 
+    // file://<host>/<path> when this text names a file on the machine this pane's OSC 7
+    // says it is on, and that is not this one. A bare path there is that machine's, never
+    // WSL's. A file:// link counts only when it names the same machine, so a program in the
+    // pane cannot point a hover at a third one. Empty with hyperlink.remoteFilePreviews off.
+    std::wstring TermControl::_remoteFileTargetFor(std::wstring_view text) const
+    {
+        const auto settings = _core->Settings();
+        if (text.empty() || !settings || !settings.HyperlinkRemoteFilePreviews())
+        {
+            return {};
+        }
+        const auto host = _core->WorkingDirectoryHost();
+        if (host.empty())
+        {
+            return {};
+        }
+        if ((text.starts_with(L'/') && !text.starts_with(L"//")) || text.starts_with(L"~/"))
+        {
+            return ::Microsoft::Console::Utils::RemoteFileUri(host, text);
+        }
+        if (const auto parts = ::Microsoft::Console::Utils::SplitRemoteFileUri(text); parts && til::equals_insensitive_ascii(parts->first, std::wstring_view{ host }))
+        {
+            return ::Microsoft::Console::Utils::RemoteFileUri(host, parts->second);
+        }
+        return {};
+    }
+
     // Resolves a file:// link -- or a bare absolute POSIX path with no scheme at
     // all, which a tool running inside WSL prints far more often than an actual
     // file:// URI -- to the path it will actually open. Empty string for
@@ -3936,6 +3978,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (_hoveredUri.empty())
         {
             return {};
+        }
+        if (auto remote = _remoteFileTargetFor(_hoveredUri); !remote.empty())
+        {
+            return remote;
         }
 
         if (_currentHyperlinkPreview && _currentHyperlinkPreview.SourceText() == _hoveredUri && !_currentHyperlinkPreview.FilePath().empty())
@@ -3992,6 +4038,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (_hoveredUri.empty())
         {
             return {};
+        }
+        if (auto remote = _remoteFileTargetFor(_hoveredUri); !remote.empty())
+        {
+            return winrt::hstring{ remote };
         }
 
         if (Lintel::ClassifyPath(std::wstring_view{ _hoveredUri }) != Lintel::PathKind::None)
@@ -4107,6 +4157,14 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             if (path.empty())
             {
                 preview = co_await provider.GetPreviewAsync(text, integration);
+            }
+            else if (::Microsoft::Console::Utils::SplitRemoteFileUri(path))
+            {
+                const auto settings = _core->Settings();
+                const auto distro = ::Microsoft::Console::Utils::WslDistroForCommandline(settings.Commandline(), settings.PathTranslationStyle() == PathTranslationStyle::WSL);
+                const auto operation = provider.GetRemoteFilePreviewAsync(path, winrt::hstring{ distro });
+                _filePreviewOperation = operation;
+                preview = co_await operation;
             }
             else
             {
@@ -4858,6 +4916,27 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (actionId.empty() || actionId == L"none")
         {
             return;
+        }
+
+        // A file on another machine has no local copy to open, show or reveal: Open puts it
+        // in the preview pane, which reads it the same way the card does, and Copy path
+        // copies the path as that machine knows it.
+        if (const auto remote = ::Microsoft::Console::Utils::SplitRemoteFileUri(_resolvedHyperlinkTarget()))
+        {
+            if (actionId == L"open" || actionId == L"showInPane")
+            {
+                _raiseShowHyperlinkPreviewRequested();
+                return;
+            }
+            if (actionId == L"copyPath")
+            {
+                _core->CopyTextToClipboard(winrt::hstring{ remote->second });
+                return;
+            }
+            if (actionId == L"reveal")
+            {
+                return;
+            }
         }
 
         if (actionId == L"open")

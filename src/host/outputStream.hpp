@@ -63,6 +63,7 @@ public:
     void CopyToClipboard(const wil::zwstring_view content) override;
     void SetTaskbarProgress(const ::Microsoft::Console::VirtualTerminal::DispatchTypes::TaskbarState state, const size_t progress) override;
     void SetWorkingDirectory(const std::wstring_view uri) override;
+    void SetWorkingDirectoryHost(const std::wstring_view host) override;
     void PlayMidiNote(const int noteNumber, const int velocity, const std::chrono::microseconds duration) override;
 
     bool IsVtInputEnabled() const override;

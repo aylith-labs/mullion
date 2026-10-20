@@ -206,6 +206,11 @@ public:
         Log::Comment(L"SetWorkingDirectory MOCK called...");
     }
 
+    void SetWorkingDirectoryHost(const std::wstring_view /*host*/) override
+    {
+        Log::Comment(L"SetWorkingDirectoryHost MOCK called...");
+    }
+
     void PlayMidiNote(const int /*noteNumber*/, const int /*velocity*/, const std::chrono::microseconds /*duration*/) override
     {
         Log::Comment(L"PlayMidiNote MOCK called...");

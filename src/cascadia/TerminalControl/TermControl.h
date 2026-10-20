@@ -529,6 +529,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void _hideHyperlinkCard();
         void _scheduleHyperlinkCardHide();
         std::wstring _resolvedHyperlinkTarget() const;
+        std::wstring _remoteFileTargetFor(std::wstring_view text) const;
         void _MouseWheelHandler(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::Input::PointerRoutedEventArgs& e);
         void _ScrollbarChangeHandler(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs& e);
 

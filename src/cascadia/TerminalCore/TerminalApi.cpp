@@ -234,6 +234,12 @@ void Terminal::SetWorkingDirectory(std::wstring_view uri)
     _workingDirectory = uri;
 }
 
+void Terminal::SetWorkingDirectoryHost(std::wstring_view host)
+{
+    _assertLocked();
+    _workingDirectoryHost = host;
+}
+
 void Terminal::PlayMidiNote(const int noteNumber, const int velocity, const std::chrono::microseconds duration)
 {
     _pfnPlayMidiNote(noteNumber, velocity, duration);

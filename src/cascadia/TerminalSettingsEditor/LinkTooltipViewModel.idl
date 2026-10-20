@@ -148,6 +148,7 @@ namespace Microsoft.Terminal.Settings.Editor
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, HyperlinkTooltipHint);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, HyperlinkTooltipShowRule);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, HyperlinkPreviewInPane);
+        PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, HyperlinkRemoteFilePreviews);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Microsoft.Terminal.Settings.Model.HyperlinkIntegrationDisplayMode, HyperlinkIntegrationDisplayMode);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Microsoft.Terminal.Settings.Model.HyperlinkActionPlacement, HyperlinkActionPlacement);
 

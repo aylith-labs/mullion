@@ -18,6 +18,7 @@
 #pragma once
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -38,7 +39,8 @@ namespace TerminalUtils
         DWORD ExitCode{ 0 };
     };
 
-    inline CaptureResult CaptureProcessEx(std::wstring commandLine, std::string_view stdinData, unsigned long timeoutMs)
+    // outputLimit: stop reading, and end the child, once this much output has arrived.
+    inline CaptureResult CaptureProcessEx(std::wstring commandLine, std::string_view stdinData, unsigned long timeoutMs, size_t outputLimit = SIZE_MAX)
     {
         CaptureResult result;
         if (commandLine.empty())
@@ -180,6 +182,11 @@ namespace TerminalUtils
                 break;
             }
             result.Output.append(buffer, read);
+            if (result.Output.size() >= outputLimit)
+            {
+                result.Output.resize(outputLimit);
+                break;
+            }
         }
 
         // The pipe can close before the process exits; give it a moment, but

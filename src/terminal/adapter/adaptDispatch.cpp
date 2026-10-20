@@ -2620,6 +2620,16 @@ void AdaptDispatch::SetWindowTitle(std::wstring_view title)
 // OSC 7 uses file URIs, which may not always work.
 void AdaptDispatch::SetCurrentWorkingDirectory(std::wstring_view uri)
 {
+    // A directory on another machine is not a local one: as a path it would be
+    // \\host\..., which a split or an open-folder would then reach over SMB.
+    const auto host = Utils::FileUriHost(uri);
+    if (Utils::ClassifyFileHost(host) == Utils::FileHostKind::Remote)
+    {
+        _api.SetWorkingDirectoryHost(host);
+        return;
+    }
+    _api.SetWorkingDirectoryHost({});
+
     // Ensure that the URI has a null terminator.
     std::wstring path{ uri };
 
@@ -3625,6 +3635,7 @@ void AdaptDispatch::DoConEmuAction(const std::wstring_view string)
                 return;
             }
 
+            _api.SetWorkingDirectoryHost({});
             _api.SetWorkingDirectory(path);
         }
     }
