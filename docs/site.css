@@ -621,9 +621,19 @@ table.feature-table td.nowrap { white-space: nowrap; color: var(--muted); }
 [role="tabpanel"]:focus-visible { outline-offset: 4px; }
 table.upstream-table { min-width: 0; width: 100%; }
 table.upstream-table { table-layout: fixed; }
-table.upstream-table th:nth-child(1) { width: 50%; }
-table.upstream-table th:nth-child(2) { width: 8.5rem; }
-table.upstream-table th:nth-child(4) { width: 7.5rem; }
+table.upstream-table th:nth-child(1) { width: 5.5rem; }
+table.upstream-table th:nth-child(2) { width: 46%; }
+table.upstream-table th:nth-child(3) { width: 8.5rem; }
+table.upstream-table th:nth-child(5) { width: 8rem; }
+table.upstream-table th button::after { content: ""; width: 0.9em; opacity: 0.55; }
+table.upstream-table th button:hover::after { content: "\2195"; }
+table.upstream-table th[aria-sort="ascending"] button::after { content: "\2191"; opacity: 1; }
+table.upstream-table th[aria-sort="descending"] button::after { content: "\2193"; opacity: 1; }
+/* The whole # cell opens the ticket. */
+table.upstream-table td.id-cell { position: relative; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.upstream-table td.id-cell a { font-weight: 600; color: var(--accent-text); }
+table.upstream-table td.id-cell a::after { content: ""; position: absolute; inset: 0; }
+table.upstream-table td.id-cell:hover { background: var(--control-hover); }
 table.upstream-table td.title-cell .desc code { font-size: 0.8rem; }
 table.upstream-table td.age-cell { color: var(--muted); white-space: nowrap; }
 table.upstream-table td.age-cell time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }
@@ -633,11 +643,15 @@ table.upstream-table td.title-cell .desc a { font-weight: 400; color: var(--acce
 @media (max-width: 640px) {
   .tabs { gap: 0; }
   .tabs [role="tab"] { padding: 10px 10px; }
-  table.upstream-table thead { display: none; }
+  table.upstream-table thead { display: block; background: var(--bg-alt); border-bottom: 1px solid var(--stroke-subtle); }
+  table.upstream-table thead tr { display: flex; flex-wrap: wrap; padding: 4px 4px; }
+  table.upstream-table thead th { display: block; width: auto !important; background: transparent; border: 0; }
+  table.upstream-table thead th button { padding: 8px 10px; }
   table.upstream-table, table.upstream-table tbody, table.upstream-table tr, table.upstream-table td { display: block; width: auto; }
   table.upstream-table tr { padding: 10px 0; border-bottom: 1px solid var(--stroke-subtle); }
   table.upstream-table tr:last-child { border-bottom: 0; }
   table.upstream-table td { border: 0; padding: 3px 14px; }
+  table.upstream-table td.id-cell { padding-top: 0; padding-bottom: 0; }
   table.upstream-table .age-label { display: inline; }
   table.upstream-table .closed-on { display: inline; font-size: inherit; }
   table.upstream-table .closed-on::before { content: ", "; }

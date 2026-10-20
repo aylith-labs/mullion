@@ -48,7 +48,7 @@
     <div role="tabpanel" id="panel-open" aria-labelledby="tab-open" tabindex="0">
       <div class="table-scroll">
         <table class="feature-table upstream-table">
-          <thead><tr><th scope="col"><span class="plain">Issue</span></th><th scope="col"><span class="plain">Opened</span></th><th scope="col"><span class="plain">In Mullion</span></th><th scope="col"><span class="plain">Coverage</span></th></tr></thead>
+          <thead></thead>
           <tbody id="open-body"></tbody>
         </table>
       </div>
@@ -57,7 +57,7 @@
     <div role="tabpanel" id="panel-prs" aria-labelledby="tab-prs" tabindex="0" hidden>
       <div class="table-scroll">
         <table class="feature-table upstream-table">
-          <thead><tr><th scope="col"><span class="plain">Pull request</span></th><th scope="col"><span class="plain">Opened</span></th><th scope="col"><span class="plain">In Mullion</span></th><th scope="col"><span class="plain">Coverage</span></th></tr></thead>
+          <thead></thead>
           <tbody id="prs-body"></tbody>
         </table>
       </div>
@@ -67,7 +67,7 @@
       <p class="upstream-sub">Closed by the maintainers, either declined or answered another way. Mullion went the other way.</p>
       <div class="table-scroll">
         <table class="feature-table upstream-table">
-          <thead><tr><th scope="col"><span class="plain">Issue</span></th><th scope="col"><span class="plain">Opened</span></th><th scope="col"><span class="plain">In Mullion</span></th><th scope="col"><span class="plain">Coverage</span></th></tr></thead>
+          <thead></thead>
           <tbody id="closed-body"></tbody>
         </table>
       </div>
@@ -161,7 +161,8 @@
     var age = '<td class="age-cell"><span class="age-label">Opened </span>' + ago(r.d) +
       (r.c ? '<span class="closed-on">closed ' + ago(r.c) + "</span>" : "") + "</td>";
     return "<tr>" +
-      '<td class="title-cell"><a href="' + url + '">#' + r.n + " " + esc(r.t) + "</a>" +
+      '<td class="id-cell"><a href="' + url + '">#' + r.n + "</a></td>" +
+      '<td class="title-cell"><a href="' + url + '">' + esc(r.t) + "</a>" +
         '<div class="desc">' + r.note + "</div></td>" +
       age +
       '<td class="title-cell"><a href="feature.html?id=' + encodeURIComponent(r.f) + '">' + esc(f ? f.title : r.f) + "</a></td>" +
@@ -174,12 +175,45 @@
     var rel = window.Mullion ? window.Mullion.relative(iso) : iso;
     return '<time datetime="' + iso + '" data-tip="' + iso + '">' + esc(rel) + "</time>";
   }
-  function fill(id, rows) {
-    document.getElementById(id).innerHTML = rows.map(row).join("");
+  // Every column sorts. A first click sorts ascending (oldest first for dates,
+  // Covered first for coverage); a second click on the same column reverses.
+  function title(r) { var f = byId[r.f]; return f ? f.title : r.f; }
+  var COLS = [
+    { key: "n", label: "#", cmp: function (a, b) { return a.n - b.n; } },
+    { key: "t", label: null, cmp: function (a, b) { return a.t.localeCompare(b.t); } },
+    { key: "d", label: "Opened", cmp: function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; } },
+    { key: "f", label: "In Mullion", cmp: function (a, b) { return title(a).localeCompare(title(b)); } },
+    { key: "cov", label: "Coverage", cmp: function (a, b) { return (b.full ? 1 : 0) - (a.full ? 1 : 0); } }
+  ];
+  function table(bodyId, rows, itemLabel) {
+    var body = document.getElementById(bodyId);
+    var head = body.parentNode.querySelector("thead");
+    var state = { key: "n", dir: 1 };
+    head.innerHTML = "<tr>" + COLS.map(function (c) {
+      return '<th scope="col" data-key="' + c.key + '"><button type="button">' + esc(c.label || itemLabel) + "</button></th>";
+    }).join("") + "</tr>";
+    var ths = Array.prototype.slice.call(head.querySelectorAll("th"));
+    function render() {
+      var col = COLS.filter(function (c) { return c.key === state.key; })[0];
+      var sorted = rows.slice().sort(function (a, b) { return col.cmp(a, b) * state.dir || a.n - b.n; });
+      body.innerHTML = sorted.map(row).join("");
+      ths.forEach(function (th) {
+        if (th.getAttribute("data-key") === state.key) { th.setAttribute("aria-sort", state.dir === 1 ? "ascending" : "descending"); }
+        else { th.removeAttribute("aria-sort"); }
+      });
+    }
+    ths.forEach(function (th) {
+      th.querySelector("button").addEventListener("click", function () {
+        var key = th.getAttribute("data-key");
+        state = key === state.key ? { key: key, dir: -state.dir } : { key: key, dir: 1 };
+        render();
+      });
+    });
+    render();
   }
-  fill("open-body", OPEN);
-  fill("prs-body", PRS);
-  fill("closed-body", CLOSED);
+  table("open-body", OPEN, "Issue");
+  table("prs-body", PRS, "Pull request");
+  table("closed-body", CLOSED, "Issue");
   var counts = { open: OPEN.length, prs: PRS.length, closed: CLOSED.length };
   Array.prototype.forEach.call(document.querySelectorAll("[data-count]"), function (el) {
     el.textContent = counts[el.getAttribute("data-count")];
