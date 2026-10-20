@@ -830,9 +830,16 @@ namespace winrt::TerminalApp::implementation
     bool TerminalPage::_SettingsRefusesClose(const std::shared_ptr<Pane>& pane)
     {
         return pane && pane->WalkTree([](const auto& p) -> bool {
+            // Not content.try_as<SettingsPaneContent>(). SettingsPaneContent is a bare
+            // implements<SettingsPaneContent, IPaneContent>, so that asks for
+            // IPaneContent, which every pane content answers, and reinterprets the
+            // result as a SettingsPaneContent. Releasing it then decrements the real
+            // object's vtable pointer, and the pane's next event revoke fail-fasts
+            // (Ctrl+Shift+W on any terminal pane). Only the settings pane's root is
+            // a MainPage, and asking for that is a typed query.
             const auto content{ p->GetContent() };
-            const auto settings{ content ? content.try_as<SettingsPaneContent>() : nullptr };
-            const auto page{ settings ? settings->SettingsUI() : nullptr };
+            const auto root{ content ? content.GetRoot() : nullptr };
+            const auto page{ root ? root.try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>() : nullptr };
             return page && !page.ConfirmClose();
         });
     }
