@@ -8,6 +8,12 @@ description: Tell people about Mullion without getting flagged, banned or ignore
 Every step here is public, under Steven's name, and hard to take back. The rules
 below were paid for; read them before drafting anything, and add to them after.
 
+This is the Mullion-specific half. The general rules for any project live in the
+user-level `outreach-etiquette` skill, which also points at the `oss-launch` and
+`directory-submissions` playbooks; load it too. Where a playbook suggests volume
+or speed, these rules win, except that the Show HN launch itself is one
+concentrated day with Steven in the thread, not a drip.
+
 ## Hard rules
 
 1. **Nothing in any Microsoft-org repo. Ever.** On 2026-10-19 ten polite, accurate
