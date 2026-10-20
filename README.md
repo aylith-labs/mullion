@@ -1,5 +1,10 @@
 # Mullion
 
+<a href="https://mullion.aylith.com"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/readme-hero-dark.png">
+  <img alt="Mullion: Windows Terminal, with more in it. Hover previews for links, issues and files; tabs on any edge; a control pipe; sessions that come back." src="docs/media/readme-hero-light.png">
+</picture></a>
+
 **Windows Terminal, with more in it.** A personal fork of
 [microsoft/terminal](https://github.com/microsoft/terminal) that evolves on its own terms:
 features land here because they belong in *this* terminal, whether or not upstream would
