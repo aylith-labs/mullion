@@ -106,6 +106,9 @@ window.FEATURE_DETAILS = {
       "Hover it. The card shows the <code>\\\\wsl.localhost\\…</code> path it will actually open.",
       "Click it. Explorer opens the real file, inside the distro.",
     ],
+    settings: [
+      { key: "hyperlink.remoteFilePreviews", def: "false", note: "In a pane whose OSC 7 says it is on another machine (a shefrd pane showing a saved machine), read its paths from that machine through <code>shefrd machine read</code> instead of looking them up in WSL. The card says <em>on &lt;machine&gt;</em>; text files only, and a quiet <em>Preview unavailable</em> when the machine is not connected." },
+    ],
     media: [
       { base: "link-card", caption: "Hovering a file inside WSL. The arrow shows what will actually open: the \\\\wsl.localhost path for this pane's distro, not the POSIX path as written." },
     ],
