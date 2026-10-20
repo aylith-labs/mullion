@@ -105,3 +105,12 @@ concentrated day with Steven in the thread, not a drip.
 Append to `log.md` in this folder: date, step, link, what happened, and the lesson if
 any. Update the rules above when a lesson generalises. The log is how the next
 session knows what has already been tried.
+
+A step that put Mullion somewhere public (an awesome-list PR, a directory listing, a
+forum post, an answer) also gets an entry in `docs/mentions.html`, the site's
+footer-only Mentions page: add it to `ENTRIES`, and put the posted text in a
+`<template id="post-<id>">`. Render the text with GitHub's own renderer
+(`gh api markdown -f mode=gfm -F text=@body.md`) and replace its image URLs with the
+site's `media/` copies as `shot-light`/`shot-dark` pairs, because GitHub's signed image
+URLs expire within minutes. Update an entry's `status` when a PR merges or closes.
+Nothing that went to Microsoft and no email goes on that page.

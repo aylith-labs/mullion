@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mentions — Mullion</title>
+<meta name="description" content="Where Mullion has been announced or listed: awesome lists, directories and forum posts, each with the text exactly as it was posted." />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="site.css" />
+<script src="site.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#content">Skip to content</a>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="index.html" aria-label="Mullion home">
+      <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="frame" x="2" y="3" width="22" height="20" rx="4" stroke-width="1.6"/><rect class="bar" x="12" y="3" width="2" height="20"/><rect class="bar" x="2" y="8" width="22" height="1.6"/></svg>
+      Mullion
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="features.html">Features</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub<svg class="ext" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    </nav>
+    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" title="Display settings" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="content" tabindex="-1">
+  <div class="container page-head">
+    <h1>Mentions</h1>
+    <p>Where Mullion has been announced or listed: awesome lists, directories and forum posts, each with the text exactly as it was posted.</p>
+  </div>
+
+  <div class="container mentions">
+    <div class="toolbar mentions-bar" role="search">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <label class="visually-hidden" for="filter">Filter posts</label>
+        <input type="search" id="filter" placeholder="Filter by site, title or posted text" autocomplete="off" />
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+      <div class="toolbar-end">
+        <button type="button" class="btn btn-secondary btn-sm mentions-toggle-all" id="toggle-all"></button>
+        <div class="view-switch" role="group" aria-label="Layout">
+          <button type="button" data-view="timeline" aria-pressed="true">Timeline</button>
+          <button type="button" data-view="table" aria-pressed="false">Table</button>
+        </div>
+      </div>
+      <div class="mentions-chips">
+        <div class="chip-row" id="kind-chips" role="group" aria-label="Kind"></div>
+        <div class="chip-row" id="status-chips" role="group" aria-label="Status"></div>
+      </div>
+    </div>
+    <p class="result-count" id="count" aria-live="polite"></p>
+
+    <ol class="mentions-timeline" id="view-timeline"></ol>
+    <div class="empty" id="empty" hidden>No post matches. <button type="button" class="btn btn-secondary btn-sm" id="clear">Clear filters</button></div>
+
+    <div class="table-scroll" id="view-table" hidden>
+      <table class="feature-table mentions-table">
+        <thead></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <p class="upstream-sub upstream-foot">States as of 2026-10-21. Images in the posted text are served from this site, in the theme you are viewing.</p>
+  </div>
+</main>
+
+<div class="mentions-scrim" id="scrim" hidden></div>
+<aside class="mentions-drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden></aside>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>Mullion, a fork of <a href="https://github.com/microsoft/terminal">microsoft/terminal</a>. MIT licensed.</span>
+    <nav aria-label="Footer">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="upstream.html">Upstream issues</a>
+      <a href="mentions.html" aria-current="page">Mentions</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- The posted text of each entry, rendered by GitHub's own Markdown renderer
+     and then pointed at this site's copies of the images (GitHub's signed image
+     URLs expire within minutes). One template per entry, keyed by its id. -->
+<template id="post-awesome-terminals-139">
+<p>Adds Mullion to the Windows list, after Mosh.</p>
+<p><a href="https://mullion.aylith.com" rel="nofollow"><img class="shot-light" alt="Mullion: Windows Terminal, with more in it" src="media/readme-hero-light.png"><img class="shot-dark" alt="Mullion: Windows Terminal, with more in it" src="media/readme-hero-dark.png"></a></p>
+<p>Mullion is my fork of Windows Terminal (MIT). The features that set it apart:</p>
+<ul>
+<li><strong>Hover previews for links</strong>: a GitHub PR or issue, a Jira key or a Slack permalink shows its title, status, checks and comments in a card, without leaving the terminal.</li>
+<li><strong>Paths are links</strong>: Windows, UNC, WSL and <code>~/</code> paths in the output are clickable and preview the file on hover (rendered Markdown, highlighted code, images, PDFs), resolved in the right WSL distribution.</li>
+<li><strong>Tabs on any edge</strong>: top, bottom, or a vertical sidebar on the left or right that you widen by dragging.</li>
+<li><strong>A local control pipe</strong>: other programs can list panes, read what a pane printed, or type into it.</li>
+<li><strong>Session resume</strong>: reopening the terminal brings back the programs the panes were running, not just the shells.</li>
+<li><strong>A reworked Settings UI</strong>: drag profiles into order (Ctrl+Shift+1-9 follow it), search that stays usable, and a Save button that lists what it would change.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Hovering a GitHub issue link</th>
+<th>Tabs in a sidebar on the left</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img class="shot-light" alt="Hovering a GitHub issue link" src="media/integration-previews-github-light.png"><img class="shot-dark" alt="Hovering a GitHub issue link" src="media/integration-previews-github-dark.png"></td>
+<td><img class="shot-light" alt="Tabs in a sidebar on the left" src="media/tab-edges-left-light.png"><img class="shot-dark" alt="Tabs in a sidebar on the left" src="media/tab-edges-left-dark.png"></td>
+</tr>
+<tr>
+<td><strong>A Markdown file previewed on hover</strong></td>
+<td><strong>A PDF in the preview pane</strong></td>
+</tr>
+<tr>
+<td><img class="shot-light" alt="A Markdown file previewed on hover" src="media/file-previews-markdown-light.png"><img class="shot-dark" alt="A Markdown file previewed on hover" src="media/file-previews-markdown-dark.png"></td>
+<td><img class="shot-light" alt="A PDF in the preview pane" src="media/file-previews-pane-light.png"><img class="shot-dark" alt="A PDF in the preview pane" src="media/file-previews-pane-dark.png"></td>
+</tr>
+</tbody>
+</table>
+<p>Every feature, with screenshots in light and dark: <a href="https://mullion.aylith.com/features.html" rel="nofollow">https://mullion.aylith.com/features.html</a></p>
+<ul>
+<li>Repository: <a href="https://github.com/aylith-labs/mullion">https://github.com/aylith-labs/mullion</a></li>
+<li>Website: <a href="https://mullion.aylith.com" rel="nofollow">https://mullion.aylith.com</a></li>
+</ul>
+</template>
+
+<script>
+(function () {
+  // Only things that were actually posted, newest first. Nothing that went to
+  // Microsoft, and no email: this is where Mullion was announced or listed.
+  // p: the platform, which picks the logo. status: open, merged, live, closed.
+  var ENTRIES = [
+    { id: "awesome-terminals-139", d: "2026-10-20T19:02:34Z", p: "github", venue: "cdleon/awesome-terminals",
+      kind: "Awesome list", status: "open", title: "Add Mullion to Windows",
+      url: "https://github.com/cdleon/awesome-terminals/pull/139" }
+  ];
+
+  var LOGOS = {
+    github: { name: "GitHub", svg: '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>' },
+    hn: { name: "Hacker News", svg: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="2" fill="#ff6600"/><path fill="#fff" d="M4.2 3.5h1.5L8 7.9l2.3-4.4h1.5L8.7 9.2v3.3H7.3V9.2z"/></svg>' },
+    reddit: { name: "Reddit", svg: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="#ff4500"/><ellipse cx="8" cy="9.6" rx="4.4" ry="2.9" fill="#fff"/><circle cx="6.3" cy="9.3" r=".7" fill="#ff4500"/><circle cx="9.7" cy="9.3" r=".7" fill="#ff4500"/><circle cx="11.6" cy="4.2" r=".9" fill="#fff"/><path d="M8 6.7l.8-3 2.8.5" stroke="#fff" stroke-width=".6" fill="none"/></svg>' },
+    web: { name: "Website", svg: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>' }
+  };
+  var STATUS = {
+    open: '<span class="tag tag-accent">Open</span>',
+    merged: '<span class="tag tag-success">Merged</span>',
+    live: '<span class="tag tag-success">Live</span>',
+    closed: '<span class="tag">Closed</span>'
+  };
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function logo(e) {
+    var l = LOGOS[e.p] || LOGOS.web;
+    return '<span class="mention-logo mention-logo-' + esc(e.p || "web") + '" role="img" aria-label="' + l.name + '" title="' + l.name + '">' + l.svg + "</span>";
+  }
+  function ago(iso) {
+    var rel = window.Mullion ? window.Mullion.relative(iso) : iso.slice(0, 10);
+    return '<time datetime="' + iso + '" data-tip="' + iso + '">' + esc(rel) + "</time>";
+  }
+  function posted(e) {
+    var t = document.getElementById("post-" + e.id);
+    return '<div class="mention-posted">' + (t ? t.innerHTML : '<p class="mention-missing">The posted text is not recorded.</p>') + "</div>";
+  }
+  function link(e) { return '<a href="' + esc(e.url) + '">' + esc(e.title) + "</a>"; }
+
+  // --- Filters: free text (site, title, kind and the posted text itself),
+  // plus one kind and one status. Both views show the same filtered set. ----
+  var STATUS_LABEL = { open: "Open", merged: "Merged", live: "Live", closed: "Closed" };
+  var filter = { q: "", kind: "all", status: "all" };
+  var text = {};
+  ENTRIES.forEach(function (e) {
+    var t = document.getElementById("post-" + e.id);
+    text[e.id] = [e.venue, e.title, e.kind, STATUS_LABEL[e.status], t ? t.content.textContent : ""].join(" ").toLowerCase();
+  });
+  function shown() {
+    var words = filter.q.toLowerCase().split(/\s+/).filter(Boolean);
+    return ENTRIES.filter(function (e) {
+      return (filter.kind === "all" || e.kind === filter.kind) &&
+        (filter.status === "all" || e.status === filter.status) &&
+        words.every(function (w) { return text[e.id].indexOf(w) !== -1; });
+    });
+  }
+  function chips(id, field, values, label) {
+    var row = document.getElementById(id);
+    var counts = {};
+    ENTRIES.forEach(function (e) { counts[e[field]] = (counts[e[field]] || 0) + 1; });
+    row.innerHTML = ['<button type="button" class="chip" data-v="all" aria-pressed="true">All ' + label + "</button>"].concat(values.map(function (v) {
+      return '<button type="button" class="chip" data-v="' + esc(v) + '" aria-pressed="false">' + esc(field === "status" ? STATUS_LABEL[v] : v) +
+        ' <span class="count">' + counts[v] + "</span></button>";
+    })).join("");
+    row.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button[data-v]");
+      if (!b) { return; }
+      filter[field] = b.getAttribute("data-v");
+      render();
+    });
+  }
+  function uniq(field) {
+    var seen = [];
+    ENTRIES.forEach(function (e) { if (seen.indexOf(e[field]) === -1) { seen.push(e[field]); } });
+    return seen.sort();
+  }
+  chips("kind-chips", "kind", uniq("kind"), "kinds");
+  chips("status-chips", "status", uniq("status"), "states");
+
+  // --- Timeline: one card per entry, grouped by month, newest first. -------
+  var timeline = document.getElementById("view-timeline");
+  var toggleAll = document.getElementById("toggle-all");
+  var openIds = {};
+  if (ENTRIES.length) { openIds[ENTRIES.slice().sort(function (a, b) { return a.d < b.d ? 1 : -1; })[0].id] = true; }
+  function renderTimeline(list) {
+    var byDate = list.slice().sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; });
+    var month = "", html = "";
+    byDate.forEach(function (e) {
+      var m = new Date(e.d).toLocaleDateString("en", { month: "long", year: "numeric" });
+      if (m !== month) { html += '<li class="mentions-month">' + esc(m) + "</li>"; month = m; }
+      html += '<li class="mention" id="' + esc(e.id) + '"><article class="mention-card">' +
+        '<header class="mention-head">' + logo(e) +
+          '<div class="mention-head-text"><div class="mention-meta"><span class="tag">' + esc(e.kind) + "</span>" + (STATUS[e.status] || "") +
+          '<span class="mention-venue">' + esc(e.venue) + '</span><span class="mention-when">' + ago(e.d) + "</span></div>" +
+          '<h2 class="mention-title">' + link(e) + "</h2></div></header>" +
+        '<details data-id="' + esc(e.id) + '"' + (openIds[e.id] ? " open" : "") + "><summary>Posted text</summary>" + posted(e) + "</details>" +
+        "</article></li>";
+    });
+    timeline.innerHTML = html;
+    Array.prototype.forEach.call(timeline.querySelectorAll("details"), function (d) {
+      d.addEventListener("toggle", function () { openIds[d.getAttribute("data-id")] = d.open; syncToggle(); });
+    });
+    syncToggle();
+  }
+  function syncToggle() {
+    var details = Array.prototype.slice.call(timeline.querySelectorAll("details"));
+    var allOpen = details.length > 0 && details.every(function (d) { return d.open; });
+    toggleAll.textContent = allOpen ? "Collapse all" : "Expand all";
+    toggleAll.setAttribute("data-open", allOpen ? "true" : "false");
+    toggleAll.disabled = !details.length;
+  }
+  toggleAll.addEventListener("click", function () {
+    var open = toggleAll.getAttribute("data-open") !== "true";
+    Array.prototype.forEach.call(timeline.querySelectorAll("details"), function (d) { d.open = open; openIds[d.getAttribute("data-id")] = open; });
+    syncToggle();
+  });
+
+  // --- Table: sortable, a row opens the posted text in a drawer. -----------
+  var COLS = [
+    { key: "d", label: "Posted", cmp: function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; } },
+    { key: "venue", label: "Where", cmp: function (a, b) { return a.venue.localeCompare(b.venue); } },
+    { key: "title", label: "Title", cmp: function (a, b) { return a.title.localeCompare(b.title); } },
+    { key: "kind", label: "Kind", cmp: function (a, b) { return a.kind.localeCompare(b.kind); } },
+    { key: "status", label: "Status", cmp: function (a, b) { return a.status.localeCompare(b.status); } }
+  ];
+  var body = document.getElementById("table-body");
+  var head = body.parentNode.querySelector("thead");
+  var sort = { key: "d", dir: -1 };
+  head.innerHTML = "<tr>" + COLS.map(function (c) {
+    return '<th scope="col" data-key="' + c.key + '"><button type="button">' + c.label + "</button></th>";
+  }).join("") + "</tr>";
+  var ths = Array.prototype.slice.call(head.querySelectorAll("th"));
+  function renderTable(list) {
+    var col = COLS.filter(function (c) { return c.key === sort.key; })[0];
+    var rows = list.slice().sort(function (a, b) { return col.cmp(a, b) * sort.dir || (a.d < b.d ? 1 : -1); });
+    body.innerHTML = rows.map(function (e) {
+      return '<tr tabindex="0" data-id="' + esc(e.id) + '" aria-label="Read the posted text: ' + esc(e.title) + '">' +
+        '<td class="mention-when nowrap"><span class="mentions-label">Posted </span>' + ago(e.d) + "</td>" +
+        '<td class="mention-where">' + logo(e) + '<span class="mention-venue">' + esc(e.venue) + "</span></td>" +
+        '<td class="title-cell">' + link(e) + "</td>" +
+        '<td class="nowrap">' + esc(e.kind) + "</td>" +
+        '<td class="nowrap">' + (STATUS[e.status] || "") + "</td></tr>";
+    }).join("");
+    ths.forEach(function (th) {
+      if (th.getAttribute("data-key") === sort.key) { th.setAttribute("aria-sort", sort.dir === 1 ? "ascending" : "descending"); }
+      else { th.removeAttribute("aria-sort"); }
+    });
+  }
+  ths.forEach(function (th) {
+    th.querySelector("button").addEventListener("click", function () {
+      var key = th.getAttribute("data-key");
+      sort = key === sort.key ? { key: key, dir: -sort.dir } : { key: key, dir: key === "d" ? -1 : 1 };
+      render();
+    });
+  });
+
+  var drawer = document.getElementById("drawer"), scrim = document.getElementById("scrim"), opener = null;
+  function openDrawer(id, from) {
+    var e = ENTRIES.filter(function (x) { return x.id === id; })[0];
+    if (!e) { return; }
+    opener = from;
+    Array.prototype.forEach.call(body.querySelectorAll("tr"), function (tr) {
+      tr.classList.toggle("is-selected", tr.getAttribute("data-id") === id);
+    });
+    drawer.innerHTML = '<header class="mention-head">' + logo(e) +
+      '<div class="mention-head-text"><h2 class="mention-title" id="drawer-title">' + link(e) + "</h2>" +
+      '<div class="mention-meta"><span class="tag">' + esc(e.kind) + "</span>" + (STATUS[e.status] || "") +
+      '<span class="mention-venue">' + esc(e.venue) + '</span><span class="mention-when">' + ago(e.d) + "</span></div></div>" +
+      '<button type="button" class="icon-btn mentions-close" aria-label="Close">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>' + posted(e);
+    drawer.hidden = false; scrim.hidden = false;
+    document.documentElement.classList.add("mentions-drawer-open");
+    requestAnimationFrame(function () { drawer.classList.add("open"); scrim.classList.add("open"); });
+    drawer.querySelector(".mentions-close").addEventListener("click", closeDrawer);
+    drawer.querySelector(".mentions-close").focus();
+  }
+  function closeDrawer() {
+    if (drawer.hidden) { return; }
+    drawer.classList.remove("open"); scrim.classList.remove("open");
+    document.documentElement.classList.remove("mentions-drawer-open");
+    Array.prototype.forEach.call(body.querySelectorAll("tr"), function (tr) { tr.classList.remove("is-selected"); });
+    setTimeout(function () { drawer.hidden = true; scrim.hidden = true; drawer.innerHTML = ""; }, 200);
+    if (opener) { opener.focus(); opener = null; }
+  }
+  body.addEventListener("click", function (ev) {
+    if (ev.target.closest("a")) { return; }   // the title still goes to the post itself
+    var tr = ev.target.closest("tr[data-id]");
+    if (tr) { openDrawer(tr.getAttribute("data-id"), tr); }
+  });
+  body.addEventListener("keydown", function (ev) {
+    var tr = ev.target.closest && ev.target.closest("tr[data-id]");
+    if (tr && ev.target === tr && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); openDrawer(tr.getAttribute("data-id"), tr); }
+  });
+  scrim.addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { closeDrawer(); } });
+
+  var input = document.getElementById("filter"), empty = document.getElementById("empty");
+  function render() {
+    var list = shown();
+    renderTimeline(list);
+    renderTable(list);
+    ["kind", "status"].forEach(function (field) {
+      Array.prototype.forEach.call(document.querySelectorAll("#" + field + "-chips .chip"), function (c) {
+        c.setAttribute("aria-pressed", String(c.getAttribute("data-v") === filter[field]));
+      });
+    });
+    var filtered = filter.q || filter.kind !== "all" || filter.status !== "all";
+    document.getElementById("count").textContent = filtered
+      ? list.length + " of " + ENTRIES.length + " posts"
+      : ENTRIES.length + (ENTRIES.length === 1 ? " post" : " posts");
+    empty.hidden = list.length > 0;
+    setView(view);
+  }
+  input.addEventListener("input", function () { filter.q = input.value.trim(); render(); });
+  document.getElementById("clear").addEventListener("click", function () {
+    filter = { q: "", kind: "all", status: "all" }; input.value = ""; render(); input.focus();
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "/" && document.activeElement !== input && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+      ev.preventDefault(); input.focus();
+    }
+  });
+
+  // --- View switch: ?view= wins, then the last choice, then the timeline. ---
+  var VIEWS = ["timeline", "table"], KEY = "mullion-mentions-view";
+  var view = new URLSearchParams(window.location.search).get("view");
+  if (VIEWS.indexOf(view) === -1) {
+    view = "timeline";
+    try { var v = localStorage.getItem(KEY); if (VIEWS.indexOf(v) !== -1) { view = v; } } catch (e) {}
+  }
+  var buttons = Array.prototype.slice.call(document.querySelectorAll(".view-switch button"));
+  function setView(v) {
+    view = v;
+    var none = !shown().length;
+    document.getElementById("view-timeline").hidden = none || v !== "timeline";
+    document.getElementById("view-table").hidden = none || v !== "table";
+    toggleAll.hidden = v !== "timeline";
+    buttons.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === v)); });
+    if (v !== "table") { closeDrawer(); }
+  }
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      setView(b.getAttribute("data-view"));
+      try { localStorage.setItem(KEY, view); } catch (e) {}
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>

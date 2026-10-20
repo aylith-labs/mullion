@@ -658,6 +658,101 @@ table.upstream-table td.title-cell .desc a { font-weight: 400; color: var(--acce
 }
 
 /* ======================================================================
+ * Mentions (mentions.html)
+ * ==================================================================== */
+.mentions-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+.mentions-chips { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.mentions-chips .chip-row { flex-basis: auto; }
+.mentions-toggle-all { height: var(--control-h); }
+.mentions-toggle-all[hidden] { display: none; }
+.mention-logo { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--control); border: 1px solid var(--stroke-subtle); color: var(--text); }
+.mention-logo svg { width: 20px; height: 20px; }
+.mention-venue { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 0.84rem; color: var(--muted); overflow-wrap: anywhere; }
+.mention-when { color: var(--text-tertiary); font-size: 0.84rem; }
+.mention-when time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }
+
+.mentions-timeline { list-style: none; margin: 0; padding: 0 0 0 26px; position: relative; max-width: 54rem; }
+.mentions-timeline[hidden] { display: none; }
+.mentions-timeline::before { content: ""; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+.mentions-month { margin: 4px 0 10px; font-size: 0.78rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-tertiary); }
+.mention { position: relative; margin-bottom: 18px; }
+.mention::before { content: ""; position: absolute; left: -25px; top: 24px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--bg); }
+.mention-card { background: var(--card); border: 1px solid var(--stroke-subtle); border-radius: 10px; box-shadow: var(--shadow-card); }
+.mention-head { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; }
+.mention-head-text { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.mention-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mention-title { margin: 0; font-size: 1.05rem; font-weight: 600; }
+.mention-title a { color: var(--text); }
+.mention-title a:hover { color: var(--accent-text); }
+.mention-card details { border-top: 1px solid var(--stroke-subtle); }
+.mention-card summary { cursor: pointer; padding: 10px 16px; color: var(--accent-text); font-size: 0.9rem; list-style: none; }
+.mention-card summary::-webkit-details-marker { display: none; }
+.mention-card summary::before { content: "\25B8\00a0\00a0"; }
+.mention-card details[open] summary::before { content: "\25BE\00a0\00a0"; }
+.mention-card .mention-posted { padding: 4px 16px 16px; }
+
+/* The posted text, as GitHub rendered it. */
+.mention-posted { font-size: 0.94rem; line-height: 1.55; overflow-wrap: anywhere; }
+.mention-posted > :first-child { margin-top: 0; }
+.mention-posted > :last-child { margin-bottom: 0; }
+.mention-posted p, .mention-posted ul { margin: 0 0 12px; }
+.mention-posted ul { padding-left: 1.3em; }
+.mention-posted img { max-width: 100%; height: auto; border-radius: 6px; }
+.mention-posted table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0 0 12px; }
+.mention-posted th, .mention-posted td { border: 1px solid var(--border); padding: 6px 8px; vertical-align: top; font-size: 0.86rem; text-align: left; }
+.mention-posted td img { width: 100%; }
+.mention-posted code { font-size: 0.86em; padding: 1px 4px; border-radius: 4px; background: var(--bg-alt); }
+.mention-missing { color: var(--text-tertiary); font-style: italic; }
+
+table.mentions-table { min-width: 0; table-layout: fixed; }
+table.mentions-table th:nth-child(1) { width: 8rem; }
+table.mentions-table th:nth-child(2) { width: 30%; }
+table.mentions-table th:nth-child(4) { width: 9rem; }
+table.mentions-table th:nth-child(5) { width: 7rem; }
+table.mentions-table th button::after { content: ""; width: 0.9em; opacity: 0.55; }
+table.mentions-table th button:hover::after { content: "\2195"; }
+table.mentions-table th[aria-sort="ascending"] button::after { content: "\2191"; opacity: 1; }
+table.mentions-table th[aria-sort="descending"] button::after { content: "\2193"; opacity: 1; }
+table.mentions-table tbody tr { cursor: pointer; }
+table.mentions-table tbody tr:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+table.mentions-table tbody tr.is-selected td { background: var(--accent-soft); }
+table.mentions-table td.mention-where { display: flex; gap: 8px; align-items: center; }
+table.mentions-table .mention-logo { width: 26px; height: 26px; }
+table.mentions-table .mention-logo svg { width: 15px; height: 15px; }
+table.mentions-table .mentions-label { display: none; }
+
+.mentions-scrim { position: fixed; inset: 0; z-index: 90; background: rgba(0, 0, 0, 0.32); opacity: 0; transition: opacity 0.2s ease; }
+.mentions-scrim.open { opacity: 1; }
+.mentions-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 95; width: min(40rem, 100vw);
+  display: flex; flex-direction: column; background: var(--card); box-shadow: var(--shadow-pop);
+  transform: translateX(105%); transition: transform 0.2s ease;
+}
+.mentions-drawer.open { transform: none; }
+.mentions-drawer .mention-head { border-bottom: 1px solid var(--stroke-subtle); }
+.mentions-drawer .mention-posted { padding: 16px; overflow: auto; flex: 1; }
+.mentions-close svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.mentions-drawer-open, .mentions-drawer-open body { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .mentions-drawer, .mentions-scrim { transition: none; } }
+
+@media (max-width: 640px) {
+  .mentions-timeline { padding-left: 20px; }
+  .mention::before { left: -19px; }
+  .mention-head { padding: 12px; }
+  .mention-logo { width: 30px; height: 30px; }
+  table.mentions-table thead { display: block; background: var(--bg-alt); border-bottom: 1px solid var(--stroke-subtle); }
+  table.mentions-table thead tr { display: flex; flex-wrap: wrap; padding: 4px; }
+  table.mentions-table thead th { display: block; width: auto !important; background: transparent; border: 0; }
+  table.mentions-table thead th button { padding: 8px 10px; }
+  table.mentions-table, table.mentions-table tbody, table.mentions-table tr, table.mentions-table td { display: block; width: auto; }
+  table.mentions-table tr { padding: 10px 0; border-bottom: 1px solid var(--stroke-subtle); }
+  table.mentions-table tr:last-child { border-bottom: 0; }
+  table.mentions-table td { border: 0; padding: 3px 14px; }
+  table.mentions-table td.mention-where { display: flex; }
+  table.mentions-table .mentions-label { display: inline; }
+}
+
+/* ======================================================================
  * One feature (feature.html)
  * ==================================================================== */
 .doc { max-width: 52rem; margin: 0 auto; padding: 28px 16px 0; }

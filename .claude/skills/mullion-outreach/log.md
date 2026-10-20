@@ -12,6 +12,7 @@ Newest last. One line per step taken, plus the lesson when there is one.
 | 2026-10-20 | README banner (light and dark) | README.md | Done | |
 | 2026-10-20 | Docs page of the upstream issues Mullion answers, footer link only | https://mullion.aylith.com/upstream.html | Done | The fork's own site is the place to say "this answers upstream #N". |
 | 2026-10-20 | Personal apology to Dustin Howett (duhowett@microsoft.com, public on his GitHub profile), Steven's decision and wording | hello@aylith.com Sent | Sent; watched by the same cloud routine | Two apologies are the ceiling: nothing further to anyone at Microsoft unless they write first. |
+| 2026-10-21 | Docs page of every public post and listing, full posted text, timeline and table views, footer link only | https://mullion.aylith.com/mentions.html | Done | Keep a public record of what was posted where; Microsoft threads and email stay off it. |
 
 ## Next
 
