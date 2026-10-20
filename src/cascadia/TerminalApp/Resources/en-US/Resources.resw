@@ -963,13 +963,35 @@
     <value>Promote the staged build?</value>
     <comment>Title of the dialog asking whether to replace the running local developer build with a newer one</comment>
   </data>
+  <data name="PromoteSlotDialog_Staged" xml:space="preserve">
+    <value>Staged: {0}</value>
+    <comment>{locked="{0}"}First line of the promote dialog. {0} describes the staged build, e.g. "a1b2c3d+dirty (main), 4 minutes ago".</comment>
+  </data>
   <data name="PromoteSlotDialog_Body" xml:space="preserve">
-    <value>Staged: {0}
-
-Replacing this build closes every window running it — {1} right now. Everything in them ends with it, including sessions you have left working.
+    <value>Replacing this build closes every window running it — {0} right now. Everything in them ends with it, including sessions you have left working.
 
 Applying on next launch closes nothing now: the swap happens once you have closed this build yourself, and you get the new one the next time you start it.</value>
-    <comment>{locked="{0}"}{locked="{1}"}Body of the promote dialog. {0} describes the staged build, e.g. "a1b2c3d+dirty (main), 4 minutes ago". {1} is a count, e.g. "3 windows, 7 panes in this one".</comment>
+    <comment>{locked="{0}"}Body of the promote dialog, below the list of what is new. {0} is a count, e.g. "3 windows, 7 panes in this one".</comment>
+  </data>
+  <data name="PromoteSlotDialog_WhatsNew" xml:space="preserve">
+    <value>What's new: {0} commit(s) since the build you are running</value>
+    <comment>{locked="{0}"}Heading over the list of commits the staged build adds. {0} is how many are listed.</comment>
+  </data>
+  <data name="PromoteSlotDialog_WhatsNewPartial" xml:space="preserve">
+    <value>What's new: the latest {0} commit(s), and more before them</value>
+    <comment>{locked="{0}"}Heading over the list of commits when the release notes do not reach back to the running build, so the list is incomplete. {0} is how many are listed.</comment>
+  </data>
+  <data name="PromoteSlotDialog_WhatsNewNothing" xml:space="preserve">
+    <value>No new commits: this is a rebuild of the commit you are running.</value>
+    <comment>Shown instead of the list of commits when the staged build is the same commit as the running one, e.g. a rebuild with local changes.</comment>
+  </data>
+  <data name="PromoteSlotDialog_WhatsNewUnknown" xml:space="preserve">
+    <value>This build did not come with a list of its changes.</value>
+    <comment>Shown instead of the list of commits when the staged build carries no release notes, e.g. a local build.</comment>
+  </data>
+  <data name="PromoteSlotDialog_Compare" xml:space="preserve">
+    <value>Compare on GitHub</value>
+    <comment>Link in the promote dialog that opens the GitHub comparison between the running build's commit and the staged one.</comment>
   </data>
   <data name="PromoteSlotDialog_WindowsAndPanes" xml:space="preserve">
     <value>{0} window(s), {1} pane(s) in this one</value>

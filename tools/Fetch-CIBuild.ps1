@@ -285,7 +285,8 @@ try {
     # this folder and reacts to the write, so a half-written marker would be read
     # as malformed. A rename is atomic enough that it never sees a partial one.
     $markerTemp = "$MarkerPath.tmp"
-    $info | ConvertTo-Json | Set-Content -Path $markerTemp -Encoding UTF8
+    # -Depth: the default of 2 would flatten the release notes' commits to strings.
+    $info | ConvertTo-Json -Depth 8 | Set-Content -Path $markerTemp -Encoding UTF8
     Move-Item $markerTemp $MarkerPath -Force
 
     # Same artifact carries a Test-branded unpacked payload too (build.yml stages

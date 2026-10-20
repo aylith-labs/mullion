@@ -271,6 +271,23 @@ $info = [ordered]@{
     timestampUtc = Get-Define 'TERMINAL_BUILD_TIMESTAMP_STRING'
     payload      = $DevStage
 }
+
+# What each CI build of main brought (tools\Write-ReleaseNotes.ps1), so the
+# running Dev window can say what promoting this one would add. Its own copy
+# is compiled in, but it cannot read the staged build's. Only CI has the file;
+# a local deploy writes no list and the dialog says so.
+if ($env:MULLION_RELEASE_NOTES -and (Test-Path -LiteralPath $env:MULLION_RELEASE_NOTES)) {
+    try {
+        # foreach unrolls the array whether ConvertFrom-Json emitted it as one
+        # object (5.1) or element by element (7); @() around it would nest it in 5.1.
+        $releaseNotes = @()
+        foreach ($entry in (Get-Content -LiteralPath $env:MULLION_RELEASE_NOTES -Raw -Encoding UTF8 | ConvertFrom-Json)) { $releaseNotes += $entry }
+        $info.releaseNotes = $releaseNotes
+    }
+    catch {
+        Write-Warning "Release notes unreadable; the promote dialog will not list changes: $_"
+    }
+}
 $infoPath = Join-Path $SlotRoot 'dev-pending.json'
 
 if (-not $StageOnly) {
@@ -382,7 +399,8 @@ else {
     $script:bootOk = $null
 }
 
-$info | ConvertTo-Json | Set-Content -Path $infoPath -Encoding UTF8
+# -Depth: the default of 2 flattens each release-note entry's commits to a string.
+$info | ConvertTo-Json -Depth 8 | Set-Content -Path $infoPath -Encoding UTF8
 
 # The promote button in a running Dev window shells out to this, and Refresh-
 # TestSlot.ps1 is its Test-slot counterpart for refreshing mult from a CI fetch.

@@ -50,6 +50,29 @@ namespace TerminalApp::SlotPromotion
                filename.extension() == PendingMarkerExtension;
     }
 
+    struct StagedCommit
+    {
+        winrt::hstring Sha;
+        winrt::hstring Subject;
+    };
+
+    // One CI build of main and the first-parent commits it brought, as
+    // tools\Write-ReleaseNotes.ps1 writes them.
+    struct StagedNoteBuild
+    {
+        winrt::hstring Sha;
+        std::vector<StagedCommit> Commits;
+    };
+
+    // What promoting would add: the commits between the running build and the
+    // staged one, newest first. Complete is false when the notes run out before
+    // reaching the running build, so there is more than the list shows.
+    struct StagedChanges
+    {
+        std::vector<StagedCommit> Commits;
+        bool Complete{ false };
+    };
+
     struct StagedBuild
     {
         winrt::hstring Commit;
@@ -65,6 +88,44 @@ namespace TerminalApp::SlotPromotion
         // The marker this came from, so promotion can delete the one it
         // consumed rather than guessing at a name.
         std::filesystem::path MarkerPath;
+        // The release notes the staged build was compiled with, newest build
+        // first. Empty for a local deploy and for a marker written before CI
+        // carried them.
+        std::vector<StagedNoteBuild> ReleaseNotes;
+
+        // Walks the notes from the staged build back to the commit this
+        // process was built from. Matching on the commit rather than on build
+        // times, because a note's time is when its CI run finished, which is
+        // later than the time stamped into that run's binaries.
+        StagedChanges ChangesSinceRunning() const
+        {
+            StagedChanges changes;
+            const std::wstring_view running{ TERMINAL_BUILD_COMMIT_FULL };
+            const auto isRunning = [&](const winrt::hstring& sha) {
+                return !sha.empty() && !running.empty() && running.starts_with(std::wstring_view{ sha });
+            };
+
+            for (const auto& build : ReleaseNotes)
+            {
+                if (isRunning(build.Sha))
+                {
+                    changes.Complete = true;
+                    return changes;
+                }
+                for (const auto& commit : build.Commits)
+                {
+                    // The running build may sit partway through a CI build's
+                    // range, when it was built locally or from a cancelled run.
+                    if (isRunning(commit.Sha))
+                    {
+                        changes.Complete = true;
+                        return changes;
+                    }
+                    changes.Commits.push_back(commit);
+                }
+            }
+            return changes;
+        }
 
         bool FromCI() const noexcept
         {
@@ -90,6 +151,57 @@ namespace TerminalApp::SlotPromotion
                                                FromCI() ? L" from CI" : L"") };
         }
     };
+
+    // The marker's "releaseNotes", tolerating every shape a PowerShell round
+    // trip can leave: absent, an object where an array was meant (one entry),
+    // or commits flattened to strings by a ConvertTo-Json without -Depth.
+    // Anything unusable is skipped; the dialog then lists less, never fails.
+    inline std::vector<StagedNoteBuild> ReadReleaseNotes(const winrt::Windows::Data::Json::JsonObject& root)
+    {
+        using winrt::Windows::Data::Json::JsonObject;
+        using winrt::Windows::Data::Json::JsonValueType;
+        using winrt::Windows::Data::Json::IJsonValue;
+
+        const auto items = [](const IJsonValue& value) {
+            std::vector<JsonObject> objects;
+            if (!value)
+            {
+                return objects;
+            }
+            if (value.ValueType() == JsonValueType::Object)
+            {
+                objects.push_back(value.GetObject());
+            }
+            else if (value.ValueType() == JsonValueType::Array)
+            {
+                for (const auto& item : value.GetArray())
+                {
+                    if (item.ValueType() == JsonValueType::Object)
+                    {
+                        objects.push_back(item.GetObject());
+                    }
+                }
+            }
+            return objects;
+        };
+
+        std::vector<StagedNoteBuild> builds;
+        for (const auto& entry : items(root.TryLookup(L"releaseNotes")))
+        {
+            StagedNoteBuild build;
+            build.Sha = entry.GetNamedString(L"sha", L"");
+            for (const auto& commit : items(entry.TryLookup(L"commits")))
+            {
+                StagedCommit parsed{ commit.GetNamedString(L"sha", L""), commit.GetNamedString(L"subject", L"") };
+                if (!parsed.Subject.empty())
+                {
+                    build.Commits.push_back(std::move(parsed));
+                }
+            }
+            builds.push_back(std::move(build));
+        }
+        return builds;
+    }
 
     // nullopt when the marker is missing, unreadable or malformed. A missing
     // marker is the normal state on a machine that has never staged anything,
@@ -118,6 +230,7 @@ namespace TerminalApp::SlotPromotion
         staged.Payload = root.GetNamedString(L"payload", L"");
         staged.Source = root.GetNamedString(L"source", L"local");
         staged.MarkerPath = markerPath;
+        staged.ReleaseNotes = ReadReleaseNotes(root);
 
         // A marker that names nothing is not a promotion candidate.
         if (staged.Payload.empty() || staged.Timestamp == 0)

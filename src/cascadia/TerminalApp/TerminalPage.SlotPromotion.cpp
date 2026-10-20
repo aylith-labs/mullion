@@ -25,6 +25,107 @@ using namespace winrt;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::UI::Xaml::Controls;
 
+namespace
+{
+    namespace WUX = winrt::Windows::UI::Xaml;
+
+    WUX::Controls::TextBlock Paragraph(const winrt::hstring& text)
+    {
+        WUX::Controls::TextBlock block;
+        block.Text(text);
+        block.TextWrapping(WUX::TextWrapping::Wrap);
+        return block;
+    }
+
+    // The promote dialog's body: what is staged, what it adds over the build
+    // this window runs, and what applying it costs. Built in code because the
+    // list of commits is. Rows look like the About dialog's release notes.
+    WUX::UIElement PromotionDialogContent(const ::TerminalApp::SlotPromotion::StagedBuild& staged, const winrt::hstring& cost)
+    {
+        WUX::Controls::StackPanel content;
+        content.Spacing(12);
+        content.Children().Append(Paragraph(winrt::hstring{ RS_fmt(L"PromoteSlotDialog_Staged", std::wstring_view{ staged.Describe() }) }));
+
+        const auto changes{ staged.ChangesSinceRunning() };
+        if (changes.Commits.empty())
+        {
+            // Complete with nothing in it means the notes reached the running
+            // commit straight away: a rebuild of it, typically with local changes.
+            auto none{ Paragraph(changes.Complete ? RS_(L"PromoteSlotDialog_WhatsNewNothing") : RS_(L"PromoteSlotDialog_WhatsNewUnknown")) };
+            none.Opacity(0.7);
+            content.Children().Append(none);
+        }
+        else
+        {
+            WUX::Controls::StackPanel section;
+            section.Spacing(6);
+            auto heading{ Paragraph(winrt::hstring{ changes.Complete ? RS_fmt(L"PromoteSlotDialog_WhatsNew", changes.Commits.size()) :
+                                                                       RS_fmt(L"PromoteSlotDialog_WhatsNewPartial", changes.Commits.size()) }) };
+            heading.FontWeight(winrt::Windows::UI::Text::FontWeights::SemiBold());
+            section.Children().Append(heading);
+
+            const WUX::Media::FontFamily monospace{ L"Cascadia Mono, Consolas, monospace" };
+            WUX::Controls::StackPanel list;
+            list.Spacing(6);
+            // Room for the scrollbar, so it never sits over the text.
+            list.Padding(WUX::ThicknessHelper::FromLengths(0, 0, 12, 0));
+            for (const auto& commit : changes.Commits)
+            {
+                WUX::Controls::Grid row;
+                WUX::Controls::ColumnDefinition shaColumn;
+                shaColumn.Width(WUX::GridLengthHelper::Auto());
+                WUX::Controls::ColumnDefinition subjectColumn;
+                subjectColumn.Width(WUX::GridLengthHelper::FromValueAndType(1, WUX::GridUnitType::Star));
+                row.ColumnDefinitions().Append(shaColumn);
+                row.ColumnDefinitions().Append(subjectColumn);
+                row.ColumnSpacing(10);
+
+                WUX::Controls::TextBlock sha;
+                sha.Text(commit.Sha);
+                sha.FontFamily(monospace);
+                sha.Opacity(0.6);
+                sha.IsTextSelectionEnabled(true);
+                WUX::Controls::Grid::SetColumn(sha, 0);
+
+                auto subject{ Paragraph(commit.Subject) };
+                subject.IsTextSelectionEnabled(true);
+                WUX::Controls::Grid::SetColumn(subject, 1);
+
+                row.Children().Append(sha);
+                row.Children().Append(subject);
+                list.Children().Append(row);
+            }
+
+            WUX::Controls::ScrollViewer scroller;
+            scroller.MaxHeight(220);
+            scroller.HorizontalScrollBarVisibility(WUX::Controls::ScrollBarVisibility::Disabled);
+            scroller.VerticalScrollBarVisibility(WUX::Controls::ScrollBarVisibility::Auto);
+            scroller.Content(list);
+            section.Children().Append(scroller);
+            content.Children().Append(section);
+        }
+
+        // The full diff, for when the subjects are not enough. Only offered when
+        // both ends are commits GitHub can know about.
+        const std::wstring_view running{ TERMINAL_BUILD_COMMIT_FULL };
+        const std::wstring_view target{ staged.CommitFull.empty() ? staged.Commit : staged.CommitFull };
+        if (running.size() >= 7 && target.size() >= 7 && !running.starts_with(target) && !target.starts_with(running))
+        {
+            WUX::Controls::HyperlinkButton compare;
+            compare.Content(winrt::box_value(RS_(L"PromoteSlotDialog_Compare")));
+            compare.Padding(WUX::ThicknessHelper::FromUniformLength(0));
+            const auto url{ fmt::format(FMT_COMPILE(L"https://github.com/aylith-labs/mullion/compare/{}...{}"), running, target) };
+            compare.Click([url](auto&&, auto&&) {
+                ShellExecute(nullptr, nullptr, url.c_str(), nullptr, nullptr, SW_SHOW);
+            });
+            content.Children().Append(compare);
+        }
+
+        content.Children().Append(Paragraph(winrt::hstring{ RS_fmt(L"PromoteSlotDialog_Body", std::wstring_view{ cost }) }));
+        return content;
+    }
+}
+
 namespace winrt::TerminalApp::implementation
 {
     // Ask whether anything is staged, and put the answer in the tab row. Cheap
@@ -84,9 +185,7 @@ namespace winrt::TerminalApp::implementation
 
         ContentDialog dialog{};
         dialog.Title(box_value(hstring{ RS_(L"PromoteSlotDialog_Title") }));
-        dialog.Content(box_value(hstring{ RS_fmt(L"PromoteSlotDialog_Body",
-                                                 std::wstring_view{ pending->Describe() },
-                                                 std::wstring_view{ _describePromotionCost() }) }));
+        dialog.Content(PromotionDialogContent(*pending, _describePromotionCost()));
         dialog.PrimaryButtonText(RS_(L"PromoteSlotDialog_ApplyOnNextLaunch"));
         dialog.SecondaryButtonText(RS_(L"PromoteSlotDialog_ApplyNow"));
         dialog.CloseButtonText(RS_(L"PromoteSlotDialog_Cancel"));
