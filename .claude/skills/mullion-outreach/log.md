@@ -10,6 +10,8 @@ Newest last. One line per step taken, plus the lesson when there is one.
 | 2026-10-20 | Repo metadata: homepage, description, topics; issues enabled | github.com/aylith-labs/mullion | Done | |
 | 2026-10-20 | awesome-terminals PR, Windows section | https://github.com/cdleon/awesome-terminals/pull/139 | Open | Merges come in batches every few weeks; the description can carry features and a screenshot table even when the list entry is one line. |
 | 2026-10-20 | README banner (light and dark) | README.md | Done | |
+| 2026-10-20 | Docs page of the upstream issues Mullion answers, footer link only | https://mullion.aylith.com/upstream.html | Done | The fork's own site is the place to say "this answers upstream #N". |
+| 2026-10-20 | Personal apology to Dustin Howett (duhowett@microsoft.com, public on his GitHub profile), Steven's decision and wording | hello@aylith.com Sent | Sent; watched by the same cloud routine | Two apologies are the ceiling: nothing further to anyone at Microsoft unless they write first. |
 
 ## Next
 

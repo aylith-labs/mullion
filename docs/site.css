@@ -603,23 +603,44 @@ table.feature-table td.nowrap { white-space: nowrap; color: var(--muted); }
 /* ======================================================================
  * Upstream issues (upstream.html)
  * ==================================================================== */
-.upstream section { margin-top: 36px; }
 .upstream h2 { margin: 0 0 12px; font-size: 1.3rem; font-weight: 700; }
 .upstream-note { margin: 16px 0 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 0.9rem; max-width: 44rem; }
 .upstream-sub { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
-.upstream > .upstream-sub:last-child { margin-top: 32px; }
+.upstream-foot { margin-top: 28px; }
+.tabs { display: flex; gap: 4px; margin: 28px 0 16px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.tabs [role="tab"] {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border: 0; border-bottom: 2px solid transparent;
+  background: transparent; color: var(--muted); font-size: 0.95rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.tabs [role="tab"]:hover { color: var(--text); }
+.tabs [role="tab"][aria-selected="true"] { color: var(--accent-text); border-bottom-color: var(--accent); }
+.tabs [role="tab"]:focus-visible { outline-offset: -2px; }
+.tabs .count { font-size: 0.75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--control-hover); color: var(--muted); }
+.tabs [aria-selected="true"] .count { background: var(--accent-soft); color: var(--accent-text); }
+[role="tabpanel"]:focus-visible { outline-offset: 4px; }
 table.upstream-table { min-width: 0; width: 100%; }
 table.upstream-table { table-layout: fixed; }
-table.upstream-table th:nth-child(1) { width: 60%; }
-table.upstream-table th:nth-child(3) { width: 8.5rem; }
+table.upstream-table th:nth-child(1) { width: 50%; }
+table.upstream-table th:nth-child(2) { width: 8.5rem; }
+table.upstream-table th:nth-child(4) { width: 7.5rem; }
 table.upstream-table td.title-cell .desc code { font-size: 0.8rem; }
+table.upstream-table td.age-cell { color: var(--muted); white-space: nowrap; }
+table.upstream-table td.age-cell time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }
+table.upstream-table .closed-on { display: block; font-size: 0.8rem; }
+table.upstream-table .age-label { display: none; }
 table.upstream-table td.title-cell .desc a { font-weight: 400; color: var(--accent-text); }
 @media (max-width: 640px) {
+  .tabs { gap: 0; }
+  .tabs [role="tab"] { padding: 10px 10px; }
   table.upstream-table thead { display: none; }
   table.upstream-table, table.upstream-table tbody, table.upstream-table tr, table.upstream-table td { display: block; width: auto; }
   table.upstream-table tr { padding: 10px 0; border-bottom: 1px solid var(--stroke-subtle); }
   table.upstream-table tr:last-child { border-bottom: 0; }
   table.upstream-table td { border: 0; padding: 3px 14px; }
+  table.upstream-table .age-label { display: inline; }
+  table.upstream-table .closed-on { display: inline; font-size: inherit; }
+  table.upstream-table .closed-on::before { content: ", "; }
 }
 
 /* ======================================================================

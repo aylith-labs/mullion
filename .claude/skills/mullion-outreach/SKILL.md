@@ -94,10 +94,11 @@ concentrated day with Steven in the thread, not a drip.
   (Scheduled Task "Mullion contribution watcher") reviews each adversarially with
   read-only tools, then raises a notification with buttons. Reviews are in
   `%LOCALAPPDATA%\MullionWatch\reviews`.
-- **The Microsoft apology** (sent 2026-10-20 to opencode@microsoft.com from
-  hello@aylith.com) is watched by a cloud routine that emails steven@aylith.com if a
-  reply arrives. Do not follow up, chase, or contact anyone else about the block;
-  that is what caused it.
+- **The Microsoft apologies** (sent 2026-10-20 from hello@aylith.com, one to
+  opencode@microsoft.com and, at Steven's request, one to Dustin Howett at
+  duhowett@microsoft.com) are watched by a cloud routine that emails
+  steven@aylith.com when a reply arrives. That is the ceiling: no follow-up, no
+  chasing, nobody else contacted about the block unless Microsoft writes first.
 
 ## After every step
 
