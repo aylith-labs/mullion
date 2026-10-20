@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Upstream issues — Mullion</title>
+<meta name="description" content="Windows Terminal issues and pull requests that Mullion answers, fully or in part, with a link to each feature page." />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="site.css" />
+<script src="site.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#content">Skip to content</a>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="index.html" aria-label="Mullion home">
+      <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="frame" x="2" y="3" width="22" height="20" rx="4" stroke-width="1.6"/><rect class="bar" x="12" y="3" width="2" height="20"/><rect class="bar" x="2" y="8" width="22" height="1.6"/></svg>
+      Mullion
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="features.html">Features</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub<svg class="ext" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    </nav>
+    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" title="Display settings" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="content" tabindex="-1">
+  <div class="container page-head">
+    <h1>Upstream issues</h1>
+    <p>Requests on <a href="https://github.com/microsoft/terminal">microsoft/terminal</a> that Mullion already answers, fully or in part. Each row links to the issue and to the Mullion feature page; where the match is partial, the note says what is missing.</p>
+  </div>
+
+  <div class="container upstream">
+    <p class="upstream-note">Those threads are for Windows Terminal's own work. If one of them is what brought you here, please don't mention Mullion there.</p>
+
+    <section aria-labelledby="h-open">
+      <h2 id="h-open">Open issues</h2>
+      <div class="table-scroll">
+        <table class="feature-table upstream-table">
+          <thead><tr><th scope="col"><span class="plain">Issue</span></th><th scope="col"><span class="plain">In Mullion</span></th><th scope="col"><span class="plain">Coverage</span></th></tr></thead>
+          <tbody id="open-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-prs">
+      <h2 id="h-prs">Open pull requests</h2>
+      <div class="table-scroll">
+        <table class="feature-table upstream-table">
+          <thead><tr><th scope="col"><span class="plain">Pull request</span></th><th scope="col"><span class="plain">In Mullion</span></th><th scope="col"><span class="plain">Coverage</span></th></tr></thead>
+          <tbody id="prs-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-closed">
+      <h2 id="h-closed">Closed upstream</h2>
+      <p class="upstream-sub">Closed by the maintainers, either declined or answered another way. Mullion went the other way.</p>
+      <div class="table-scroll">
+        <table class="feature-table upstream-table">
+          <thead><tr><th scope="col"><span class="plain">Issue</span></th><th scope="col"><span class="plain">In Mullion</span></th><th scope="col"><span class="plain">Coverage</span></th></tr></thead>
+          <tbody id="closed-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="upstream-sub">States as of 2026-10-20. Something missing, or a match overstated? <a href="https://github.com/aylith-labs/mullion/issues">Open an issue on Mullion</a>.</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>Mullion, a fork of <a href="https://github.com/microsoft/terminal">microsoft/terminal</a>. MIT licensed.</span>
+    <nav aria-label="Footer">
+      <a href="index.html">Home</a>
+      <a href="features.html">Features</a>
+      <a href="upstream.html" aria-current="page">Upstream issues</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="features.js"></script>
+<script>
+(function () {
+  var GH = "https://github.com/microsoft/terminal/";
+
+  // full: the request as asked is met. Otherwise the note says what is not.
+  // Every claim here was checked against the code, not against the feature
+  // pages; keep it that way when adding a row.
+  var OPEN = [
+    { n: 835, t: "Enable customization for tabs on bottom/right/left", f: "tab-edges", full: true,
+      note: "Top, bottom, left or right, as a window setting. <a href='https://github.com/microsoft/terminal/pull/20240'>#20240</a> is an open spec for the same thing." },
+    { n: 1553, t: "Mouse/Touch/Pointer Bindings", f: "click-chords",
+      note: "Only clicks on links are configurable. There are no general mouse bindings." },
+    { n: 2671, t: "Link generation for files and other data types", f: "path-smarts",
+      note: "Absolute Windows, UNC, POSIX and <code>~/</code> paths are links, open through the shell, and preview on hover. Relative paths, opening at a line and click-to-<code>cd</code> are not done." },
+    { n: 6276, t: "Avoid closing window when close last tab", f: "small-knobs",
+      note: "<code>\"closeWindowOnLastTab\": false</code> replaces the last tab with a fresh default-profile tab, so the window stays. There is no empty window or start page." },
+    { n: 8405, t: "disableAnimations not disabling all animations", f: "motion", full: true,
+      note: "<code>motion</code> follows the Windows animation switch or overrides it, and also stops the tab-list and Settings page transitions." },
+    { n: 8849, t: "Allow hyperlink matching for arbitrary patterns and custom handlers", f: "link-rules",
+      note: "Regex rules with named groups turn any text into a link, and an integration file can map a match to a URL template. Launching an arbitrary program with the captures, and parsing <code>file:line:col</code>, are not done." },
+    { n: 8914, t: "Profile reordering for Settings UI", f: "profile-order", full: true,
+      note: "Profiles reorder in the Settings UI, and Ctrl+Shift+N follows the new menu order." },
+    { n: 10552, t: "Profile icons with web sources are not shown on the taskbar", f: "icons", full: true,
+      note: "http(s) icons are kept as a local copy and the jump list points at it. Glyph and emoji icons are drawn into real <code>.ico</code> files." },
+    { n: 10627, t: "Settings UI feedback of configuration changes", f: "settings-save",
+      note: "An Auto-save switch applies each change as it is made, and hovering Save lists what would change. The button's label is unchanged." },
+    { n: 11630, t: "Allow search by name in the Actions dialog", f: "shortcut-search", full: true,
+      note: "The Shortcuts page filters by command name; a leading <code>@</code> searches by key chord." },
+    { n: 12424, t: "Save and Discard should stay disabled until something changes", f: "settings-save", full: true,
+      note: "Both stay disabled until a save would write something different." },
+    { n: 12633, t: "A new window does not restore the previous window's size and position", f: "window-persist", full: true,
+      note: "A new window opens where the last one closed, at its size. Quake mode, tear-out and an explicit position on the command line take precedence." },
+    { n: 13598, t: "Add option to configure URL clicking behavior", f: "click-chords", full: true,
+      note: "A modifier plus left, middle or double click, mapped to open, copy link and other actions, with a second chord alongside." },
+    { n: 14116, t: "Improve file:// hyperlink support: local and remote hostname", f: "wsl-links",
+      note: "URIs naming this machine are accepted, a <code>#fragment</code> is dropped, and WSL panes resolve to <code>\\\\wsl.localhost\\&lt;distro&gt;</code>. Remote hosts are still rejected." },
+    { n: 14940, t: "Refine customization around text color adjustment", f: "scheme-contrast",
+      note: "Each color scheme can set its own adjustment mode. The adjustment itself is unchanged." },
+    { n: 15452, t: "Something is, well, probably fine with One Half Light", f: "scheme-contrast",
+      note: "A light scheme can turn the adjustment off for itself. The adjustment itself is unchanged." },
+    { n: 17843, t: "Rows or columns to resize a pane by from the keyboard", f: "small-knobs",
+      note: "<code>paneResizeStep</code> sets the step, and <code>resizePane</code> takes an <code>amount</code>, but both are percentages, not rows or columns." },
+    { n: 20698, t: "Copy link URL from OSC 8 hyperlinks", f: "link-card",
+      note: "The link card has a Copy link button, and a click chord can copy instead of open. There is no context-menu entry." }
+  ];
+  var PRS = [
+    { n: 19805, t: "Add periodic buffer persistence to protect against unexpected termination", f: "session-resume", full: true, pr: true,
+      note: "<code>persistBufferPeriodically</code> saves pane contents every <code>bufferPersistIntervalMinutes</code> (5 by default)." }
+  ];
+  var CLOSED = [
+    { n: 961, t: "Restore previously closed session's state", f: "session-resume", full: true,
+      note: "Upstream restores the text and stopped there. Mullion also brings back what was running: coding agents resume and multiplexers reattach." },
+    { n: 9368, t: "Add support for a send-input subcommand", f: "control-pipe",
+      note: "Declined upstream, as was <a href='https://github.com/microsoft/terminal/pull/20106'>PR #20106</a>. A per-process control pipe sends input to a chosen pane; it is not a <code>wt</code> subcommand." },
+    { n: 9863, t: "Terminal settings UI should open in a new window", f: "settings-window", full: true,
+      note: "Upstream pointed to tab tear-off. <code>settingsUIHost</code> also opens Settings as a dialog or in a window of its own." }
+  ];
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  var byId = {};
+  (window.FEATURES || []).forEach(function (f) { byId[f.id] = f; });
+
+  function row(r) {
+    var f = byId[r.f];
+    var url = GH + (r.pr ? "pull/" : "issues/") + r.n;
+    var tag = r.full ? '<span class="tag tag-success">Covered</span>' : '<span class="tag">In part</span>';
+    return "<tr>" +
+      '<td class="title-cell"><a href="' + url + '">#' + r.n + " " + esc(r.t) + "</a>" +
+        '<div class="desc">' + r.note + "</div></td>" +
+      '<td class="title-cell"><a href="feature.html?id=' + encodeURIComponent(r.f) + '">' + esc(f ? f.title : r.f) + "</a></td>" +
+      '<td class="nowrap">' + tag + "</td>" +
+      "</tr>";
+  }
+  function fill(id, rows) {
+    document.getElementById(id).innerHTML = rows.map(row).join("");
+  }
+  fill("open-body", OPEN);
+  fill("prs-body", PRS);
+  fill("closed-body", CLOSED);
+})();
+</script>
+</body>
+</html>
