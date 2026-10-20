@@ -680,6 +680,12 @@ void MarkdownToXaml::_RenderNode(cmark_node* node, cmark_event_type ev_type)
             try
             {
                 winrt::Windows::Foundation::Uri uri{ _baseUri, urlHstring };
+                // A preview renders on hover, so an image on another machine's share would be
+                // an SMB connection nobody asked for. Only this machine and WSL are loaded.
+                if (const auto host = uri.Host(); uri.SchemeName() == L"file" && !host.empty() && !til::equals_insensitive_ascii(host, L"wsl.localhost") && !til::equals_insensitive_ascii(host, L"wsl$"))
+                {
+                    break;
+                }
 
                 WUX::Media::Imaging::BitmapImage bitmapImage;
                 bitmapImage.UriSource(uri);

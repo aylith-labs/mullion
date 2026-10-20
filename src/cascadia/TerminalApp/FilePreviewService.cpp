@@ -152,6 +152,12 @@ namespace winrt::TerminalApp::implementation
         preview.SourceText(resolvedFilePath);
         try
         {
+            // A preview runs on hover, so it never opens an SMB connection to another machine.
+            if (::Microsoft::Console::Utils::IsRemoteUncPath(std::wstring_view{ resolvedFilePath }))
+            {
+                preview.FilePath(L"");
+                throw hresult_error(E_ACCESSDENIED, L"Network paths are not previewed.");
+            }
             if (Lintel::ClassifyPath(std::wstring_view{ resolvedFilePath }) == Lintel::PathKind::Posix)
             {
                 const auto candidates = Lintel::PathCandidates(std::wstring_view{ resolvedFilePath }, true, {}, ::Microsoft::Console::Utils::RegisteredWslDistros());

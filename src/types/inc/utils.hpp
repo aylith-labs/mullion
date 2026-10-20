@@ -142,6 +142,21 @@ namespace Microsoft::Console::Utils
     // the URI is validated, so that the safety checks see the target that will be opened.
     std::wstring_view StripUriFragment(std::wstring_view uriString) noexcept;
 
+    // Whose file a file:// host, or a UNC path's server, names. Only Local and Wsl may be
+    // touched by anything that runs without a click: a Remote one is an SMB connection to
+    // whatever machine a program in the terminal chose to print.
+    enum class FileHostKind
+    {
+        Local,
+        Wsl,
+        Remote
+    };
+    bool IsLocalHostname(std::wstring_view host) noexcept;
+    FileHostKind ClassifyFileHost(std::wstring_view host) noexcept;
+    // True for a \\server\... or //server/... path whose server is not Local or Wsl,
+    // including the \\.\ device namespace. \\?\C:\... is a local long path and is not.
+    bool IsRemoteUncPath(std::wstring_view path) noexcept;
+
     // Which WSL distro, if any, a pane launched with this commandline is running, for
     // resolving the POSIX paths it prints. `declaresWslPathTranslation` is the profile's
     // pathTranslationStyle == WSL. Lives here rather than in TerminalPage because both

@@ -36,6 +36,7 @@ class UtilsTests
     TEST_METHOD(TestEvaluateStartingDirectory);
     TEST_METHOD(TestResolveFileUriTarget);
     TEST_METHOD(TestStripUriFragment);
+    TEST_METHOD(TestFileHosts);
     TEST_METHOD(TestIsValidDirectory);
     TEST_METHOD(TestWslDistroIgnoresWindowsShells);
 
@@ -682,6 +683,57 @@ void UtilsTests::TestResolveFileUriTarget()
 
     // A run that is not valid UTF-8 is left exactly as it was, so the old behaviour stands.
     VERIFY_ARE_EQUAL(L"\\\\wsl.localhost\\Ubuntu\\home\\stevenp\\\u00FF.txt", ResolveFileUriTarget(L"file:///home/stevenp/%FF.txt", L"Ubuntu"));
+
+    // Another machine's host has no local target: never \\server\share\..., which a hover would open over SMB.
+    VERIFY_ARE_EQUAL(L"", ResolveFileUriTarget(LR"(file://server/share/x.md)", L"Ubuntu"));
+    VERIFY_ARE_EQUAL(L"", ResolveFileUriTarget(LR"(file://nitromarchy/home/stevenp/x.md)", L"Ubuntu"));
+    VERIFY_ARE_EQUAL(L"", ResolveFileUriTarget(LR"(file://server/share/x.md#L3)", L""));
+    VERIFY_ARE_EQUAL(L"", ResolveFileUriTarget(LR"(file:////server/share/x.md)", L"Ubuntu"));
+}
+
+void UtilsTests::TestFileHosts()
+{
+    wchar_t buffer[256];
+    auto size = static_cast<DWORD>(std::size(buffer));
+    VERIFY_IS_TRUE(GetComputerNameExW(ComputerNameDnsHostname, buffer, &size));
+    const std::wstring self{ buffer, size };
+    std::wstring upper{ self };
+    std::transform(upper.begin(), upper.end(), upper.begin(), ::towupper);
+
+    VERIFY_IS_TRUE(IsLocalHostname(L"localhost"));
+    VERIFY_IS_TRUE(IsLocalHostname(L"LocalHost"));
+    VERIFY_IS_TRUE(IsLocalHostname(L"127.0.0.1"));
+    VERIFY_IS_TRUE(IsLocalHostname(L"::1"));
+    VERIFY_IS_TRUE(IsLocalHostname(self));
+    VERIFY_IS_TRUE(IsLocalHostname(upper));
+    VERIFY_IS_FALSE(IsLocalHostname(L"server"));
+    VERIFY_IS_FALSE(IsLocalHostname(L""));
+
+    VERIFY_IS_TRUE(ClassifyFileHost(L"") == FileHostKind::Local);
+    VERIFY_IS_TRUE(ClassifyFileHost(L"localhost") == FileHostKind::Local);
+    VERIFY_IS_TRUE(ClassifyFileHost(self) == FileHostKind::Local);
+    VERIFY_IS_TRUE(ClassifyFileHost(L"wsl.localhost") == FileHostKind::Wsl);
+    VERIFY_IS_TRUE(ClassifyFileHost(L"WSL$") == FileHostKind::Wsl);
+    VERIFY_IS_TRUE(ClassifyFileHost(L"server") == FileHostKind::Remote);
+    VERIFY_IS_TRUE(ClassifyFileHost(L"nitromarchy") == FileHostKind::Remote);
+    VERIFY_IS_TRUE(ClassifyFileHost(L"wsl.localhost.example.com") == FileHostKind::Remote);
+
+    VERIFY_IS_TRUE(IsRemoteUncPath(LR"(\\server\share\x.md)"));
+    VERIFY_IS_TRUE(IsRemoteUncPath(LR"(//server/share/x.md)"));
+    VERIFY_IS_TRUE(IsRemoteUncPath(LR"(\\server)"));
+    VERIFY_IS_TRUE(IsRemoteUncPath(LR"(\\?\UNC\server\share\x.md)"));
+    VERIFY_IS_TRUE(IsRemoteUncPath(LR"(\\.\pipe\x)"));
+    VERIFY_IS_TRUE(IsRemoteUncPath(LR"(\\?\Volume{0}\x)"));
+    VERIFY_IS_TRUE(IsRemoteUncPath(LR"(\\\x)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(LR"(\\wsl.localhost\Ubuntu\etc\hosts)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(LR"(\\wsl$\Debian\etc\hosts)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(LR"(\\localhost\c$\x.md)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(LR"(\\?\C:\Users\x.md)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(LR"(\\?\UNC\wsl.localhost\Ubuntu\x)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(LR"(C:\Users\x.md)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(LR"(/home/stevenp/x.md)"));
+    VERIFY_IS_FALSE(IsRemoteUncPath(L""));
+    VERIFY_IS_FALSE(IsRemoteUncPath(std::wstring{ LR"(\\)" } + self + LR"(\share\x)"));
 }
 
 void UtilsTests::TestStripUriFragment()

@@ -4435,8 +4435,11 @@ namespace winrt::TerminalApp::implementation
         try
         {
             auto uriString{ eventArgs.Uri() };
+            // A remote host resolves to nothing, so the link stays a URI and _IsUriSupported
+            // refuses it below without anything touching \\host\... first.
             if (til::starts_with_insensitive_ascii(std::wstring_view{ uriString }, L"file://"))
-                uriString = winrt::hstring{ Utils::ResolveFileUriTarget(std::wstring_view{ uriString }, _GetWslDistroForControl(sender)) };
+                if (auto resolved = Utils::ResolveFileUriTarget(std::wstring_view{ uriString }, _GetWslDistroForControl(sender)); !resolved.empty())
+                    uriString = winrt::hstring{ resolved };
             if (Lintel::ClassifyPath(std::wstring_view{ uriString }) != Lintel::PathKind::None)
             {
                 const auto distro = _GetWslDistroForControl(sender);
@@ -4724,25 +4727,7 @@ namespace winrt::TerminalApp::implementation
 
     bool TerminalPage::_IsLocalHostname(const std::wstring_view host) noexcept
     {
-        if (til::equals_insensitive_ascii(host, L"localhost") || til::equals_insensitive_ascii(host, L"127.0.0.1") || host == L"::1")
-        {
-            return true;
-        }
-
-        wchar_t buffer[256];
-        DWORD size = static_cast<DWORD>(std::size(buffer));
-        if (GetComputerNameExW(ComputerNameDnsHostname, buffer, &size) && til::equals_insensitive_ascii(host, std::wstring_view{ buffer, size }))
-        {
-            return true;
-        }
-
-        size = static_cast<DWORD>(std::size(buffer));
-        if (GetComputerNameExW(ComputerNameNetBIOS, buffer, &size) && til::equals_insensitive_ascii(host, std::wstring_view{ buffer, size }))
-        {
-            return true;
-        }
-
-        return false;
+        return Utils::IsLocalHostname(host);
     }
 
     // Method Description:

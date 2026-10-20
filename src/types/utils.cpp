@@ -1439,6 +1439,65 @@ std::wstring Utils::FilePathToUri(std::wstring_view path)
     return uri;
 }
 
+bool Utils::IsLocalHostname(std::wstring_view host) noexcept
+{
+    if (til::equals_insensitive_ascii(host, L"localhost") || til::equals_insensitive_ascii(host, L"127.0.0.1") || host == L"::1")
+    {
+        return true;
+    }
+
+    wchar_t buffer[256];
+    for (const auto format : { ComputerNameDnsHostname, ComputerNameNetBIOS })
+    {
+        auto size = static_cast<DWORD>(std::size(buffer));
+        if (GetComputerNameExW(format, buffer, &size) && til::equals_insensitive_ascii(host, std::wstring_view{ buffer, size }))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+Utils::FileHostKind Utils::ClassifyFileHost(std::wstring_view host) noexcept
+{
+    if (host.empty() || IsLocalHostname(host))
+    {
+        return FileHostKind::Local;
+    }
+    if (til::equals_insensitive_ascii(host, L"wsl$") || til::equals_insensitive_ascii(host, L"wsl.localhost"))
+    {
+        return FileHostKind::Wsl;
+    }
+    return FileHostKind::Remote;
+}
+
+bool Utils::IsRemoteUncPath(std::wstring_view path) noexcept
+{
+    const auto separator = [](wchar_t ch) { return ch == L'\\' || ch == L'/'; };
+    if (path.size() < 2 || !separator(path[0]) || !separator(path[1]))
+    {
+        return false;
+    }
+    auto rest = path.substr(2);
+    if (rest.starts_with(L"?") && rest.size() > 1 && separator(rest[1]))
+    {
+        rest = rest.substr(2);
+        if (rest.size() >= 2 && iswalpha(rest[0]) && rest[1] == L':')
+        {
+            return false;
+        }
+        if (!til::starts_with_insensitive_ascii(rest, L"UNC") || rest.size() < 4 || !separator(rest[3]))
+        {
+            return true;
+        }
+        rest = rest.substr(4);
+    }
+    const auto end = std::find_if(rest.begin(), rest.end(), separator);
+    const std::wstring_view server{ rest.data(), static_cast<size_t>(end - rest.begin()) };
+    // An empty server or "." (the device namespace) is never a file anyone meant to preview.
+    return server.empty() || server == L"." || ClassifyFileHost(server) == FileHostKind::Remote;
+}
+
 std::wstring Utils::ResolveFileUriTarget(std::wstring_view uriString, std::wstring_view profileDistro)
 {
     if (!til::starts_with_insensitive_ascii(uriString, L"file://"))
@@ -1473,10 +1532,12 @@ std::wstring Utils::ResolveFileUriTarget(std::wstring_view uriString, std::wstri
         return buffer;
     }
 
-    // 2. UNC path (e.g. \\wsl.localhost\Ubuntu\... or \\server\share\...)
+    // 2. UNC path (e.g. \\wsl.localhost\Ubuntu\...). file://server/share/... comes back
+    //    as \\server\share\..., and handing that out lets a hover open an SMB connection
+    //    to any machine a program printed. A remote host has no local target.
     if (path.size() >= 2 && path[0] == L'\\' && path[1] == L'\\')
     {
-        return buffer;
+        return IsRemoteUncPath(path) ? std::wstring{} : buffer;
     }
 
     // 3. /mnt/<letter>/... mounted Windows path (represented as \mnt\<letter>\... by PathCreateFromUrl)
