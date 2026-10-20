@@ -11,6 +11,7 @@
 
 #include <shellapi.h> // CommandLineToArgvW, for picking a distro out of a profile's commandline
 #include <shlwapi.h>
+#include "../inc/LintelPaths.h"
 #include <icu.h>
 
 #include <filesystem>
@@ -1439,22 +1440,29 @@ std::wstring Utils::FilePathToUri(std::wstring_view path)
     return uri;
 }
 
-bool Utils::IsLocalHostname(std::wstring_view host) noexcept
+// This machine's own names, which Lintel's host rule cannot know by itself.
+static std::vector<std::wstring> _localHostNames()
 {
-    if (til::equals_insensitive_ascii(host, L"localhost") || til::equals_insensitive_ascii(host, L"127.0.0.1") || host == L"::1")
-    {
-        return true;
-    }
-
+    std::vector<std::wstring> names;
     wchar_t buffer[256];
     for (const auto format : { ComputerNameDnsHostname, ComputerNameNetBIOS })
     {
         auto size = static_cast<DWORD>(std::size(buffer));
-        if (GetComputerNameExW(format, buffer, &size) && til::equals_insensitive_ascii(host, std::wstring_view{ buffer, size }))
+        if (GetComputerNameExW(format, buffer, &size) && size > 0)
         {
-            return true;
+            names.emplace_back(buffer, size);
         }
     }
+    return names;
+}
+
+bool Utils::IsLocalHostname(std::wstring_view host) noexcept
+try
+{
+    return !host.empty() && Lintel::ClassifyFileHost(host, _localHostNames()) == Lintel::FileHostKind::Local;
+}
+catch (...)
+{
     return false;
 }
 
@@ -1468,44 +1476,33 @@ std::wstring_view Utils::FileUriHost(std::wstring_view uri) noexcept
     return rest.substr(0, std::min(rest.find_first_of(L"/\\?#"), rest.size()));
 }
 
+// Both fail closed: a host or a share that cannot be classified is another machine.
 Utils::FileHostKind Utils::ClassifyFileHost(std::wstring_view host) noexcept
+try
 {
-    if (host.empty() || IsLocalHostname(host))
+    switch (Lintel::ClassifyFileHost(host, _localHostNames()))
     {
+    case Lintel::FileHostKind::Local:
         return FileHostKind::Local;
-    }
-    if (til::equals_insensitive_ascii(host, L"wsl$") || til::equals_insensitive_ascii(host, L"wsl.localhost"))
-    {
+    case Lintel::FileHostKind::Wsl:
         return FileHostKind::Wsl;
+    default:
+        return FileHostKind::Remote;
     }
+}
+catch (...)
+{
     return FileHostKind::Remote;
 }
 
 bool Utils::IsRemoteUncPath(std::wstring_view path) noexcept
+try
 {
-    const auto separator = [](wchar_t ch) { return ch == L'\\' || ch == L'/'; };
-    if (path.size() < 2 || !separator(path[0]) || !separator(path[1]))
-    {
-        return false;
-    }
-    auto rest = path.substr(2);
-    if (rest.starts_with(L"?") && rest.size() > 1 && separator(rest[1]))
-    {
-        rest = rest.substr(2);
-        if (rest.size() >= 2 && iswalpha(rest[0]) && rest[1] == L':')
-        {
-            return false;
-        }
-        if (!til::starts_with_insensitive_ascii(rest, L"UNC") || rest.size() < 4 || !separator(rest[3]))
-        {
-            return true;
-        }
-        rest = rest.substr(4);
-    }
-    const auto end = std::find_if(rest.begin(), rest.end(), separator);
-    const std::wstring_view server{ rest.data(), static_cast<size_t>(end - rest.begin()) };
-    // An empty server or "." (the device namespace) is never a file anyone meant to preview.
-    return server.empty() || server == L"." || ClassifyFileHost(server) == FileHostKind::Remote;
+    return Lintel::IsRemoteUncPath(path, _localHostNames());
+}
+catch (...)
+{
+    return true;
 }
 
 std::wstring Utils::RemoteFileUri(std::wstring_view host, std::wstring_view posixPath)

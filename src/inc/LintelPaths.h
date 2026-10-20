@@ -73,6 +73,38 @@ namespace Lintel
         else for (const auto& distro : distros) add(distro);
         return result;
     }
+    // Whose file a file:// host, or a UNC path's server, names. The host supplies its own
+    // machine names; empty and localhost are always local.
+    enum class FileHostKind { Local, Wsl, Remote };
+    inline bool EqualsAsciiInsensitive(std::wstring_view a, std::wstring_view b)
+    {
+        const auto lower = [](wchar_t c) { return c >= L'A' && c <= L'Z' ? static_cast<wchar_t>(c + 32) : c; };
+        return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [&](wchar_t x, wchar_t y) { return lower(x) == lower(y); });
+    }
+    inline FileHostKind ClassifyFileHost(std::wstring_view host, const std::vector<std::wstring>& localNames = {})
+    {
+        if (host.empty() || EqualsAsciiInsensitive(host, L"localhost") || host == L"127.0.0.1" || host == L"::1") return FileHostKind::Local;
+        if (std::any_of(localNames.begin(), localNames.end(), [&](const auto& name) { return EqualsAsciiInsensitive(host, name); })) return FileHostKind::Local;
+        return EqualsAsciiInsensitive(host, L"wsl$") || EqualsAsciiInsensitive(host, L"wsl.localhost") ? FileHostKind::Wsl : FileHostKind::Remote;
+    }
+    // A \\server\... or //server/... path on another machine, the \\.\ device namespace
+    // included. A host never touches one without a click: it would be an SMB connection.
+    inline bool IsRemoteUncPath(std::wstring_view path, const std::vector<std::wstring>& localNames = {})
+    {
+        const auto separator = [](wchar_t ch) { return ch == L'\\' || ch == L'/'; };
+        if (path.size() < 2 || !separator(path[0]) || !separator(path[1])) return false;
+        auto rest = path.substr(2);
+        if (rest.size() > 1 && rest[0] == L'?' && separator(rest[1]))
+        {
+            rest = rest.substr(2);
+            if (rest.size() >= 2 && DriveLetter(rest[0]) && rest[1] == L':') return false;
+            if (rest.size() < 4 || !EqualsAsciiInsensitive(rest.substr(0, 3), L"UNC") || !separator(rest[3])) return true;
+            rest = rest.substr(4);
+        }
+        const auto end = std::find_if(rest.begin(), rest.end(), separator);
+        const std::wstring_view server{ rest.data(), static_cast<size_t>(end - rest.begin()) };
+        return server.empty() || server == L"." || ClassifyFileHost(server, localNames) == FileHostKind::Remote;
+    }
     inline std::optional<PathCandidate> SelectPathCandidate(const std::vector<PathCandidate>& candidates, const std::vector<bool>& exists)
     {
         std::optional<PathCandidate> found;
