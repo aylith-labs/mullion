@@ -118,5 +118,27 @@ node tools/check-site.mjs --strict   # for a new feature: no comparison = error
 - **When site.css or a script changes, bump the `?v=` token on every page's asset
   links.** Pages are cached for 10 minutes and a new page with an old stylesheet
   renders unstyled; that shipped once.
-- After GitHub Pages deploys, open the live feature page in light and dark and at
-  phone width (headless Chrome over CDP is enough) before reporting it done.
+- After GitHub Pages deploys, run `node tools/audit-site.mjs` (the live site; pass a
+  `file:///…/docs` URL for a local copy). It renders every page, list view, feature
+  page and documentation topic in light, dark and at phone width, and fails on a
+  broken image, two themes of one shot showing at once, a script error, a topic that
+  did not load, or a page wider than a phone. Counting images is not enough: an
+  earlier check did that and passed a page showing both themes.
+
+## Documentation topics
+
+The Settings UI's Documentation page and mullion.aylith.com/docs show the same
+files: `docs/docs/<id>.md`, packaged into the app as `Docs\<id>.md` by
+`src/cascadia/CascadiaResources.build.items`. Edit a topic there and both change.
+A new topic needs a card in `TerminalSettingsEditor/Documentation.xaml`, its
+`Documentation_Topic*` strings, and the same entry in `docs/docs/index.html`'s
+`TOPICS`; `check-site.mjs` fails if the site's list and the app's drift apart.
+Documentation pushes do not trigger a build, so the app picks a topic change up
+with the next build that does.
+
+## Links back from the app
+
+The promote dialog links each commit to its feature page and upstream issue rows,
+from `features.js` and `upstream.html` at build time (`tools/commit-links.mjs`, via
+`tools/Write-ReleaseNotes.ps1`). That is one more reason a feature's `commits` and
+its upstream rows must be complete: a commit missing from them gets no links.

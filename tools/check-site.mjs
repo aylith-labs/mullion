@@ -114,6 +114,29 @@ for (const name of ["OPEN", "PRS", "CLOSED"]) {
   for (const r of rows) if (!ids.has(r.f)) err("upstream.html", `#${r.n} points at unknown feature "${r.f}"`);
 }
 
+// Documentation: mullion.aylith.com/docs and the Settings UI's Documentation
+// page show the same files (docs/docs/<id>.md, packaged by
+// CascadiaResources.build.items). The site's topic list must match the app's
+// order (Documentation.xaml's Tag values) and words (Documentation_Topic*).
+{
+  const xaml = readFileSync(join(ROOT, "src/cascadia/TerminalSettingsEditor/Documentation.xaml"), "utf8");
+  const resw = readFileSync(join(ROOT, "src/cascadia/TerminalSettingsEditor/Resources/en-US/Resources.resw"), "utf8");
+  const app = [...xaml.matchAll(/x:Uid="(Documentation_Topic\w+)"[\s\S]*?Tag="([a-z0-9-]+)"/g)].map(([, uid, id]) => {
+    const value = (key) => (new RegExp(`<data name="${uid}\\.${key}"[^>]*>\\s*<value>([^<]*)</value>`).exec(resw) ?? [])[1];
+    return { id, title: value("Header"), desc: value("Description") };
+  });
+  const page = readFileSync(join(DOCS, "docs", "index.html"), "utf8");
+  const site = [...page.matchAll(/\{ id: "([a-z0-9-]+)", title: "([^"]*)", icon: "[a-z]+",\s*desc: "([^"]*)" \}/g)].map(([, id, title, desc]) => ({ id, title, desc }));
+  if (app.length === 0) err("docs", "no topics found in Documentation.xaml");
+  if (JSON.stringify(app.map((t) => t.id)) !== JSON.stringify(site.map((t) => t.id)))
+    err("docs", `topic order differs: app ${app.map((t) => t.id).join(",")} / site ${site.map((t) => t.id).join(",")}`);
+  for (const t of app) {
+    const s = site.find((x) => x.id === t.id);
+    if (!existsSync(join(DOCS, "docs", `${t.id}.md`))) err("docs", `docs/docs/${t.id}.md is missing (the app shows "not installed")`);
+    if (s && (s.title !== t.title || s.desc !== t.desc)) err("docs", `${t.id}: title or description differs from the app's Documentation_Topic strings`);
+  }
+}
+
 for (const e of errors) console.log(`ERROR  ${e}`);
 for (const b of backfill) console.log(`TODO   ${b}`);
 console.log(`\n${FEATURES.length} features · ${errors.length} errors · ${backfill.length} backfill items`);

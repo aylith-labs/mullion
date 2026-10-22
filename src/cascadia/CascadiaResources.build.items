@@ -43,10 +43,13 @@
     <!-- In-app documentation. The Settings UI's Documentation page reads these off
          disk at Docs\<topic>.md beside the binaries, which is exactly what this Link
          produces; without the Link they would land in the package root instead, and
-         the page would draw its "not installed" message with a green build behind it. -->
-    <Content Include="$(OpenConsoleDir)src\cascadia\CascadiaPackage\Docs\**\*">
+         the page would draw its "not installed" message with a green build behind it.
+         The files live in docs\docs\ because mullion.aylith.com/docs renders the very
+         same ones: one copy, two readers. Only the .md files: the folder also holds
+         the site's page for them. -->
+    <Content Include="$(OpenConsoleDir)docs\docs\*.md">
       <DeploymentContent>true</DeploymentContent>
-      <Link>Docs\%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <Link>Docs\%(FileName)%(Extension)</Link>
     </Content>
     <!-- WebView2's loader, beside the binaries, for the link card's HTML host and its
          Details page (HyperlinkHtmlHost). It is loaded by name at runtime (nothing

@@ -813,6 +813,67 @@ figure[data-base] .pending { display: none; }
 figure.no-media .pending { display: block; }
 figure.no-media img, figure.no-media video { display: none !important; }
 
+/* ---- Documentation (docs/index.html) ---------------------------------
+ * Drawn to match the Settings UI's Documentation page: a card per topic,
+ * then the topic on one card with ruled headings, numbered lists, striped
+ * tables and tinted callouts. */
+.mdocs { padding-top: 28px; padding-bottom: 56px; max-width: 64rem; }
+.mdoc-crumbs { display: flex; align-items: center; gap: 6px; font-size: 1.35rem; font-weight: 600; margin-bottom: 18px; }
+.mdoc-crumbs a { color: var(--muted); }
+.mdoc-crumbs a:hover { color: var(--accent-text); }
+.mdoc-crumbs svg { width: 14px; height: 14px; fill: none; stroke: var(--text-tertiary); stroke-width: 1.8; }
+.mdoc-intro { color: var(--muted); margin: 0 0 16px; }
+.mdoc-topics { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mdoc-topic {
+  display: flex; align-items: center; gap: 16px; padding: 14px 18px; color: var(--text);
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+}
+.mdoc-topic:hover { background: var(--control-hover); text-decoration: none; }
+.mdoc-topic:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mdoc-topic-icon svg, .mdoc-topic > svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.mdoc-topic > svg { width: 14px; height: 14px; margin-left: auto; color: var(--text-tertiary); }
+.mdoc-topic-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mdoc-topic-title { font-weight: 550; }
+.mdoc-topic-desc { font-size: 0.86rem; color: var(--muted); }
+
+.mdoc {
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 24px 28px; line-height: 1.6; overflow-wrap: anywhere;
+}
+.mdoc h1 { font-size: 2rem; font-weight: 600; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); letter-spacing: -0.01em; }
+.mdoc h2 { font-size: 1.45rem; font-weight: 600; margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.mdoc h3 { font-size: 1.15rem; font-weight: 600; margin: 22px 0 10px; }
+.mdoc p { margin: 0 0 12px; }
+.mdoc ul, .mdoc ol { margin: 0 0 12px; padding-left: 26px; }
+.mdoc li { margin: 4px 0; }
+.mdoc code { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 0.9em; font-weight: 600; }
+.mdoc pre {
+  background: var(--bg-alt); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; line-height: 1.45;
+}
+.mdoc pre code { font-weight: 400; font-size: 0.86rem; }
+.mdoc table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 0.92rem; display: block; overflow-x: auto; }
+.mdoc th, .mdoc td { text-align: left; padding: 8px 12px; border: 1px solid var(--stroke-subtle); vertical-align: top; }
+.mdoc th { font-weight: 600; background: var(--bg-alt); }
+.mdoc tbody tr:nth-child(even) td { background: var(--bg-alt); }
+.mdoc blockquote { margin: 0 0 14px; padding: 4px 16px; border-left: 3px solid var(--border); color: var(--muted); }
+.mdoc hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+.mdoc-callout {
+  display: flex; gap: 12px; align-items: flex-start; margin: 0 0 14px; padding: 12px 16px;
+  border-radius: 6px; background: var(--accent-soft); border: 1px solid var(--accent-border);
+}
+.mdoc-callout > svg { width: 18px; height: 18px; flex: none; margin-top: 3px; fill: none; stroke: var(--accent-text); stroke-width: 1.8; stroke-linecap: round; }
+.mdoc-callout p:last-child { margin-bottom: 0; }
+.mdoc-callout-warning, .mdoc-callout-caution { background: rgba(196, 107, 0, 0.10); border-color: rgba(196, 107, 0, 0.40); }
+.mdoc-callout-warning > svg, .mdoc-callout-caution > svg { stroke: #c46b00; }
+.mdoc-loading { color: var(--text-tertiary); margin: 0; }
+.mdoc-source { font-size: 0.82rem; color: var(--text-tertiary); margin: 12px 0 0; }
+@media (max-width: 640px) {
+  .mdoc { padding: 18px 16px; }
+  .mdoc h1 { font-size: 1.6rem; }
+  .mdoc-crumbs { font-size: 1.1rem; flex-wrap: wrap; }
+}
+
 /* ---- Home page: every feature, by area (index.html) ------------------ */
 .feature-index { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 12px 28px; }
 .index-group h3 { font-size: 0.98rem; margin: 0 0 8px; font-weight: 650; display: flex; align-items: baseline; gap: 8px; }

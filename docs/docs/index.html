@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Documentation — Mullion</title>
+<meta name="description" content="Mullion's documentation: the same topics the Settings UI's Documentation page shows, from the same files." />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="../site.css?v=2026-10-22b" />
+<script src="../site.js?v=2026-10-22b"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#content">Skip to content</a>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="../index.html" aria-label="Mullion home">
+      <svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true"><rect class="frame" x="2" y="3" width="22" height="20" rx="4" stroke-width="1.6"/><rect class="bar" x="12" y="3" width="2" height="20"/><rect class="bar" x="2" y="8" width="22" height="1.6"/></svg>
+      Mullion
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../features.html">Features</a>
+      <a href="./" aria-current="page">Docs</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub<svg class="ext" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    </nav>
+    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" title="Display settings" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="content" tabindex="-1">
+  <div class="container mdocs">
+    <nav class="mdoc-crumbs" aria-label="Breadcrumb" id="crumbs"></nav>
+    <div id="view"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>Mullion, a fork of <a href="https://github.com/microsoft/terminal">microsoft/terminal</a>. MIT licensed.</span>
+    <nav aria-label="Footer">
+      <a href="../index.html">Home</a>
+      <a href="../features.html">Features</a>
+      <a href="./" aria-current="page">Docs</a>
+      <a href="../upstream.html">Upstream issues</a>
+      <a href="../mentions.html">Mentions</a>
+      <a href="https://github.com/aylith-labs/mullion">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // The topics, in the order and with the words of the Settings UI's
+  // Documentation page (TerminalSettingsEditor/Documentation.xaml and its
+  // Documentation_Topic* strings). tools/check-site.mjs fails if they drift.
+  // Each topic's text is the very file the app packages: docs/docs/<id>.md.
+  var TOPICS = [
+    { id: "keyboard-shortcuts", title: "Keyboard shortcuts", icon: "keyboard",
+      desc: "Actions and the key chords that reach them, recording a chord, resolving a conflict, and what action IDs are for." },
+    { id: "regular-expressions", title: "Regular expressions", icon: "regex",
+      desc: "The syntax the profile matcher and link tooltip rules accept, which parts of a value have to match, and named captures." },
+    { id: "extensions", title: "Extensions", icon: "puzzle",
+      desc: "What an extension may add to your settings, where extensions are found, turning one off, and writing your own." },
+    { id: "tab-strip", title: "Tabs and the tab strip", icon: "tabs",
+      desc: "Tab position and the vertical sidebar, tab width, the profile icon, and the close button." },
+    { id: "window-behaviour", title: "Window behaviour", icon: "window",
+      desc: "Whether the app animates, and whether settings open as a tab, a dialog, or a window of their own." },
+    { id: "link-tooltips", title: "Link tooltips", icon: "link",
+      desc: "The card a hovered link shows, the buttons on it, and the rules that change it per link." },
+    { id: "integrations", title: "Integrations", icon: "globe",
+      desc: "What ships with the terminal, what each one needs, where credentials are kept, and adding your own." },
+    { id: "session-restore", title: "Session restore", icon: "restore",
+      desc: "Which windows, panes and programs come back when the terminal starts, and what saving pane contents costs." },
+    { id: "activity-log", title: "Activity log", icon: "history",
+      desc: "How to find out where an unexpected window came from, what is recorded, and what that means for secrets on a command line." },
+    { id: "fork-marks", title: "Provenance marks", icon: "mark",
+      desc: "What the two marks beside a setting mean, and how to tell which parts of this terminal other documentation will not describe." }
+  ];
+
+  var ICONS = {
+    keyboard: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',
+    regex: '<path d="M17 3v10M12.7 5.5l8.6 5M12.7 10.5l8.6-5"/><rect x="3" y="15" width="6" height="6" rx="1"/>',
+    puzzle: '<path d="M10 3h4v3a2 2 0 1 0 4 0V3h3v7h-3a2 2 0 1 0 0 4h3v7h-7v-3a2 2 0 1 0-4 0v3H3v-7h3a2 2 0 1 0 0-4H3V3h7z"/>',
+    tabs: '<path d="M3 20V8a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v9H3z"/>',
+    window: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+    restore: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+    history: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    mark: '<path d="M12 3l9 9-9 9-9-9z"/>'
+  };
+  var CHEVRON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg>';
+  var REPO_FILE = "https://github.com/aylith-labs/mullion/blob/main/docs/docs/";
+
+  var byId = {};
+  TOPICS.forEach(function (t) { byId[t.id] = t; });
+  var view = document.getElementById("view");
+  var crumbs = document.getElementById("crumbs");
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function icon(name) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || "") + "</svg>"; }
+  function current() { var m = /[?&]t=([a-z0-9-]+)/.exec(location.search); return m && byId[m[1]] ? m[1] : null; }
+
+  function showList() {
+    document.title = "Documentation — Mullion";
+    crumbs.innerHTML = "<span>Documentation</span>";
+    var cards = TOPICS.map(function (t) {
+      return '<li><a class="mdoc-topic" href="?t=' + t.id + '">' +
+        '<span class="mdoc-topic-icon">' + icon(t.icon) + "</span>" +
+        '<span class="mdoc-topic-text"><span class="mdoc-topic-title">' + esc(t.title) + "</span>" +
+        '<span class="mdoc-topic-desc">' + esc(t.desc) + "</span></span>" + CHEVRON + "</a></li>";
+    }).join("");
+    view.innerHTML =
+      '<p class="mdoc-intro">The same topics as the Documentation page in Mullion’s Settings, from the same files: what you read here is what the app shows.</p>' +
+      '<ul class="mdoc-topics">' + cards + "</ul>";
+  }
+
+  // GitHub-style alerts ("> [!NOTE]") become the callouts the app draws.
+  var ALERTS = { NOTE: "Note", TIP: "Tip", IMPORTANT: "Important", WARNING: "Warning", CAUTION: "Caution" };
+  function alerts(root) {
+    root.querySelectorAll("blockquote").forEach(function (q) {
+      var first = q.firstElementChild;
+      var m = first && /^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/.exec(first.innerHTML);
+      if (!m) { return; }
+      first.innerHTML = first.innerHTML.slice(m[0].length);
+      var box = document.createElement("div");
+      box.className = "mdoc-callout mdoc-callout-" + m[1].toLowerCase();
+      box.setAttribute("role", "note");
+      box.setAttribute("aria-label", ALERTS[m[1]]);
+      box.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><div>' + q.innerHTML + "</div>";
+      q.replaceWith(box);
+    });
+  }
+
+  // Links between topics stay on this page, as they stay inside the app.
+  function links(root) {
+    root.querySelectorAll("a[href]").forEach(function (a) {
+      var href = a.getAttribute("href");
+      var m = /^(?:\.\/)?([a-z0-9-]+)\.md(#.*)?$/.exec(href);
+      if (m && byId[m[1]]) { a.setAttribute("href", "?t=" + m[1] + (m[2] || "")); return; }
+      if (/^https?:/.test(href)) { a.setAttribute("rel", "noopener"); }
+    });
+  }
+
+  function anchors(root) {
+    root.querySelectorAll("h2, h3, h4").forEach(function (h) {
+      if (!h.id) { h.id = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+    });
+  }
+
+  function showTopic(id) {
+    var t = byId[id];
+    crumbs.innerHTML = '<a href="./">Documentation</a>' + CHEVRON + "<span>" + esc(t.title) + "</span>";
+    view.innerHTML = '<article class="mdoc" aria-busy="true"><p class="mdoc-loading">Loading…</p></article>';
+    fetch(id + ".md").then(function (r) {
+      if (!r.ok) { throw new Error(r.status); }
+      return r.text();
+    }).then(function (md) {
+      var article = view.querySelector(".mdoc");
+      article.innerHTML = window.marked ? window.marked.parse(md, { gfm: true }) : "<pre>" + esc(md) + "</pre>";
+      alerts(article);
+      links(article);
+      anchors(article);
+      article.removeAttribute("aria-busy");
+      var h1 = article.querySelector("h1");
+      document.title = (h1 ? h1.textContent : t.title) + " — Mullion documentation";
+      view.insertAdjacentHTML("beforeend", '<p class="mdoc-source">This topic is <a href="' + REPO_FILE + id + '.md">docs/docs/' + id +
+        '.md</a>, the file Mullion packages and shows under Settings → Documentation.</p>');
+      if (location.hash) { var target = document.getElementById(location.hash.slice(1)); if (target) { target.scrollIntoView(); } }
+    }).catch(function () {
+      view.querySelector(".mdoc").innerHTML = '<p class="mdoc-loading">This topic could not be loaded. <a href="' + REPO_FILE + id + '.md">Read it on GitHub</a>.</p>';
+    });
+  }
+
+  var id = current();
+  if (id) { showTopic(id); } else { showList(); }
+})();
+</script>
+</body>
+</html>
