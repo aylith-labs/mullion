@@ -37,6 +37,102 @@ namespace
         return block;
     }
 
+    constexpr std::wstring_view SiteRoot{ L"https://mullion.aylith.com/" };
+
+    // A line of links that wraps like text: Hyperlink inlines in a TextBlock,
+    // rather than HyperlinkButtons in a horizontal StackPanel, which would clip
+    // in a narrow window or a longer translation.
+    struct LinkLine
+    {
+        WUX::Controls::TextBlock Block;
+
+        explicit LinkLine(double fontSize)
+        {
+            Block.TextWrapping(WUX::TextWrapping::Wrap);
+            Block.FontSize(fontSize);
+        }
+
+        void Text(const winrt::hstring& text)
+        {
+            WUX::Documents::Run run;
+            run.Text(text);
+            Block.Inlines().Append(run);
+        }
+
+        // Click, not NavigateUri: the dialog's other links open through
+        // ShellExecute, and NavigateUri's launcher is not one to rely on inside
+        // a XAML island. accessibleName is for links whose text alone ("#12004")
+        // says too little to a screen reader.
+        void Link(const winrt::hstring& text, std::wstring url, const winrt::hstring& accessibleName = {})
+        {
+            WUX::Documents::Run run;
+            run.Text(text);
+            WUX::Documents::Hyperlink link;
+            link.Click([url = std::move(url)](auto&&, auto&&) {
+                ShellExecute(nullptr, nullptr, url.c_str(), nullptr, nullptr, SW_SHOW);
+            });
+            link.Inlines().Append(run);
+            if (!accessibleName.empty())
+            {
+                WUX::Automation::AutomationProperties::SetName(link, accessibleName);
+            }
+            Block.Inlines().Append(link);
+        }
+
+        bool Empty() const
+        {
+            return Block.Inlines().Size() == 0;
+        }
+    };
+
+    // Under a commit's subject: the feature page it belongs to and the upstream
+    // issues behind it. An issue with a row on mullion.aylith.com's upstream
+    // page links to that row; one without links to GitHub.
+    WUX::Controls::TextBlock CommitLinks(const ::TerminalApp::SlotPromotion::StagedCommit& commit)
+    {
+        LinkLine line{ 12 };
+        for (const auto& feature : commit.Features)
+        {
+            if (!line.Empty())
+            {
+                line.Text(L" · ");
+            }
+            line.Link(feature.Title, fmt::format(FMT_COMPILE(L"{}feature?id={}"), SiteRoot, std::wstring_view{ feature.Id }));
+        }
+
+        std::vector<std::pair<uint32_t, bool>> issues;
+        for (const auto n : commit.Issues)
+        {
+            issues.emplace_back(n, true);
+        }
+        for (const auto n : commit.Refs)
+        {
+            issues.emplace_back(n, false);
+        }
+        std::sort(issues.begin(), issues.end());
+        if (!issues.empty())
+        {
+            if (!line.Empty())
+            {
+                line.Text(L" · ");
+            }
+            line.Text(RS_(L"PromoteSlotDialog_CommitUpstream") + L" ");
+            for (size_t i = 0; i < issues.size(); ++i)
+            {
+                const auto [n, onSite] = issues[i];
+                if (i > 0)
+                {
+                    line.Text(L", ");
+                }
+                line.Link(winrt::hstring{ fmt::format(FMT_COMPILE(L"#{}"), n) },
+                          onSite ? fmt::format(FMT_COMPILE(L"{}upstream#issue-{}"), SiteRoot, n) :
+                                   fmt::format(FMT_COMPILE(L"https://github.com/microsoft/terminal/issues/{}"), n),
+                          winrt::hstring{ RS_fmt(L"PromoteSlotDialog_IssueLinkName", n) });
+            }
+        }
+        return line.Block;
+    }
+
     // The promote dialog's body: what is staged, what it adds over the build
     // this window runs, and what applying it costs. Built in code because the
     // list of commits is. Rows look like the About dialog's release notes.
@@ -89,10 +185,18 @@ namespace
 
                 auto subject{ Paragraph(commit.Subject) };
                 subject.IsTextSelectionEnabled(true);
-                WUX::Controls::Grid::SetColumn(subject, 1);
+
+                WUX::Controls::StackPanel text;
+                text.Spacing(2);
+                text.Children().Append(subject);
+                if (!commit.Features.empty() || !commit.Issues.empty())
+                {
+                    text.Children().Append(CommitLinks(commit));
+                }
+                WUX::Controls::Grid::SetColumn(text, 1);
 
                 row.Children().Append(sha);
-                row.Children().Append(subject);
+                row.Children().Append(text);
                 list.Children().Append(row);
             }
 
@@ -105,21 +209,22 @@ namespace
             content.Children().Append(section);
         }
 
-        // The full diff, for when the subjects are not enough. Only offered when
-        // both ends are commits GitHub can know about.
+        // The full diff, for when the subjects are not enough (only when both
+        // ends are commits GitHub can know about), and the site's feature and
+        // upstream-issue lists beside it.
+        LinkLine links{ 14 };
         const std::wstring_view running{ TERMINAL_BUILD_COMMIT_FULL };
         const std::wstring_view target{ staged.CommitFull.empty() ? staged.Commit : staged.CommitFull };
         if (running.size() >= 7 && target.size() >= 7 && !running.starts_with(target) && !target.starts_with(running))
         {
-            WUX::Controls::HyperlinkButton compare;
-            compare.Content(winrt::box_value(RS_(L"PromoteSlotDialog_Compare")));
-            compare.Padding(WUX::ThicknessHelper::FromUniformLength(0));
-            const auto url{ fmt::format(FMT_COMPILE(L"https://github.com/aylith-labs/mullion/compare/{}...{}"), running, target) };
-            compare.Click([url](auto&&, auto&&) {
-                ShellExecute(nullptr, nullptr, url.c_str(), nullptr, nullptr, SW_SHOW);
-            });
-            content.Children().Append(compare);
+            links.Link(RS_(L"PromoteSlotDialog_Compare"),
+                       fmt::format(FMT_COMPILE(L"https://github.com/aylith-labs/mullion/compare/{}...{}"), running, target));
+            links.Text(L"      ");
         }
+        links.Link(RS_(L"PromoteSlotDialog_Features"), fmt::format(FMT_COMPILE(L"{}features"), SiteRoot));
+        links.Text(L"      ");
+        links.Link(RS_(L"PromoteSlotDialog_UpstreamIssues"), fmt::format(FMT_COMPILE(L"{}upstream"), SiteRoot));
+        content.Children().Append(links.Block);
 
         content.Children().Append(Paragraph(winrt::hstring{ RS_fmt(L"PromoteSlotDialog_Body", std::wstring_view{ cost }) }));
         return content;

@@ -993,6 +993,22 @@ Applying on next launch closes nothing now: the swap happens once you have close
     <value>Compare on GitHub</value>
     <comment>Link in the promote dialog that opens the GitHub comparison between the running build's commit and the staged one.</comment>
   </data>
+  <data name="PromoteSlotDialog_Features" xml:space="preserve">
+    <value>Features</value>
+    <comment>Link in the promote dialog to the list of Mullion's features on mullion.aylith.com.</comment>
+  </data>
+  <data name="PromoteSlotDialog_UpstreamIssues" xml:space="preserve">
+    <value>Upstream issues</value>
+    <comment>Link in the promote dialog to the page of upstream Windows Terminal issues Mullion answers, on mullion.aylith.com.</comment>
+  </data>
+  <data name="PromoteSlotDialog_CommitUpstream" xml:space="preserve">
+    <value>Upstream</value>
+    <comment>Label before the upstream issue numbers a commit answers, under the commit in the promote dialog. Followed by links like #10534.</comment>
+  </data>
+  <data name="PromoteSlotDialog_IssueLinkName" xml:space="preserve">
+    <value>Upstream issue {0}</value>
+    <comment>{Locked="{0}"} Accessible name of a link to an upstream Windows Terminal issue in the promote dialog; {0} is the issue number. The visible text is just "#{0}".</comment>
+  </data>
   <data name="PromoteSlotDialog_WindowsAndPanes" xml:space="preserve">
     <value>{0} window(s), {1} pane(s) in this one</value>
     <comment>{locked="{0}"}{locked="{1}"}Substituted into PromoteSlotDialog_Body. {0} is how many windows this build has open in total, {1} how many panes are in the window showing the dialog.</comment>

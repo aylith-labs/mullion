@@ -91,6 +91,35 @@ for ($i = 0; $i -lt $builds.Count -and $i -lt $MaxBuilds; $i++) {
     }
 }
 
+# Each commit's pages on mullion.aylith.com: the feature it belongs to and the
+# upstream issues behind it (tools\commit-links.mjs, from docs/). The promote
+# dialog links them under the commit; a commit nothing catalogues gets none,
+# and a missing node only leaves the notes without links.
+$allShas = @($entries | ForEach-Object { $_.commits } | ForEach-Object { $_.sha } | Where-Object { $_ })
+if ($allShas.Count -gt 0) {
+    try {
+        $linksJson = & node (Join-Path $PSScriptRoot 'commit-links.mjs') @allShas 2>$null
+        if ($LASTEXITCODE -eq 0 -and $linksJson) {
+            $links = $linksJson | ConvertFrom-Json -AsHashtable
+            foreach ($entry in $entries) {
+                foreach ($commit in $entry.commits) {
+                    $link = $links[$commit.sha]
+                    if ($link) {
+                        $commit | Add-Member -NotePropertyName features -NotePropertyValue @($link.features)
+                        $commit | Add-Member -NotePropertyName issues -NotePropertyValue @($link.issues)
+                    }
+                }
+            }
+        }
+        else {
+            Write-Warning "commit-links.mjs failed; the notes carry no feature or issue links."
+        }
+    }
+    catch {
+        Write-Warning "Could not link commits to their feature pages: $_"
+    }
+}
+
 $dir = Split-Path -Parent $OutFile
 if ($dir) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
 ConvertTo-Json -InputObject @($entries) -Depth 5 | Set-Content -LiteralPath $OutFile -Encoding utf8

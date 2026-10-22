@@ -50,10 +50,26 @@ namespace TerminalApp::SlotPromotion
                filename.extension() == PendingMarkerExtension;
     }
 
+    // A catalogued feature a commit belongs to, for a link to its page on
+    // mullion.aylith.com.
+    struct StagedFeatureLink
+    {
+        winrt::hstring Id;
+        winrt::hstring Title;
+    };
+
     struct StagedCommit
     {
         winrt::hstring Sha;
         winrt::hstring Subject;
+        // Filled from tools\commit-links.mjs by the release notes; empty for a
+        // commit nothing catalogues and for notes written before the links.
+        std::vector<StagedFeatureLink> Features;
+        // microsoft/terminal issues the commit answers that have a row on the
+        // site's upstream page, and ones it names that have none (linked to
+        // GitHub instead).
+        std::vector<uint32_t> Issues;
+        std::vector<uint32_t> Refs;
     };
 
     // One CI build of main and the first-parent commits it brought, as
@@ -193,10 +209,62 @@ namespace TerminalApp::SlotPromotion
             for (const auto& commit : items(entry.TryLookup(L"commits")))
             {
                 StagedCommit parsed{ commit.GetNamedString(L"sha", L""), commit.GetNamedString(L"subject", L"") };
-                if (!parsed.Subject.empty())
+                if (parsed.Subject.empty())
                 {
-                    build.Commits.push_back(std::move(parsed));
+                    continue;
                 }
+                // The links are decoration: a field of the wrong type is
+                // skipped, never thrown on, because a throw here would take the
+                // whole promote offer with it (GetNamedString's default only
+                // covers an absent key, not a null or a number).
+                const auto text = [](const JsonObject& object, const wchar_t* key) {
+                    const auto value{ object.TryLookup(key) };
+                    return value && value.ValueType() == JsonValueType::String ? value.GetString() : winrt::hstring{};
+                };
+                for (const auto& feature : items(commit.TryLookup(L"features")))
+                {
+                    StagedFeatureLink link{ text(feature, L"id"), text(feature, L"title") };
+                    if (!link.Id.empty())
+                    {
+                        if (link.Title.empty())
+                        {
+                            link.Title = link.Id;
+                        }
+                        parsed.Features.push_back(std::move(link));
+                    }
+                }
+                // An array of numbers, or one bare number after a PowerShell
+                // round trip unrolled a single-element array.
+                const auto numbers = [](const IJsonValue& field, std::vector<uint32_t>& into) {
+                    const auto add = [&](const IJsonValue& value) {
+                        if (value.ValueType() == JsonValueType::Number)
+                        {
+                            const auto n{ value.GetNumber() };
+                            if (n >= 1 && n <= 9'999'999)
+                            {
+                                into.push_back(static_cast<uint32_t>(n));
+                            }
+                        }
+                    };
+                    if (!field)
+                    {
+                        return;
+                    }
+                    if (field.ValueType() == JsonValueType::Array)
+                    {
+                        for (const auto& value : field.GetArray())
+                        {
+                            add(value);
+                        }
+                    }
+                    else
+                    {
+                        add(field);
+                    }
+                };
+                numbers(commit.TryLookup(L"issues"), parsed.Issues);
+                numbers(commit.TryLookup(L"refs"), parsed.Refs);
+                build.Commits.push_back(std::move(parsed));
             }
             builds.push_back(std::move(build));
         }
