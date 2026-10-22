@@ -143,7 +143,7 @@ window.FEATURES = [
     cat: "ui", catLabel: "UI & theming",
     dateAdded: "2026-08-15",
     commits: ["68e59692a","5925149be","b042c83f9","98cc76331","160ec1047","c71ac2559","230958ee2","7dae81261","8dbb8f7ac","8838fdcc6"], files: 10, ins: 434, del: 237,
-    desc: "Pick one scheme for light mode and a different one for dark — the terminal actually follows the OS appearance instead of being stuck on whichever scheme you set last.",
+    desc: "Pick one scheme for light mode and a different one for dark straight from Settings → Appearance. Upstream reads a light/dark pair from settings.json (#14064), but its Settings UI shows a single scheme, so a pair can only be written by hand.",
   },
   {
     id: "session-resume", title: "Bring back what was actually running",

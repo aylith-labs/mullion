@@ -131,7 +131,7 @@ window.FEATURE_DETAILS = {
       { key: "bufferPersistIntervalSeconds", def: "300", note: "How often, in seconds: 5 to 14,400." },
     ],
     media: [
-      { kind: "compare", before: "session-restore-page-before", after: "session-restore-page-after", caption: "Where session restore lives: the bottom of Startup upstream; a page of its own in Mullion." },
+      { kind: "compare", before: "session-restore-page-before", after: "session-restore-page-after", caption: "Where session restore lives: one dropdown at the top of Startup upstream; a page of its own in Mullion." },
     ],
     upstream: "Upstream restores buffer contents (#961) and has an open PR to save them periodically (#19805), in minutes. Neither gives restore a page.",
   },
@@ -269,11 +269,12 @@ window.FEATURE_DETAILS = {
 
   "color-schemes": {
     problem:
-      "A terminal that follows the system light/dark setting still had a single colour scheme, so switching the OS to light left you with a dark scheme on a light window — or meant editing settings twice a day.",
+      "The terminal can already use one scheme in light mode and another in dark, but only if you write the pair into settings.json by hand. The Settings UI offers a single scheme, so choosing one there replaces the pair.",
     how:
-      "<code>colorScheme</code> accepts a pair rather than a single name. The terminal picks whichever matches the current appearance and re-picks when the OS changes, with no restart.",
+      "The colour scheme row under Profiles → Appearance offers a light and a dark scheme side by side and writes them as a <code>{ light, dark }</code> pair. The terminal picks whichever matches the app theme and re-picks when it changes, with no restart; that part is upstream's.",
     steps: [
-      "Set a pair in your profile: <code>\"colorScheme\": { \"light\": \"One Half Light\", \"dark\": \"One Half Dark\" }</code>.",
+      "Open Settings → a profile (or Defaults) → Appearance, and tick <strong>Use a different color scheme in light mode</strong> in the colour scheme row.",
+      "Choose a scheme for each, then Save. The file now holds <code>\"colorScheme\": { \"light\": \"…\", \"dark\": \"…\" }</code>.",
       "Change the Windows appearance setting. The pane follows immediately.",
     ],
     settings: [
@@ -281,7 +282,7 @@ window.FEATURE_DETAILS = {
       { key: "theme", def: "\"system\"", note: "This fork follows the OS by default; upstream ships \"dark\"." },
     ],
     media: [
-      { kind: "compare", before: "color-schemes-pane-upstream", after: "color-schemes-pane", caption: "The pane follows the app theme: One Half Light in light mode, Dimidium in dark." },
+      { kind: "compare", before: "color-schemes-settings-upstream", after: "color-schemes-settings", caption: "The colour scheme row in Settings → Appearance: one scheme upstream; a light and a dark scheme side by side in Mullion." },
     ],
   },
 
