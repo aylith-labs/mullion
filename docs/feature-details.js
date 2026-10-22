@@ -14,6 +14,128 @@
 //   upstream  what Microsoft did about it, where that is known
 window.FEATURE_DETAILS = {
 
+  "dock-fit": {
+    problem:
+      "Windows 11 rounds the corners of every top-level window. A quake window, or one docked to a screen edge, sits flush against that edge, so the rounding leaves a wedge of desktop showing at each corner. And a docked window was sized against the work area once, when it docked: when the taskbar changed size or another app bar (Copilot, in the upstream report) took a strip of the screen, the window kept covering it, or left a gap.",
+    how:
+      "While a window is in quake mode or docked, it asks the Desktop Window Manager for square corners (<code>DWMWA_WINDOW_CORNER_PREFERENCE</code>), and hands them back to the system default when it stops being docked. A quake window is named before its window exists, so the corners are applied again once it does. Windows 10 does not know the attribute and has nothing to undo. For the work area, the window listens for <code>WM_SETTINGCHANGE</code> with <code>SPI_SETWORKAREA</code>, which the taskbar and every app bar broadcast, and re-fits from a message it posts to itself rather than inside the broadcast. It is never shown, raised or activated by this. A minimized window is marked and re-fitted when it is next restored. A fullscreen or maximized window is left alone. The dock keeps the thickness you dragged it to and takes only its edge and its length from the new work area, and a broadcast that leaves this monitor's work area unchanged does nothing.",
+    steps: [
+      "Summon a quake window (<code>wt -w _quake</code>, or the Quake mode action), or set <code>Dock the window</code> under Personalization.",
+      "Look at its corners on Windows 11: square, flush with the screen edge.",
+      "Change the taskbar's size, or turn on an app bar that reserves screen space. The docked window re-fits to the new edge.",
+      "Undock it, or leave quake mode, and the corners round again.",
+    ],
+    settings: [
+      { key: "dockWindow", def: "\"off\"", note: "Any value but off docks the window, and with it gets the square corners and the work-area re-fit. Quake mode always has both." },
+    ],
+    media: [
+      { kind: "compare", before: "dock-fit-corners-before", after: "dock-fit-corners-after", caption: "The top corners of a quake window on Windows 11: rounded in upstream, square in Mullion." },
+      { kind: "compare", before: "dock-fit-workarea-before", after: "dock-fit-workarea-after", caption: "A docked window after the taskbar grows: upstream keeps its old size and runs under the taskbar; Mullion re-fits." },
+    ],
+    notes: [
+      "The re-fit never makes a dismissed quake window reappear. Dismissing minimizes and hides it, so it is only marked, and fitted when you summon it.",
+    ],
+    upstream:
+      "Both are open upstream. #10534 (2021): a maintainer said quake windows should not be rounded, and nothing landed. #16067 (2023): the maintainer named the fix, listening for <code>SPI_SETWORKAREA</code>, and it was never written.",
+  },
+
+  "early-upstream-fixes": {
+    problem:
+      "Some upstream fixes are written, tested and reviewed, and then wait in the queue for months. Running a fork means not having to wait: a fix that is right does not need to be merged upstream to be worth having.",
+    how:
+      "The pull request's commits are cherry-picked with <code>git cherry-pick -x</code>, which keeps the original author and records the upstream commit each one came from, including any changes a maintainer asked for in review. When upstream does merge the pull request, the next merge brings in the same change and git reconciles the two. First in: <a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>. Clear Buffer, and <code>clear</code> or <code>cls</code> (which erase the screen with <code>ESC[2J</code> rather than going through Clear Buffer), now remove the scroll marks in the rows they erase, so the scrollbar no longer shows marks for prompts that are gone.",
+    steps: [
+      "Turn on <code>autoMarkPrompts</code> and <code>showMarksOnScrollbar</code>, and run a few commands so marks appear on the scrollbar.",
+      "Run <code>clear</code>, or use Clear Buffer from the tab's context menu.",
+      "The marks go with the text. Upstream leaves them on the scrollbar.",
+    ],
+    media: [
+      { kind: "compare", before: "early-fixes-marks-before", after: "early-fixes-marks-after", caption: "The scrollbar after clear: upstream still shows marks for the erased prompts; Mullion clears them." },
+    ],
+    notes: [
+      "Only fixes whose review has settled are taken. A pull request still being argued over upstream is left to finish.",
+    ],
+    upstream:
+      "#20086 is open; its fix, PR #20105, is approved in substance and not yet merged. A maintainer asked for the <code>clear</code>/<code>cls</code> path to be covered too, and the author added it; both commits are here.",
+  },
+
+  "settings-accessibility": {
+    problem:
+      "A screen reader user moves around a page by its landmarks. The Settings page had the navigation pane as one and nothing for the page content, so there was no direct way to jump from the menu to the settings themselves.",
+    how:
+      "The scroll region that holds whichever settings page is open is marked <code>AutomationProperties.LandmarkType=\"Main\"</code>. UI Automation then reports a main landmark beside the navigation one, and Narrator's landmark navigation (and any screen reader's) can reach it.",
+    steps: [
+      "Open Settings and start Narrator (Win+Ctrl+Enter).",
+      "Press D (Narrator's landmark key) to move between landmarks: the navigation pane, then the main content.",
+    ],
+    media: [
+      { kind: "compare", before: "settings-a11y-landmarks-before", after: "settings-a11y-landmarks-after", caption: "The landmarks UI Automation reports on the Settings page: only navigation upstream; navigation and main in Mullion." },
+    ],
+    upstream: "Open since 2021 as #12004, one of a batch of accessibility reports against Settings that are still open upstream.",
+  },
+
+  "promote-from-tab-row": {
+    problem:
+      "A new build of Mullion is only useful if it gets installed, and installing it means closing the window your work is in. Without something telling you a build is waiting, and what is in it, the update either gets forgotten or gets taken blind.",
+    how:
+      "The CI poller stages each successful build beside the live one and writes a marker describing it. The Dev slot reads every marker and, when one is newer than what it is running (compared by build time first, so an older build is never offered), shows it on the tab row. The promote dialog lists every commit between the running build and the staged one, read from the release notes the build was compiled with, with a link to the full comparison on GitHub. Promoting swaps the staged payload into place rather than unpacking over the live one, a named mutex lets only one promotion run at a time, and while the swap waits for windows to close the dialog says which processes it is waiting for and counts down.",
+    steps: [
+      "Push a commit and let CI build it; the poller stages it within its interval.",
+      "The tab row offers the staged build. Open the dialog to read what it adds.",
+      "Promote when nothing you mind losing is running. The Terminal restarts on the new build.",
+    ],
+    media: [
+      { kind: "compare", before: "promote-tab-row-before", after: "promote-tab-row-after", caption: "The tab row with a newer build staged: upstream has no such notice; Mullion offers it." },
+      { kind: "compare", before: "promote-dialog-before", after: "promote-dialog-after", caption: "What an update contains: upstream points at a web page; Mullion lists the commits." },
+    ],
+    notes: [
+      "Only the Dev slot offers promotion. The Test slot is refreshed by a script, on purpose, so it never changes under a session that is using it.",
+    ],
+    upstream: "Not applicable upstream: the Store and winget handle updates there, and nothing in the app says what an update contains.",
+  },
+
+  "remote-file-previews": {
+    problem:
+      "A pane can be working on another machine (a shefrd pane connected to a saved machine), and the paths it prints are paths on that machine. Hovering one looked it up locally and found nothing, or worse, found a different file at the same path. And a <code>file://</code> link naming another host resolved to a network share: hovering it opened an SMB connection to whatever machine a program chose to print, with no click.",
+    how:
+      "The pane's OSC 7 working-directory report names the machine it is on. With <code>hyperlink.remoteFilePreviews</code> on, a path in such a pane is read from that machine through <code>shefrd machine read</code>, with a five-second limit and the same 1 MiB text cap as local previews, and the card says <em>on &lt;machine&gt;</em>. Separately and always: a <code>file://</code> URI whose host is not this machine or WSL, a bare <code>\\\\server\\share</code> path, a device path, and an image inside a previewed Markdown file that points at another host are all refused before any filesystem call.",
+    steps: [
+      "Set <code>hyperlink.remoteFilePreviews</code> to true.",
+      "In a shefrd pane connected to another machine, list some files and hover one.",
+      "The card shows the file's contents from that machine and names it.",
+    ],
+    settings: [
+      { key: "hyperlink.remoteFilePreviews", def: "false", note: "Read paths in a pane that is on another machine from that machine. Text files only." },
+    ],
+    media: [
+      { kind: "compare", before: "remote-previews-card-before", after: "remote-previews-card-after", caption: "Hovering a path printed on another machine: upstream has nothing to show; Mullion previews it from that machine." },
+    ],
+    notes: [
+      "The share refusal applies whether or not remote previews are on. Clicking such a link keeps its existing \"not supported\" message.",
+    ],
+    upstream: "No upstream equivalent. Upstream's file:// handling (#8981, closed) never reached remote hosts, and its hover card does not read files at all.",
+  },
+
+  "session-restore-page": {
+    problem:
+      "Session restore's settings were scattered across the bottom of the Startup page, and the save interval was in whole minutes: five minutes was the least you could lose to a crash.",
+    how:
+      "The nine settings that make up session restore now have their own page, second in the navigation. <em>When Terminal starts</em> appears on both pages, since it decides whether anything is restored at all, and everything under it greys out together when restoring is off, not just the first level. Pane contents are saved on a seconds clock, <code>bufferPersistIntervalSeconds</code>, from 5 seconds to 4 hours, and the page draws what each interval costs. A value saved under the old minutes key is carried over as minutes × 60.",
+    steps: [
+      "Open Settings → Session Restore.",
+      "Set <em>When Terminal starts</em> to restore the previous session.",
+      "Pick a save interval and read its cost in the chart beside it.",
+    ],
+    settings: [
+      { key: "persistBufferPeriodically", def: "true", note: "Save pane contents on a timer, not only on a clean exit." },
+      { key: "bufferPersistIntervalSeconds", def: "300", note: "How often, in seconds: 5 to 14,400." },
+    ],
+    media: [
+      { kind: "compare", before: "session-restore-page-before", after: "session-restore-page-after", caption: "Where session restore lives: the bottom of Startup upstream; a page of its own in Mullion." },
+    ],
+    upstream: "Upstream restores buffer contents (#961) and has an open PR to save them periodically (#19805), in minutes. Neither gives restore a page.",
+  },
+
   "session-resume": {
     problem:
       "Close the terminal and the work is gone. Upstream can put the windows, tabs and splits back, and can even repaint what was on screen, but every pane comes back as a fresh shell: the agent you had a two-hour conversation with, the multiplexer holding six sessions, the dev server — all of them are simply not running any more. Restoring the furniture is not the same as restoring the work.",
@@ -33,11 +155,11 @@ window.FEATURE_DETAILS = {
       { key: "resumeExcludedPrograms", def: "[]", note: "Never resume these. Beats every setting above." },
       { key: "resumeSessionNotification", def: "\"toast\"", note: "silent, toast, or confirm — which lists what it would resume and waits." },
       { key: "persistBufferPeriodically", def: "true", note: "Save pane contents on a timer so a crash doesn't take the scrollback." },
-      { key: "bufferPersistIntervalMinutes", def: "5", note: "How often that happens." },
+      { key: "bufferPersistIntervalSeconds", def: "300", note: "How often that happens, from 5 seconds to 4 hours. An older <code>bufferPersistIntervalMinutes</code> is read as minutes and carried over." },
     ],
     media: [
       { kind: "video", base: "resume-restore", caption: "A tmux session running, the terminal killed outright, and the pane coming back attached to it. Recorded in one take across the restart." },
-      { base: "resume-toast", caption: "After the restart: the notice names what was resumed, and it is the attach form — not the command the session was first created with." },
+      { kind: "compare", before: "resume-toast-upstream", after: "resume-toast", caption: "After the restart: the notice names what was resumed, and it is the attach form — not the command the session was first created with." },
       { base: "resume-settings", caption: "The settings, under Session Restore. Agents and multiplexers are separate switches, with lists for anything else." },
       { base: "resume-restored-buffer", caption: "A pane that resumed nothing keeps its scrollback instead, marked with when it was saved." },
     ],
@@ -66,7 +188,7 @@ window.FEATURE_DETAILS = {
       { key: "controlPipe", def: "true", note: "Serve the pipe. Set false to turn it off completely." },
     ],
     media: [
-      { base: "control-pipe-list", caption: "list-panes: every window, tab and pane, and what each one is running." },
+      { kind: "compare", before: "control-pipe-list-upstream", after: "control-pipe-list", caption: "list-panes: every window, tab and pane, and what each one is running." },
     ],
     notes: [
       "The Enter goes as its own call, never combined with the text. A single write containing both is read by some TUIs as a bulk paste and never submits.",
@@ -92,7 +214,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipMaxWidth", def: "640", note: "Cap on the card's width, further limited by the pane." },
     ],
     media: [
-      { base: "link-card", caption: "The card names the link, says what a click will do, and shows the path it will really open — with the actions that were previously buried in a right-click menu." },
+      { kind: "compare", before: "link-card-upstream", after: "link-card", caption: "The card names the link, says what a click will do, and shows the path it will really open — with the actions that were previously buried in a right-click menu." },
     ],
   },
 
@@ -110,7 +232,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.remoteFilePreviews", def: "false", note: "In a pane whose OSC 7 says it is on another machine (a shefrd pane showing a saved machine), read its paths from that machine through <code>shefrd machine read</code> instead of looking them up in WSL. The card says <em>on &lt;machine&gt;</em>; text files only, and a quiet <em>Preview unavailable</em> when the machine is not connected." },
     ],
     media: [
-      { base: "link-card", caption: "Hovering a file inside WSL. The arrow shows what will actually open: the \\\\wsl.localhost path for this pane's distro, not the POSIX path as written." },
+      { kind: "compare", before: "link-card-upstream", after: "link-card", caption: "Hovering a file inside WSL. The arrow shows what will actually open: the \\\\wsl.localhost path for this pane's distro, not the POSIX path as written." },
     ],
     notes: [
       "Resolution is deliberately gated on the pane really being WSL. Without that, a Windows program printing <code>file:///etc/hosts</code> into a PowerShell tab would silently resolve against whichever distro is default.",
@@ -118,6 +240,9 @@ window.FEATURE_DETAILS = {
   },
 
   "plain-click": {
+    media: [
+      { kind: "compare", before: "plain-click-hover-upstream", after: "plain-click-hover", caption: "Hovering a link with plain click on: upstream asks for Ctrl+click; Mullion follows on a plain click and says so." },
+    ],
     problem:
       "Opening a link meant Ctrl+clicking it, and inside anything using the mouse — tmux, an editor, a TUI — links stopped being clickable at all, because the application had taken the mouse.",
     how:
@@ -138,7 +263,7 @@ window.FEATURE_DETAILS = {
       "Hover any part of it, label included: the card shows <code>https://example.com</code>, and clicking opens it.",
     ],
     media: [
-      { base: "slack-links", caption: "A Slack-style link is one link from bracket to bracket; the card shows the URL before the pipe." },
+      { kind: "compare", before: "slack-links-upstream", after: "slack-links", caption: "A Slack-style link is one link from bracket to bracket; the card shows the URL before the pipe." },
     ],
   },
 
@@ -156,11 +281,14 @@ window.FEATURE_DETAILS = {
       { key: "theme", def: "\"system\"", note: "This fork follows the OS by default; upstream ships \"dark\"." },
     ],
     media: [
-      { base: "color-schemes-pane", caption: "The pane follows the app theme: One Half Light in light mode, Dimidium in dark." },
+      { kind: "compare", before: "color-schemes-pane-upstream", after: "color-schemes-pane", caption: "The pane follows the app theme: One Half Light in light mode, Dimidium in dark." },
     ],
   },
 
   "defaults": {
+    media: [
+      { kind: "compare", before: "defaults-first-run-upstream", after: "defaults-first-run", caption: "A fresh settings file: upstream defaults beside Mullion's quieter ones." },
+    ],
     problem:
       "Three small things that go wrong often enough to matter: the mouse wheel changing font size or window opacity when a modifier was still held, being asked whether to close all windows when only one is open, and having no quick way to look up selected text.",
     how:
@@ -172,6 +300,9 @@ window.FEATURE_DETAILS = {
   },
 
   "window-persist": {
+    media: [
+      { kind: "compare", before: "window-persist-reopen-upstream", after: "window-persist-reopen", caption: "Close a window and open a new one: upstream opens at the default position; Mullion opens where the last one was." },
+    ],
     problem:
       "Every new window opened wherever Windows felt like putting it, so a window you had sized and placed came back somewhere else.",
     how:
@@ -183,6 +314,9 @@ window.FEATURE_DETAILS = {
   },
 
   "icons": {
+    media: [
+      { kind: "compare", before: "icons-jumplist-upstream", after: "icons-jumplist", caption: "The taskbar jump list for profiles with web icons: blank in upstream; drawn from a local copy in Mullion." },
+    ],
     problem:
       "A profile icon pointing at an http(s) URL made settings load wait on the network, and a profile using a glyph or emoji icon showed up in the jump list as a blank tile.",
     how:
@@ -195,11 +329,14 @@ window.FEATURE_DETAILS = {
     how:
       "A badge in the tab row names the slot. Clicking it copies the build details. The About dialog carries the commit and build time, and when a newer build has been staged a banner says so, names it, and offers to promote it.",
     media: [
-      { base: "slot-badge", caption: "The tab-row badge naming the slot." },
+      { kind: "compare", before: "slot-badge-upstream", after: "slot-badge", caption: "The tab-row badge naming the slot." },
     ],
   },
 
   "distinct-identity": {
+    media: [
+      { kind: "compare", before: "distinct-identity-launch-upstream", after: "distinct-identity-launch", caption: "Launching the test build while the live one is open: upstream branding hands it off to the live window; Mullion opens a window of its own." },
+    ],
     problem:
       "Windows runs one instance per app identity. The disposable test build shared an identity with the live one, so launching it silently handed off to the live window — you thought you were testing, and you were running the other build's code in the window holding your real work.",
     how:
@@ -210,6 +347,9 @@ window.FEATURE_DETAILS = {
   },
 
   "auto-promote": {
+    media: [
+      { kind: "compare", before: "auto-promote-verdict-upstream", after: "auto-promote-verdict", caption: "Promoting with a window open: without the idle check the promotion waits on you; with it, an idle window is closed and the build goes in." },
+    ],
     problem:
       "Installing a staged build means closing the window it would replace. Doing that blind can discard live sessions; asking every single time, even when the window is empty, is friction for nothing.",
     how:
@@ -228,7 +368,7 @@ window.FEATURE_DETAILS = {
       { key: "ciPollIntervalMinutes", def: "15", note: "How often to check. 0 never checks." },
     ],
     media: [
-      { base: "ci-poll-setting", caption: "CI build update poll interval, on the Compatibility page." },
+      { kind: "compare", before: "ci-poll-setting-upstream", after: "ci-poll-setting", caption: "CI build update poll interval, on the Compatibility page." },
     ],
     notes: [
       "The check runs genuinely hidden. On a machine where Windows Terminal is the default terminal host, a hidden console process still gets a Terminal window created for it before the hide request applies — so these launches go through a wrapper that avoids that handoff entirely.",
@@ -236,6 +376,9 @@ window.FEATURE_DETAILS = {
   },
 
   "ci-tests": {
+    media: [
+      { kind: "compare", before: "ci-tests-run-upstream", after: "ci-tests-run", caption: "A push to main: without CI here, nothing builds or tests it; with it, a run builds, tests and stages both slots." },
+    ],
     problem:
       "Builds were made on the developer machine. A warm build tree runs to tens of gigabytes, every worktree pays for its own copy, and nothing verified a build except opening it.",
     how:
@@ -264,7 +407,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipShowRule", def: "false", note: "Name the rule the card came from, or say that none matched. The name opens that rule in Settings." },
     ],
     media: [
-      { base: "link-rules-editor", caption: "A rule open in the editor. The Rule Preview card shows what the pattern finds in a line of output, and the named capture it reads back." },
+      { kind: "compare", before: "link-rules-editor-upstream", after: "link-rules-editor", caption: "A rule open in the editor. The Rule Preview card shows what the pattern finds in a line of output, and the named capture it reads back." },
       { base: "link-rules-matched", caption: "With Show which rule matched on, the card names the rule that produced it." },
     ],
     notes: [
@@ -301,7 +444,7 @@ window.FEATURE_DETAILS = {
       { key: "safeUriSchemes", def: "[\"stith\"]", note: "Schemes that open without the unsafe-URI confirmation. Upstream's default is empty. Setting your own list replaces this one; an empty list confirms them all." },
     ],
     media: [
-      { base: "click-chords-settings", caption: "Make links clickable, expanded: which links a click reaches, and the two chords, each a modifier, a gesture and an action." },
+      { kind: "compare", before: "click-chords-settings-upstream", after: "click-chords-settings", caption: "Make links clickable, expanded: which links a click reaches, and the two chords, each a modifier, a gesture and an action." },
     ],
     notes: [
       "The pickers in Settings offer <em>Do nothing</em> and the built-in buttons. An id under <code>actions</code> is written in settings.json; once it is there the picker shows it rather than appearing blank.",
@@ -329,7 +472,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.integrationDisplayMode", def: "\"above\"", note: "Where the integration's logo sits on the card: <code>none</code>, <code>above</code> or <code>left</code>." },
     ],
     media: [
-      { base: "integration-previews-github", caption: "Hovering a GitHub issue link: the issue’s title, state, author and comment count, with its description and comments behind tabs." },
+      { kind: "compare", before: "integration-previews-github-upstream", after: "integration-previews-github", caption: "Hovering a GitHub issue link: the issue’s title, state, author and comment count, with its description and comments behind tabs." },
       { base: "integration-previews-settings", caption: "Part of an integration’s page: credentials kept in Windows Credential Manager, never in settings.json, and which fields the card shows." },
     ],
     notes: [
@@ -340,6 +483,9 @@ window.FEATURE_DETAILS = {
   },
 
   "integration-pages": {
+    media: [
+      { kind: "compare", before: "integration-pages-card-upstream", after: "integration-pages-card", caption: "Hovering a GitHub link: a bare URL tooltip upstream; the service's own page inside the card in Mullion." },
+    ],
     problem:
       "Some services already have a better view of a thing than any card could rebuild. Stith's session view has tabs, grouped sections and live state; the card had a dozen flat fields, and the real page meant leaving the terminal for a browser.",
     how:
@@ -368,7 +514,7 @@ window.FEATURE_DETAILS = {
       "In a WSL pane, run <code>realpath ~/.bashrc</code> and hover the result. The file inside the distro previews the same way.",
     ],
     media: [
-      { base: "file-previews-markdown", caption: "A Markdown file under the pointer, rendered, with its frontmatter as metadata and the Formatted / Raw switch." },
+      { kind: "compare", before: "file-previews-markdown-upstream", after: "file-previews-markdown", caption: "A Markdown file under the pointer, rendered, with its frontmatter as metadata and the Formatted / Raw switch." },
       { base: "file-previews-pane", caption: "A PDF in the pane: page picker, Fit and fixed zoom levels." },
     ],
     notes: [
@@ -394,7 +540,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipNested", def: "false", note: "Preview links found inside a hover card's own content. In the pane they always are." },
     ],
     media: [
-      { base: "preview-pane-follow", caption: "A link’s details in a pane beside the output it came from, with Pin link and the follow switch at the bottom." },
+      { kind: "compare", before: "preview-pane-follow-upstream", after: "preview-pane-follow", caption: "A link’s details in a pane beside the output it came from, with Pin link and the follow switch at the bottom." },
     ],
     notes: [
       "The pane has a <code>Refresh</code> button, which refetches and, for a local file, rereads it.",
@@ -416,7 +562,7 @@ window.FEATURE_DETAILS = {
       { key: "profiles.list[].pathTranslationStyle", def: "\"none\"", note: "How dropped paths are rewritten: <code>none</code>, <code>wsl</code>, <code>cygwin</code>, <code>msys2</code> or <code>mingw</code>. Generated WSL profiles get <code>wsl</code>." },
     ],
     media: [
-      { base: "path-smarts-tilde", caption: "A <code>~/</code> path at the end of a sentence in a WSL pane, resolved to the distro user’s home, with the full stop left out." },
+      { kind: "compare", before: "path-smarts-tilde-upstream", after: "path-smarts-tilde", caption: "A <code>~/</code> path at the end of a sentence in a WSL pane, resolved to the distro user’s home, with the full stop left out." },
     ],
     notes: [
       "A <code>~/</code> path hovered before that distribution's home is cached shows nothing yet rather than a guessed path. Opening the link, and the card's buttons, look the home up on a background thread, so they work even then.",
@@ -443,7 +589,7 @@ window.FEATURE_DETAILS = {
       { key: "tabWidthMode", def: "\"equal\"", note: "Upstream's. Ignored, and greyed out in Settings, while the strip is vertical." },
     ],
     media: [
-      { base: "tab-edges-left", caption: "The strip on the left: six tabs named after what they run, every title readable in full, and the active tab’s title up in the title bar." },
+      { kind: "compare", before: "tab-edges-left-upstream", after: "tab-edges-left", caption: "The strip on the left: six tabs named after what they run, every title readable in full, and the active tab’s title up in the title bar." },
       { base: "tab-edges-settings", caption: "The Tab strip group under Personalization. With the tabs on the left, Tab width mode is greyed out, because a column has no width to divide." },
     ],
     notes: [
@@ -471,7 +617,7 @@ window.FEATURE_DETAILS = {
       { key: "dockSize", def: "50", note: "Percent of the monitor's work area the docked window covers, clamped to 10–90." },
     ],
     media: [
-      { base: "window-dock-left", caption: "Docked to the left edge at 35% of the screen. The window runs full height and stops at the taskbar." },
+      { kind: "compare", before: "window-dock-left-upstream", after: "window-dock-left", caption: "Docked to the left edge at 35% of the screen. The window runs full height and stops at the taskbar." },
       { base: "window-dock-settings", caption: "Dock the window, under Personalization, with the size slider inside it." },
     ],
     notes: [
@@ -503,7 +649,7 @@ window.FEATURE_DETAILS = {
       { key: "warning.confirmOnCloseTabThreshold", def: "3", note: "How many tabs moreThanTabs allows before it asks. The Settings tab is not counted." },
     ],
     media: [
-      { base: "small-knobs-tab-numbers", caption: "Tab numbers before each title, and before the bell a tab shows when its program rang." },
+      { kind: "compare", before: "small-knobs-tab-numbers-upstream", after: "small-knobs-tab-numbers", caption: "Tab numbers before each title, and before the bell a tab shows when its program rang." },
       { base: "small-knobs-settings", caption: "Interaction: the pane resize step, and the close confirmation set to warn only above a tab count." },
     ],
     notes: [
@@ -530,7 +676,7 @@ window.FEATURE_DETAILS = {
       { key: "disableAnimations", def: "false", note: "The older switch, now JSON-only. Under system, true still forces animations off; full and reduced ignore it." },
     ],
     media: [
-      { base: "motion-settings", caption: "Motion under Personalization: Follow Windows, Always animate or Never animate." },
+      { kind: "compare", before: "motion-settings-upstream", after: "motion-settings", caption: "Motion under Personalization: Follow Windows, Always animate or Never animate." },
     ],
     notes: [
       "Pane split and close animations still check the Windows switch themselves. With animation effects off in Windows, <code>Always animate</code> does not bring those back.",
@@ -557,7 +703,7 @@ window.FEATURE_DETAILS = {
       { key: "profiles.defaults.adjustIndistinguishableColors", def: "\"automatic\"", note: "Upstream's profile setting. A scheme's value now beats it; a value on the profile itself still beats the scheme." },
     ],
     media: [
-      { base: "scheme-contrast-compare", caption: "The same foreground-on-background grid under one scheme, set to Never on the left and Always on the right." },
+      { kind: "compare", before: "scheme-contrast-compare-upstream", after: "scheme-contrast-compare", caption: "The same foreground-on-background grid under one scheme, set to Never on the left and Always on the right." },
       { base: "scheme-contrast-setting", caption: "The setting on a colour scheme’s page, with Use the profile’s setting as the no-opinion choice." },
     ],
     notes: [
@@ -580,7 +726,7 @@ window.FEATURE_DETAILS = {
       "Press Ctrl+Shift+2. It opens the second profile the dropdown shows.",
     ],
     media: [
-      { base: "profile-order-drag", caption: "The Profiles page mid-drag: a profile lifted by its gripper on its way down the list." },
+      { kind: "compare", before: "profile-order-drag-upstream", after: "profile-order-drag", caption: "The Profiles page mid-drag: a profile lifted by its gripper on its way down the list." },
       { base: "profile-order-dropdown", caption: "The new-tab dropdown. The Ctrl+Shift+N labels count 1, 2, 3 down the menu, in the order it shows." },
     ],
     notes: [
@@ -609,7 +755,7 @@ window.FEATURE_DETAILS = {
       { key: "compatibility.allowOSC777", def: "false", note: "Upstream's: whether applications may send OSC 777 notifications at all." },
     ],
     media: [
-      { base: "focused-notifications-setting", caption: "The switch under Profiles → Terminal Emulation, next to the OSC 777 setting." },
+      { kind: "compare", before: "focused-notifications-setting-upstream", after: "focused-notifications-setting", caption: "The switch under Profiles → Terminal Emulation, next to the OSC 777 setting." },
     ],
     upstream:
       "No upstream issue or PR asks for this. Upstream's notification sources are OSC 777 (microsoft/terminal#7718, closed) and the bell notification (#20011, merged). Activity notifications are an open PR, #20014.",
@@ -627,7 +773,7 @@ window.FEATURE_DETAILS = {
       "Report an issue opens a new issue on github.com/aylith-labs/mullion.",
     ],
     media: [
-      { base: "about-dialog-about", caption: "The About tab: the version, commit, branch, build time and executable path, with links to Mullion’s source and docs." },
+      { kind: "compare", before: "about-dialog-about-upstream", after: "about-dialog-about", caption: "The About tab: the version, commit, branch, build time and executable path, with links to Mullion’s source and docs." },
       { base: "about-dialog-release-notes", caption: "Release notes: one entry per CI build of main, the running one marked this build, each listing the commits it brought." },
     ],
   },
@@ -647,7 +793,7 @@ window.FEATURE_DETAILS = {
       { key: "settingsUIHost", def: "\"tab\"", note: "tab, dialog, or window. Honoured by <code>openSettings</code> with target <code>settingsUI</code>, which is what <code>Ctrl+,</code> runs." },
     ],
     media: [
-      { base: "settings-window-dialog", caption: "Settings as a dialog over the window, with the terminal still there behind it." },
+      { kind: "compare", before: "settings-window-dialog-upstream", after: "settings-window-dialog", caption: "Settings as a dialog over the window, with the terminal still there behind it." },
       { base: "settings-window-option", caption: "Open settings in, on the Interaction page, with its three choices." },
     ],
     notes: [
@@ -671,7 +817,7 @@ window.FEATURE_DETAILS = {
       "Turn on <code>Auto-save</code> beside Save. Both buttons go grey, and every change from now on is written to settings.json straight away.",
     ],
     media: [
-      { base: "settings-save-tooltip", caption: "Hovering Save lists exactly what a save would change, old value to new." },
+      { kind: "compare", before: "settings-save-tooltip-upstream", after: "settings-save-tooltip", caption: "Hovering Save lists exactly what a save would change, old value to new." },
       { base: "settings-save-close", caption: "Closing with unsaved changes is refused once, and the footer says why." },
     ],
     notes: [
@@ -699,7 +845,7 @@ window.FEATURE_DETAILS = {
       { key: "aylith.imprintJsonOnly", def: "false", note: "Draw ◇ beside settings Windows Terminal has but only exposes in settings.json." },
     ],
     media: [
-      { base: "fork-marks-compat", caption: "The two switches on Compatibility, each carrying the fork’s own mark, with the same mark on the pages it added." },
+      { kind: "compare", before: "fork-marks-compat-upstream", after: "fork-marks-compat", caption: "The two switches on Compatibility, each carrying the fork’s own mark, with the same mark on the pages it added." },
       { base: "fork-marks-page", caption: "Personalization with both marks on: hollow ◇ on settings upstream hides in JSON, ◆ on the fork’s own." },
     ],
     notes: [
@@ -720,7 +866,7 @@ window.FEATURE_DETAILS = {
       "Close the Terminal and start it again. Settings → Link Tooltip opens with that group expanded.",
     ],
     media: [
-      { base: "settings-accordions-linktooltip", caption: "Link Tooltip as groups, one of them open, each master switch in its header." },
+      { kind: "compare", before: "settings-accordions-linktooltip-upstream", after: "settings-accordions-linktooltip", caption: "Link Tooltip as groups, one of them open, each master switch in its header." },
     ],
     notes: [
       "Expansion is view state, so it lives in state.json and is never an unsaved change.",
@@ -743,7 +889,7 @@ window.FEATURE_DETAILS = {
       "Collapse the pane with the menu button. The search box moves beside the breadcrumb and stays typeable.",
     ],
     media: [
-      { base: "settings-nav-pane", caption: "The grouped navigation pane, with the search box above the first heading and Show descriptions at the foot." },
+      { kind: "compare", before: "settings-nav-pane-upstream", after: "settings-nav-pane", caption: "The grouped navigation pane, with the search box above the first heading and Show descriptions at the foot." },
       { base: "settings-nav-help", caption: "Descriptions off: the help badge beside a setting shows its description on hover." },
     ],
     notes: [
@@ -765,7 +911,7 @@ window.FEATURE_DETAILS = {
       "Choose <code>Windows Terminal</code> for the reverse, or <code>All settings</code> to put everything back.",
     ],
     media: [
-      { base: "settings-filter-menu", caption: "The filter’s four choices, beside the menu button." },
+      { kind: "compare", before: "settings-filter-menu-upstream", after: "settings-filter-menu", caption: "The filter’s four choices, beside the menu button." },
       { base: "settings-filter-mullion", caption: "Filtered to Mullion: the navigation and the page keep only what this fork added." },
     ],
     notes: [
@@ -786,7 +932,7 @@ window.FEATURE_DETAILS = {
       "Type <code>@shaltctrl</code> to find <code>ctrl+alt+shift</code> chords without spelling them in order.",
     ],
     media: [
-      { base: "shortcut-search-name", caption: "Filtering by name: the matched letters in bold." },
+      { kind: "compare", before: "shortcut-search-name-upstream", after: "shortcut-search-name", caption: "Filtering by name: the matched letters in bold." },
       { base: "shortcut-search-chord", caption: "An @ search by key chord, with the matching key caps in bold." },
     ],
     notes: [
@@ -809,7 +955,7 @@ window.FEATURE_DETAILS = {
       "Go to Shortcuts and click <code>Learn more about shortcuts</code>: it opens the Keyboard shortcuts topic rather than a website. Extensions (<code>Learn more about extensions</code>) and the Dropdown Menu's profile matcher (<code>Learn more about regular expressions</code>) do the same.",
     ],
     media: [
-      { base: "in-app-docs-list", caption: "The Documentation page and its topics." },
+      { kind: "compare", before: "in-app-docs-list-upstream", after: "in-app-docs-list", caption: "The Documentation page and its topics." },
       { base: "in-app-docs-topic", caption: "A topic open, with the breadcrumb back to the list." },
     ],
     notes: [
@@ -835,7 +981,7 @@ window.FEATURE_DETAILS = {
       { key: "activityLogMaxKilobytes", def: "4096", note: "Size at which <code>activity.jsonl</code> rotates to <code>activity.1.jsonl</code>. Values below 64 are treated as 64." },
     ],
     media: [
-      { base: "activity-log-events", caption: "Settings → Activity, grouped by identical commands: repeats are one row with a count and when the first was seen." },
+      { kind: "compare", before: "activity-log-events-upstream", after: "activity-log-events", caption: "Settings → Activity, grouped by identical commands: repeats are one row with a count and when the first was seen." },
       { base: "activity-log-pane", caption: "The activity pane beside a shell." },
     ],
     notes: [
@@ -866,7 +1012,7 @@ window.FEATURE_DETAILS = {
       { key: "activityLog", def: "true", note: "Off stops pipe requests being written to the log. The tab-row badge still counts them." },
     ],
     media: [
-      { base: "pipe-activity-badge", caption: "The tab-row badge after seven pipe requests nobody has looked at yet." },
+      { kind: "compare", before: "pipe-activity-badge-upstream", after: "pipe-activity-badge", caption: "The tab-row badge after seven pipe requests nobody has looked at yet." },
       { base: "pipe-activity-flyout", caption: "The list: repeated requests folded into one counted row, a refused request with no reason, and the way through to the full record." },
     ],
     notes: [
@@ -890,7 +1036,7 @@ window.FEATURE_DETAILS = {
       "Launch the slot again. A build carrying the watchdog does this by itself: a process left with no window is gone five seconds later.",
     ],
     media: [
-      { base: "no-windowless-repair", caption: "Repair-TerminalSlots.ps1 reporting the Test slot: windows counted per process, hidden ones included." },
+      { kind: "compare", before: "no-windowless-repair-upstream", after: "no-windowless-repair", caption: "Repair-TerminalSlots.ps1 reporting the Test slot: windows counted per process, hidden ones included." },
     ],
     notes: [
       "The script re-reads each process's path immediately before stopping it, and refuses if the pid now belongs to something outside the slot's payload.",
@@ -912,7 +1058,7 @@ window.FEATURE_DETAILS = {
       "The build you went back from is now <code>C:\\TerminalSlots\\dev.rollback.1</code>, and the one before it <code>dev.rollback.2</code>.",
     ],
     media: [
-      { base: "rollback-slots", caption: "C:\\TerminalSlots after a few promotions: the live payload, and the builds before it kept beside it." },
+      { kind: "compare", before: "rollback-slots-upstream", after: "rollback-slots", caption: "C:\\TerminalSlots after a few promotions: the live payload, and the builds before it kept beside it." },
       { base: "rollback-fetch", caption: "Fetch-CIBuild.ps1 -Commit with an unknown sha refuses, naming it, before anything is staged." },
     ],
     notes: [
@@ -935,7 +1081,7 @@ window.FEATURE_DETAILS = {
       "To cut a new one, run the <em>Portable customer acquisition</em> workflow with a green Build run's id. The verified ZIP and its proofs come back as the <code>portable-customer-verified</code> artifact.",
     ],
     media: [
-      { base: "portable-settings", caption: "A portable copy’s Settings: the bottom bar says it is running in portable mode." },
+      { kind: "compare", before: "portable-settings-upstream", after: "portable-settings", caption: "A portable copy’s Settings: the bottom bar says it is running in portable mode." },
       { base: "portable-about", caption: "About in a portable copy: no package version, so the version is the source commit." },
     ],
     notes: [

@@ -7,8 +7,8 @@
 <meta name="description" content="A personal Windows Terminal fork: script it from outside the process, bring back what your panes were running after a restart, and links, previews and windows that behave the way you'd expect." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css" />
-<script src="site.js"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-22" />
+<script src="site.js?v=2026-10-22"></script>
 </head>
 <body>
 
@@ -216,6 +216,7 @@
             <li><strong>Hover Save or Discard</strong> to see exactly what would change.</li>
             <li><strong>Fork marks</strong> on every setting this fork adds.</li>
           </ul>
+          <a class="more-link" href="features.html?cat=settings">Settings UI features<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </article>
 
         <article class="group">
@@ -229,6 +230,20 @@
           <a class="more-link" href="features.html?cat=deploy">Deploy features<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </article>
       </div>
+    </div>
+  </section>
+
+  <!-- Built from features.js, so a feature cannot be in the catalogue and missing from the home page. -->
+  <section class="section" aria-labelledby="index-title" id="index-section" hidden>
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="kicker">Index</span>
+          <h2 id="index-title">Every feature, by area</h2>
+          <p>The complete list, <span data-feature-count>all</span> of them. Each one has its own page with what it does, how to try it, and how it compares with upstream.</p>
+        </div>
+      </div>
+      <div class="feature-index" id="feature-index"></div>
     </div>
   </section>
 
@@ -310,7 +325,7 @@
   </div>
 </footer>
 
-<script src="features.js"></script>
+<script src="features.js?v=2026-10-22"></script>
 <script>
 (function () {
   var features = window.FEATURES || [];
@@ -336,6 +351,30 @@
   list.innerHTML = html;
   document.getElementById("recent-section").hidden = false;
   Mullion.formatDates(list);
+
+  // Every feature, grouped by category in the order categories first appear
+  // in the catalogue, titles A-Z within each.
+  var cats = [], byCat = {};
+  for (var k = 0; k < features.length; k++) {
+    var c = features[k].cat;
+    if (!byCat[c]) { byCat[c] = { label: features[k].catLabel, items: [] }; cats.push(c); }
+    byCat[c].items.push(features[k]);
+  }
+  var idx = "";
+  for (var n = 0; n < cats.length; n++) {
+    var group = byCat[cats[n]];
+    group.items.sort(function (a, b) { return a.title.localeCompare(b.title); });
+    idx += '<div class="index-group"><h3><a href="features.html?cat=' + encodeURIComponent(cats[n]) + '">' + esc(group.label) +
+      '</a> <span class="index-count">' + group.items.length + "</span></h3><ul>";
+    for (var m = 0; m < group.items.length; m++) {
+      var g = group.items[m];
+      idx += '<li><a href="feature.html?id=' + encodeURIComponent(g.id) + '">' + esc(g.title) + "</a>" +
+        (g.standout ? ' <span class="index-standout" aria-label="standout">&#9733;</span>' : "") + "</li>";
+    }
+    idx += "</ul></div>";
+  }
+  document.getElementById("feature-index").innerHTML = idx;
+  document.getElementById("index-section").hidden = false;
 })();
 </script>
 

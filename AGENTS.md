@@ -117,6 +117,15 @@ I take ownership of everything that goes out under my name. My global settings s
 (`attribution: { commit: "", pr: "" }` in `~/.claude/settings.json`); never reintroduce it by hand,
 and never work around it.
 
+## A feature is done when mullion.aylith.com shows it
+
+Every user-visible change (a feature, a fix for an upstream issue, an upstream PR taken early)
+gets a catalogue entry, a feature page, a before/after comparison with upstream in light and
+dark, and a row on the upstream issues page for each issue it answers. The procedure is the
+**`mullion-feature-showcase`** skill (`.claude/skills/mullion-feature-showcase/`), and
+`node tools/check-site.mjs --strict` refuses a new feature that skips any of it. Green CI and a
+verified `mult` run come first; the showcase is the last step, not an optional one.
+
 ## Fork policy
 
 - **`main` is mine.** My own work commits straight to `main` and pushes to `origin`. No PRs, no

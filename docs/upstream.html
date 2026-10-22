@@ -7,8 +7,8 @@
 <meta name="description" content="Windows Terminal issues and pull requests that Mullion answers, fully or in part, with a link to each feature page." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css" />
-<script src="site.js"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-22" />
+<script src="site.js?v=2026-10-22"></script>
 </head>
 <body>
 
@@ -90,7 +90,7 @@
   </div>
 </footer>
 
-<script src="features.js"></script>
+<script src="features.js?v=2026-10-22"></script>
 <script>
 (function () {
   var GH = "https://github.com/microsoft/terminal/";
@@ -113,12 +113,16 @@
       note: "Regex rules with named groups turn any text into a link, and an integration file can map a match to a URL template. Launching an arbitrary program with the captures, and parsing <code>file:line:col</code>, are not done." },
     { n: 8914, d: "2021-01-27", t: "Profile reordering for Settings UI", f: "profile-order", full: true,
       note: "Profiles reorder in the Settings UI, and Ctrl+Shift+N follows the new menu order." },
+    { n: 10534, d: "2021-06-29", t: "Quake mode has rounded corners in Windows 11", f: "dock-fit", full: true,
+      note: "A quake or docked window asks DWM for square corners and hands them back when it stops being docked." },
     { n: 10552, d: "2021-07-03", t: "Profile icons with web sources are not shown on the taskbar", f: "icons", full: true,
       note: "http(s) icons are kept as a local copy and the jump list points at it. Glyph and emoji icons are drawn into real <code>.ico</code> files." },
     { n: 10627, d: "2021-07-12", t: "Settings UI feedback of configuration changes", f: "settings-save",
       note: "An Auto-save switch applies each change as it is made, and hovering Save lists what would change. The button's label is unchanged." },
     { n: 11630, d: "2021-10-27", t: "Allow search by name in the Actions dialog", f: "shortcut-search", full: true,
       note: "The Shortcuts page filters by command name; a leading <code>@</code> searches by key chord." },
+    { n: 12004, d: "2021-12-21", t: "Main landmark is not defined on the Settings page", f: "settings-accessibility", full: true,
+      note: "The settings page content is marked as the main landmark, beside the navigation pane's." },
     { n: 12424, d: "2022-02-08", t: "Save and Discard should stay disabled until something changes", f: "settings-save", full: true,
       note: "Both stay disabled until a save would write something different." },
     { n: 12633, d: "2022-03-06", t: "A new window does not restore the previous window's size and position", f: "window-persist", full: true,
@@ -131,14 +135,18 @@
       note: "Each color scheme can set its own adjustment mode. The adjustment itself is unchanged." },
     { n: 15452, d: "2023-05-26", t: "Something is, well, probably fine with One Half Light", f: "scheme-contrast",
       note: "A light scheme can turn the adjustment off for itself. The adjustment itself is unchanged." },
+    { n: 16067, d: "2023-09-29", t: "Quake mode drop-down doesn't handle SPI_SETWORKAREA", f: "dock-fit", full: true,
+      note: "A quake or docked window re-fits when the work area changes, without being shown or raised; a minimized one catches up on its next restore." },
     { n: 17843, d: "2024-09-01", t: "Rows or columns to resize a pane by from the keyboard", f: "small-knobs",
       note: "<code>paneResizeStep</code> sets the step, and <code>resizePane</code> takes an <code>amount</code>, but both are percentages, not rows or columns." },
+    { n: 20086, d: "2026-04-07", t: "Clear buffer doesn't clear scroll marks", f: "early-upstream-fixes", full: true,
+      note: "Upstream's own fix, <a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>, taken before it merges. Covers Clear Buffer and <code>clear</code>/<code>cls</code>." },
     { n: 20698, d: "2026-09-19", t: "Copy link URL from OSC 8 hyperlinks", f: "link-card",
       note: "The link card has a Copy link button, and a click chord can copy instead of open. There is no context-menu entry." }
   ];
   var PRS = [
     { n: 19805, d: "2026-01-28", t: "Add periodic buffer persistence to protect against unexpected termination", f: "session-resume", full: true, pr: true,
-      note: "<code>persistBufferPeriodically</code> saves pane contents every <code>bufferPersistIntervalMinutes</code> (5 by default)." }
+      note: "<code>persistBufferPeriodically</code> saves pane contents every <code>bufferPersistIntervalSeconds</code> (300, five minutes, by default)." }
   ];
   var CLOSED = [
     { n: 961, d: "2019-05-23", c: "2024-03-29", t: "Restore previously closed session's state", f: "session-resume", full: true,

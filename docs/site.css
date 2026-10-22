@@ -216,6 +216,9 @@ button, input, select { font: inherit; color: inherit; }
 .seg-option:has(input:checked) { background: var(--card); color: var(--text); box-shadow: var(--shadow-card); font-weight: 600; }
 .seg-option:has(input:checked) svg { stroke: var(--accent); }
 .seg-option:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 1px; }
+/* Text-only options (no icon), as many as there are, wrapping on a phone. */
+.segmented-text { grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); }
+.segmented-text .seg-option { padding: 7px 6px; white-space: nowrap; }
 
 .switch-row {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
@@ -800,6 +803,101 @@ figure:has(.shot-dark.absent) .shot-light { display: block !important; }
 figure[data-base] .pending { display: none; }
 figure.no-media .pending { display: block; }
 figure.no-media img, figure.no-media video { display: none !important; }
+
+/* ---- Home page: every feature, by area (index.html) ------------------ */
+.feature-index { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 12px 28px; }
+.index-group h3 { font-size: 0.98rem; margin: 0 0 8px; font-weight: 650; display: flex; align-items: baseline; gap: 8px; }
+.index-group h3 a { color: var(--text); }
+.index-group h3 a:hover { color: var(--accent-text); }
+.index-count { font-size: 0.75rem; font-weight: 600; color: var(--text-tertiary); background: var(--bg-alt); border: 1px solid var(--border); border-radius: 999px; padding: 0 7px; }
+.index-group ul { list-style: none; margin: 0 0 12px; padding: 0; }
+.index-group li { padding: 4px 0; border-bottom: 1px solid var(--stroke-subtle); font-size: 0.92rem; }
+.index-group li:last-child { border-bottom: 0; }
+.index-group li a { color: var(--muted); }
+.index-group li a:hover { color: var(--accent-text); }
+.index-standout { color: var(--accent); font-size: 0.8rem; }
+
+/* ---- Before / after (compare.js) -------------------------------------
+ * The stage is one grid cell holding both layers, so they overlay exactly;
+ * each mode only changes what is visible, clipped or blended. The frame
+ * (border, radius) is on the stage, not the images, or two borders would
+ * fight in the overlay modes. */
+.doc figure.compare img { border: 0; border-radius: 0; box-shadow: none; width: 100%; }
+.compare-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.compare-chip {
+  font-size: 0.7rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 4px; background: var(--bg-alt); color: var(--muted); border: 1px solid var(--border);
+}
+.compare.peek .compare-chip { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.compare-modes { display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--bg-alt); border: 1px solid var(--border); margin-left: auto; }
+.compare-modes button {
+  font: inherit; font-size: 0.78rem; color: var(--muted); background: transparent; border: 0;
+  padding: 5px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+}
+.compare-modes button:hover { color: var(--text); background: var(--control-hover); }
+.compare-modes button[aria-checked="true"] { background: var(--card); color: var(--text); box-shadow: var(--shadow-card); font-weight: 600; }
+.compare-modes button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+.compare-stage {
+  --split: 50%;
+  position: relative; display: grid; grid-template-columns: 1fr; margin: 0 auto;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  box-shadow: var(--shadow-card); background: var(--card); touch-action: pan-y;
+}
+.compare-stage:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.compare-layer { grid-area: 1 / 1; position: relative; min-width: 0; }
+.compare-label {
+  display: none; position: absolute; top: 8px; left: 8px;
+  font-size: 0.7rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 4px; background: rgba(0, 0, 0, 0.62); color: #fff; pointer-events: none;
+}
+.compare-handle { display: none; }
+
+/* hover: before, with after fading in on peek */
+.compare[data-mode="hover"] .compare-after { opacity: 0; transition: opacity 0.18s ease; }
+.compare[data-mode="hover"].peek .compare-after { opacity: 1; }
+
+/* difference: after, with before blended over it on peek */
+.compare[data-mode="difference"] .compare-before { z-index: 1; opacity: 0; mix-blend-mode: difference; transition: opacity 0.18s ease; }
+.compare[data-mode="difference"].peek .compare-before { opacity: 1; }
+
+/* split: before on the left of the divider, after on the right */
+.compare[data-mode="split"] .compare-stage { cursor: ew-resize; user-select: none; touch-action: none; }
+.compare[data-mode="split"] .compare-after { clip-path: inset(0 0 0 var(--split)); }
+.compare[data-mode="split"] .compare-before { clip-path: inset(0 calc(100% - var(--split)) 0 0); z-index: 1; }
+.compare[data-mode="split"] .compare-label { display: block; }
+.compare[data-mode="split"] .compare-after .compare-label { left: auto; right: 8px; }
+.compare[data-mode="split"] .compare-handle {
+  display: block; position: absolute; top: 0; bottom: 0; left: var(--split); z-index: 2;
+  width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+.compare-handle span {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; line-height: 1.4;
+  background: var(--card); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-card);
+}
+.compare-handle:focus-visible span { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* side by side, stacked on a phone */
+.compare[data-mode="side"] .compare-stage { grid-template-columns: 1fr 1fr; gap: 8px; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; }
+.compare[data-mode="side"] .compare-before { grid-area: 1 / 1; }
+.compare[data-mode="side"] .compare-after { grid-area: 1 / 2; }
+.compare[data-mode="side"] .compare-layer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-card); align-self: start; }
+.compare[data-mode="side"] .compare-label { display: block; }
+@media (max-width: 640px) {
+  .compare[data-mode="side"] .compare-stage { grid-template-columns: 1fr; }
+  .compare[data-mode="side"] .compare-after { grid-area: 2 / 1; }
+}
+
+/* only the after shot exists yet */
+.compare[data-mode="after-only"] .compare-modes, .compare[data-mode="after-only"] .compare-chip { display: none; }
+.compare[data-mode="after-only"] .compare-before { display: none; }
+.compare .pending { display: none; }
+.compare.no-media .pending { display: block; }
+.compare.no-media .compare-stage, .compare.no-media .compare-bar { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .compare-after, .compare-before { transition: none !important; }
+}
 
 .doc ol.steps { margin: 0 0 14px; padding: 0; list-style: none; counter-reset: step; }
 .doc ol.steps li { position: relative; padding: 0 0 14px 42px; counter-increment: step; }

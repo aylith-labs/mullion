@@ -28,9 +28,18 @@
     { id: "commits", label: "Commits", hint: "Links to each commit on GitHub" }
   ];
 
+  // How a before/after comparison (compare.js) opens.
+  var COMPARE_MODES = [
+    { v: "hover", label: "Hover" },
+    { v: "split", label: "Split" },
+    { v: "side", label: "Side by side" },
+    { v: "difference", label: "Difference" }
+  ];
+
   var DEFAULTS = {
     theme: "system",
     relativeDates: false,
+    compareMode: "hover",
     sections: {
       media: true, problem: true, how: true, steps: true, settings: true,
       notes: true, upstream: true, stats: false, commits: false
@@ -44,6 +53,9 @@
     if (!raw || typeof raw !== "object") { return s; }
     if (raw.theme === "light" || raw.theme === "dark" || raw.theme === "system") { s.theme = raw.theme; }
     if (typeof raw.relativeDates === "boolean") { s.relativeDates = raw.relativeDates; }
+    for (var m = 0; m < COMPARE_MODES.length; m++) {
+      if (raw.compareMode === COMPARE_MODES[m].v) { s.compareMode = raw.compareMode; }
+    }
     if (raw.sections && typeof raw.sections === "object") {
       for (var i = 0; i < SECTIONS.length; i++) {
         var id = SECTIONS[i].id;
@@ -228,6 +240,11 @@
       seg += '<label class="seg-option"><input type="radio" name="theme" value="' + t.v + '" data-setting="theme" />' +
         '<svg viewBox="0 0 24 24" aria-hidden="true">' + t.icon + "</svg><span>" + t.label + "</span></label>";
     }
+    var compareSeg = "";
+    for (var c = 0; c < COMPARE_MODES.length; c++) {
+      compareSeg += '<label class="seg-option"><input type="radio" name="compareMode" value="' + COMPARE_MODES[c].v +
+        '" data-setting="compareMode" /><span>' + COMPARE_MODES[c].label + "</span></label>";
+    }
     var rows = "";
     for (var j = 0; j < SECTIONS.length; j++) {
       rows += switchRow("sections." + SECTIONS[j].id, SECTIONS[j].label, SECTIONS[j].hint);
@@ -245,6 +262,10 @@
         '<fieldset class="pop-group"><legend>Dates</legend>' +
           switchRow("relativeDates", "Show dates as relative time", "&ldquo;3 weeks ago&rdquo; instead of 2026-09-13; hover a date for the other form") +
         "</fieldset>" +
+        '<fieldset class="pop-group"><legend>Before and after</legend>' +
+          '<div class="segmented segmented-text">' + compareSeg + "</div>" +
+          '<p class="pop-note">How comparisons with upstream open. Difference lights up only what changed when you hover.</p>' +
+        "</fieldset>" +
         '<fieldset class="pop-group"><legend>Sections on feature pages</legend>' + rows +
           '<p class="pop-note">Change stats and commit links also apply to the feature list.</p>' +
         "</fieldset>" +
@@ -261,12 +282,13 @@
       if (!name) { return; }
       update(function (s) {
         if (name === "theme") { s.theme = input.value; }
+        else if (name === "compareMode") { s.compareMode = input.value; }
         else if (name === "relativeDates") { s.relativeDates = input.checked; }
         else if (name.indexOf("sections.") === 0) { s.sections[name.slice(9)] = input.checked; }
       });
     });
     pop.querySelector("[data-reset]").addEventListener("click", function () {
-      update(function (s) { var d = defaults(); s.theme = d.theme; s.relativeDates = d.relativeDates; s.sections = d.sections; });
+      update(function (s) { var d = defaults(); s.theme = d.theme; s.relativeDates = d.relativeDates; s.compareMode = d.compareMode; s.sections = d.sections; });
       var note = pop.querySelector(".pop-saved");
       note.textContent = "Defaults restored";
       setTimeout(function () { note.textContent = ""; }, 2000);
@@ -279,6 +301,7 @@
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i], name = input.getAttribute("data-setting");
       if (name === "theme") { input.checked = input.value === settings.theme; }
+      else if (name === "compareMode") { input.checked = input.value === settings.compareMode; }
       else if (name === "relativeDates") { input.checked = settings.relativeDates; }
       else if (name.indexOf("sections.") === 0) { input.checked = !!settings.sections[name.slice(9)]; }
     }
