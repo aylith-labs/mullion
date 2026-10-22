@@ -569,6 +569,13 @@ void IslandWindow::_OnGetMinMaxInfo(const WPARAM /*wParam*/, const LPARAM lParam
             MaximizeChanged.raise(wparam == SIZE_MAXIMIZED);
         }
 
+        // GH#16067: the work area changed while this docked window was
+        // minimized. Re-dock once the restore has finished, not from inside it.
+        if (wparam == SIZE_RESTORED && std::exchange(_dockStale, false) && _isDocked())
+        {
+            PostMessageW(GetHandle(), CM_REDOCK_WORK_AREA, 0, 0);
+        }
+
         if (wparam == SIZE_MINIMIZED)
         {
             WindowVisibilityChanged.raise(false);
@@ -642,6 +649,23 @@ void IslandWindow::_OnGetMinMaxInfo(const WPARAM /*wParam*/, const LPARAM lParam
     case WM_THEMECHANGED:
         UpdateWindowIconForActiveMetrics(_window.get());
         return 0;
+    case WM_SETTINGCHANGE:
+    {
+        // GH#16067: the taskbar or another appbar (Copilot, in the report)
+        // resized the work area. A docked window was sized against the old one.
+        // Posted, not handled here: this arrives as a cross-process SendMessage
+        // (see GH#19505 in WindowEmperor), and Explorer sends it in bursts.
+        if (wparam == SPI_SETWORKAREA && _isDocked())
+        {
+            PostMessageW(GetHandle(), CM_REDOCK_WORK_AREA, 0, 0);
+        }
+        break;
+    }
+    case CM_REDOCK_WORK_AREA:
+    {
+        _redockForWorkArea();
+        return 0;
+    }
     case WM_WINDOWPOSCHANGING:
     {
         // GH#10274 - if a docked window gets moved to another monitor via aero
@@ -683,6 +707,7 @@ void IslandWindow::_OnGetMinMaxInfo(const WPARAM /*wParam*/, const LPARAM lParam
                 til::rect{ currentInfo.rcMonitor })
             {
                 const auto newWindowRect{ _getDockedSize(proposed, _effectiveDockEdge(), _effectiveDockPercent()) };
+                _noteDockWorkArea(proposed);
 
                 // Inform User32 that we want to be placed at the position
                 // and dimensions that _getDockedSize returned. When we
@@ -1656,6 +1681,10 @@ void IslandWindow::IsQuakeWindow(bool isQuakeWindow) noexcept
         {
             _enterQuakeMode();
         }
+        else if (_window)
+        {
+            _updateCornerPreference();
+        }
     }
 }
 
@@ -1684,6 +1713,8 @@ void IslandWindow::_enterQuakeMode()
     // Get the size and position of the window that we should occupy
     const auto newRect{ _getQuakeModeSize(hmon) };
 
+    _updateCornerPreference();
+    _noteDockWorkArea(hmon);
     SetWindowPos(GetHandle(),
                  HWND_TOP,
                  newRect.left,
@@ -1691,6 +1722,101 @@ void IslandWindow::_enterQuakeMode()
                  newRect.width(),
                  newRect.height(),
                  SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOACTIVATE);
+}
+
+// Method Description:
+// - GH#10534: Windows 11 rounds every top-level window's corners, which leaves
+//   a quake or docked window, flush against the screen edge, with wedges of
+//   desktop showing at its corners. Square them while docked and hand them
+//   back to the system default otherwise. Windows 10 does not know the
+//   attribute and fails the call, which is fine: it has no rounding to undo.
+void IslandWindow::_updateCornerPreference() noexcept
+{
+    if (!_window)
+    {
+        return;
+    }
+    const DWM_WINDOW_CORNER_PREFERENCE preference = _isDocked() ? DWMWCP_DONOTROUND : DWMWCP_DEFAULT;
+    std::ignore = DwmSetWindowAttribute(GetHandle(), DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+}
+
+void IslandWindow::_noteDockWorkArea(HMONITOR hmon) noexcept
+{
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    if (hmon && GetMonitorInfo(hmon, &info))
+    {
+        _dockWorkArea = til::rect{ info.rcWork };
+    }
+}
+
+// Method Description:
+// - GH#16067: re-fit a docked window to a work area that changed under it.
+//   Unlike _applyDock this neither shows the window nor raises it, because
+//   the message arrives whenever any appbar moves, with the window in any state.
+//   A minimized window is left alone and marked stale: moving it now would
+//   only move its icon, so WM_SIZE re-docks it when it is next restored.
+// - The dock keeps its current thickness (a quake window dragged taller stays
+//   taller) and takes only its anchor and its length from the new work area.
+void IslandWindow::_redockForWorkArea()
+{
+    if (!_window || !_isDocked())
+    {
+        return;
+    }
+    // A fullscreen or maximized window is not in its docked shape right now,
+    // and squeezing it into one would leave the app thinking it still is.
+    if (_fullscreen || IsZoomed(_window.get()))
+    {
+        return;
+    }
+    if (IsIconic(_window.get()))
+    {
+        _dockStale = true;
+        return;
+    }
+    const auto hmon = MonitorFromWindow(_window.get(), MONITOR_DEFAULTTONEAREST);
+    if (!hmon)
+    {
+        return;
+    }
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    if (!GetMonitorInfo(hmon, &info) || til::rect{ info.rcWork } == _dockWorkArea)
+    {
+        return;
+    }
+
+    const auto edge = _effectiveDockEdge();
+    const til::rect current{ GetWindowRect() };
+    // The largest this dock could be on the new work area, to clamp against.
+    const auto full{ _getDockedSize(hmon, edge, 100) };
+    auto newRect{ _getDockedSize(hmon, edge, _effectiveDockPercent()) };
+    switch (edge)
+    {
+    case WindowDockEdge::Top:
+        newRect.bottom = newRect.top + std::min(current.height(), full.height());
+        break;
+    case WindowDockEdge::Bottom:
+        newRect.top = newRect.bottom - std::min(current.height(), full.height());
+        break;
+    case WindowDockEdge::Left:
+        newRect.right = newRect.left + std::min(current.width(), full.width());
+        break;
+    case WindowDockEdge::Right:
+        newRect.left = newRect.right - std::min(current.width(), full.width());
+        break;
+    default:
+        return;
+    }
+    _dockWorkArea = til::rect{ info.rcWork };
+    SetWindowPos(GetHandle(),
+                 nullptr,
+                 newRect.left,
+                 newRect.top,
+                 newRect.width(),
+                 newRect.height(),
+                 SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 // Method Description:
@@ -1739,6 +1865,11 @@ void IslandWindow::SetDock(WindowDockEdge edge, uint32_t percent) noexcept
     // invisible window and a 100% one is an awkward way to spell "maximized".
     percent = std::clamp<uint32_t>(percent, 10, 90);
 
+    // GH#10534: AppHost calls this once the HWND exists, which makes it the
+    // first point a quake window - named before its HWND was - can square its
+    // corners. So before the unchanged-dock early return, not after it.
+    _updateCornerPreference();
+
     if (_dockEdge == edge && _dockPercent == percent)
     {
         return;
@@ -1759,6 +1890,8 @@ void IslandWindow::SetDock(WindowDockEdge edge, uint32_t percent) noexcept
 //   which edge and fraction _effectiveDock* report.
 void IslandWindow::_applyDock()
 {
+    // Before the early return, so undocking hands the corners back too.
+    _updateCornerPreference();
     if (!_isDocked())
     {
         return;
@@ -1771,6 +1904,7 @@ void IslandWindow::_applyDock()
     }
 
     const auto newRect{ _getDockedSize(hmon, _effectiveDockEdge(), _effectiveDockPercent()) };
+    _noteDockWorkArea(hmon);
     SetWindowPos(GetHandle(),
                  HWND_TOP,
                  newRect.left,

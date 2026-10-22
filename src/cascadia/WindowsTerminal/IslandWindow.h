@@ -175,6 +175,19 @@ protected:
 
     void _enterQuakeMode();
     void _applyDock();
+    // GH#10534: square corners while docked, the system default otherwise.
+    void _updateCornerPreference() noexcept;
+    // GH#16067: the work area moved under a docked window (the taskbar, an
+    // appbar, Copilot). Handled from a posted CM_REDOCK_WORK_AREA, never
+    // inside the broadcast. A minimized one is fixed on its next restore
+    // instead, so this never shows a window that was dismissed.
+    static constexpr UINT CM_REDOCK_WORK_AREA = WM_USER + 1;
+    void _redockForWorkArea();
+    bool _dockStale{ false };
+    // The work area the dock was last fitted to. A broadcast that leaves it
+    // unchanged (another monitor's taskbar) must not undo a manual resize.
+    til::rect _dockWorkArea{};
+    void _noteDockWorkArea(HMONITOR hmon) noexcept;
     til::rect _getQuakeModeSize(HMONITOR hmon);
     til::rect _getDockedSize(HMONITOR hmon, WindowDockEdge edge, uint32_t percent);
 
