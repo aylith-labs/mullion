@@ -641,6 +641,11 @@ table.upstream-table td.title-cell .desc code { font-size: 0.8rem; }
 table.upstream-table td.age-cell { color: var(--muted); white-space: nowrap; }
 table.upstream-table td.age-cell time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }
 table.upstream-table .closed-on { display: block; font-size: 0.8rem; }
+/* "Added 3 weeks ago" under the Mullion feature, the same relative time as Opened. */
+table.upstream-table .added { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+table.upstream-table .added time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }
+/* The row a link like upstream.html#issue-10534 points at. */
+table.upstream-table tr.is-target td { background: var(--accent-soft); }
 table.upstream-table .age-label { display: none; }
 table.upstream-table td.title-cell .desc a { font-weight: 400; color: var(--accent-text); }
 @media (max-width: 640px) {
@@ -794,8 +799,12 @@ table.mentions-table .mentions-label { display: none; }
 /* A capture that exists in only one theme is shown in both rather than
  * leaving the other blank -- the wrong background beats no picture. */
 .absent { display: none !important; }
-figure:has(.shot-light.absent) .shot-dark { display: block !important; }
-figure:has(.shot-dark.absent) .shot-light { display: block !important; }
+figure:not(.compare):has(.shot-light.absent) .shot-dark { display: block !important; }
+figure:not(.compare):has(.shot-dark.absent) .shot-light { display: block !important; }
+/* A comparison falls back per side, never across sides: a missing "before"
+ * must not switch on the other theme's "after" (it did, and both showed). */
+.compare-layer:has(.shot-light.absent) .shot-dark { display: block !important; }
+.compare-layer:has(.shot-dark.absent) .shot-light { display: block !important; }
 .pending {
   padding: 28px; text-align: center; color: var(--text-tertiary); font-size: 0.86rem;
   background: var(--card); border: 1px dashed var(--border); border-radius: 10px;

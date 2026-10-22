@@ -7,8 +7,8 @@
 <meta name="description" content="Every feature this Windows Terminal fork has that upstream doesn't, with dates, size, and links to the commits." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-22" />
-<script src="site.js?v=2026-10-22"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-22b" />
+<script src="site.js?v=2026-10-22b"></script>
 </head>
 <body>
 
@@ -110,8 +110,8 @@
   </div>
 </footer>
 
-<script src="features.js?v=2026-10-22"></script>
-<script src="feature-details.js?v=2026-10-22"></script>
+<script src="features.js?v=2026-10-22b"></script>
+<script src="feature-details.js?v=2026-10-22b"></script>
 <script>
 (function () {
   var REPO = "https://github.com/aylith-labs/mullion/commit/";
@@ -188,23 +188,29 @@
 
   function badge(f) { return f.standout ? Mullion.standoutTag() : ""; }
 
+  // The media base a card's thumbnail uses: a plain screenshot's own, or a
+  // before/after comparison's "after" side (the Mullion one).
   function firstImage(f) {
     var d = DETAILS[f.id];
     if (!d || !d.media) { return null; }
     for (var i = 0; i < d.media.length; i++) {
-      if (d.media[i].kind !== "video" && !/badge/.test(d.media[i].base)) { return d.media[i]; }
+      var m = d.media[i];
+      if (m.kind === "compare" && m.after) { return m.after; }
+      if (m.kind !== "video" && m.base && !/badge/.test(m.base)) { return m.base; }
     }
     return null;
   }
 
+  var NO_SHOT = '<div class="thumb" aria-hidden="true">No screenshot yet</div>';
+
   function card(f, preview) {
     var thumb = "";
     if (preview) {
-      var img = firstImage(f);
-      thumb = img
-        ? '<div class="thumb"><picture><source srcset="media/' + img.base + '-dark.png" media="(prefers-color-scheme: dark)" data-theme-source="dark" />' +
-          '<img src="media/' + img.base + '-light.png" alt="" loading="lazy" /></picture></div>'
-        : '<div class="thumb" aria-hidden="true">No screenshot yet</div>';
+      var base = firstImage(f);
+      thumb = base
+        ? '<div class="thumb"><picture><source srcset="media/' + base + '-dark.png" media="(prefers-color-scheme: dark)" data-theme-source="dark" />' +
+          '<img src="media/' + base + '-light.png" alt="" loading="lazy" /></picture></div>'
+        : NO_SHOT;
     }
     return '<article class="fcard">' + thumb +
       '<div class="card-top"><span class="kicker">' + esc(f.catLabel) + "</span>" + badge(f) + "</div>" +
@@ -230,6 +236,13 @@
     preview: document.getElementById("view-preview"),
     table: document.getElementById("view-table")
   };
+
+  // A thumbnail whose capture is not taken yet says so instead of showing a
+  // broken image. Image errors do not bubble, hence the capture phase.
+  els.preview.addEventListener("error", function (e) {
+    var thumb = e.target.closest && e.target.closest(".thumb");
+    if (thumb) { thumb.outerHTML = NO_SHOT; }
+  }, true);
 
   function render() {
     var list = FEATURES.filter(matches).sort(compare);
