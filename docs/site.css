@@ -846,7 +846,8 @@ figure.no-media img, figure.no-media video { display: none !important; }
 .mdoc p { margin: 0 0 12px; }
 .mdoc ul, .mdoc ol { margin: 0 0 12px; padding-left: 26px; }
 .mdoc li { margin: 4px 0; }
-.mdoc code { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 0.9em; font-weight: 600; }
+/* Plain bold monospace, as the app draws it: no chip behind inline code. */
+.mdoc code { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 0.9em; font-weight: 600; background: none; border: 0; padding: 0; border-radius: 0; }
 .mdoc pre {
   background: var(--bg-alt); border: 1px solid var(--border); border-radius: 8px;
   padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; line-height: 1.45;
