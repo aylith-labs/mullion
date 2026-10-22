@@ -466,8 +466,10 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
+            <!--  GH#12004: the page a setting lives on is the main landmark; the navigation pane beside it is its own.  -->
             <ScrollViewer x:Name="SettingsMainPage_ScrollViewer"
-                          Grid.Row="0">
+                          Grid.Row="0"
+                          AutomationProperties.LandmarkType="Main">
                 <Frame x:Name="contentFrame"
                        Grid.Row="0"
                        Padding="16,0,16,48">
