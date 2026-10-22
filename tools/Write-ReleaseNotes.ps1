@@ -107,6 +107,8 @@ if ($allShas.Count -gt 0) {
                     if ($link) {
                         $commit | Add-Member -NotePropertyName features -NotePropertyValue @($link.features)
                         $commit | Add-Member -NotePropertyName issues -NotePropertyValue @($link.issues)
+                        # Issues the commit names that have no row on the site: linked to GitHub.
+                        $commit | Add-Member -NotePropertyName refs -NotePropertyValue @($link.refs)
                     }
                 }
             }
