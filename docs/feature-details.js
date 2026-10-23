@@ -176,13 +176,14 @@ window.FEATURE_DETAILS = {
     problem:
       "Automating a terminal from outside usually means faking keystrokes at the window that happens to have focus. That breaks the moment focus moves, races anything else typing, and cannot read back what a pane actually printed. Upstream's own automation surface additionally cannot see into a pane running inside WSL.",
     how:
-      "Each window serves a named pipe, <code>\\\\.\\pipe\\wt-control-&lt;pid&gt;</code>, speaking newline-delimited JSON. Four operations: <code>ping</code>, <code>list-panes</code>, <code>capture-pane</code> and <code>send-input</code>. The pipe is created with a DACL granting the current user's SID and nothing else, and rejects remote clients. It cannot run commands or change settings — it can only address panes that already exist.",
+      "Each window serves a named pipe, <code>\\\\.\\pipe\\wt-control-&lt;pid&gt;</code>, speaking newline-delimited JSON. The core operations are <code>ping</code>, <code>list-panes</code>, <code>capture-pane</code> and <code>send-input</code>; <code>focus-pane</code> and <code>run-action</code> came later. <code>run-action</code> takes an action exactly as <code>settings.json</code> spells it, read by the settings model's own parser, and runs it in the named pane as if its key had been pressed, without raising the window. The pipe is created with a DACL granting the current user's SID and nothing else, and rejects remote clients. It cannot change settings, and every request is recorded.",
     steps: [
       "Leave <code>controlPipe</code> on (it is by default), or set it to false to close the pipe entirely.",
       "Find the pipe: it is named after the Terminal process id, so a client can enumerate <code>\\\\.\\pipe\\wt-control-*</code> and talk to every Terminal running.",
       "Send <code>{\"op\":\"list-panes\"}</code> to see every window, tab and pane, with the process each is running.",
       "Send <code>{\"op\":\"capture-pane\",\"pane\":\"1.0.0\",\"lines\":20}</code> to read back what that pane printed.",
       "Send <code>{\"op\":\"send-input\",\"pane\":\"1.0.0\",\"text\":\"...\"}</code>, then <code>\"\\r\"</code> as a second call, to type into it.",
+      "Send <code>{\"op\":\"run-action\",\"pane\":\"1.0.0\",\"action\":\"clearBuffer\"}</code> to run an action in that pane; any action <code>settings.json</code> can bind works, with its arguments as an object.",
     ],
     settings: [
       { key: "controlPipe", def: "true", note: "Serve the pipe. Set false to turn it off completely." },
@@ -195,7 +196,7 @@ window.FEATURE_DETAILS = {
       "<code>send-input</code> takes an optional <code>requireContains</code>, re-checked atomically with the write. If the pane's screen no longer contains that string, nothing is written — which is what makes a command typed into the wrong shell impossible when tabs get reordered mid-flight.",
     ],
     upstream:
-      "Microsoft considered this capability twice — issue #9368 and PR #20106 — and passed on both.",
+      "Microsoft considered this capability twice — issue #9368 and PR #20106 — and passed on both. For <code>run-action</code> the nearest upstream ask is #9994, running actions from <code>wt.exe</code>, which is still open; nothing upstream runs an action against a window that is already open.",
   },
 
   "link-card": {
