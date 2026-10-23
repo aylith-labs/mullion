@@ -85,8 +85,8 @@ window.FEATURE_DETAILS = {
       "Promote when nothing you mind losing is running. The Terminal restarts on the new build.",
     ],
     media: [
-      { kind: "compare", before: "promote-tab-row-before", after: "promote-tab-row-after", caption: "The tab row with a newer build staged: upstream has no such notice; Mullion offers it." },
-      { kind: "compare", before: "promote-dialog-before", after: "promote-dialog-after", caption: "What an update contains: upstream points at a web page; Mullion lists the commits." },
+      { kind: "compare", before: "promote-tab-row-before", after: "promote-tab-row-after", caption: "The tab row with a newer build staged: look right of the new-tab dropdown, where upstream shows nothing and Mullion shows the Update button." },
+      { base: "promote-dialog-after", caption: "Update pressed: the staged commit and its age, the latest commits each linked to its feature page and upstream issues, and the choice between applying now and on next launch." },
     ],
     notes: [
       "Only the Dev slot offers promotion. The Test slot is refreshed by a script, on purpose, so it never changes under a session that is using it.",
@@ -159,7 +159,7 @@ window.FEATURE_DETAILS = {
     ],
     media: [
       { kind: "video", base: "resume-restore", caption: "A tmux session running, the terminal killed outright, and the pane coming back attached to it. Recorded in one take across the restart." },
-      { kind: "compare", before: "resume-toast-upstream", after: "resume-toast", caption: "After the restart: the notice names what was resumed, and it is the attach form — not the command the session was first created with." },
+      { base: "resume-toast", caption: "After the restart: the notice names what was resumed, and it is the attach form — not the command the session was first created with." },
       { base: "resume-settings", caption: "The settings, under Session Restore. Agents and multiplexers are separate switches, with lists for anything else." },
       { base: "resume-restored-buffer", caption: "A pane that resumed nothing keeps its scrollback instead, marked with when it was saved." },
     ],
@@ -274,7 +274,7 @@ window.FEATURE_DETAILS = {
     how:
       "The colour scheme row under Profiles → Appearance offers a light and a dark scheme side by side and writes them as a <code>{ light, dark }</code> pair. The terminal picks whichever matches the app theme and re-picks when it changes, with no restart; that part is upstream's.",
     steps: [
-      "Open Settings → a profile (or Defaults) → Appearance, and tick <strong>Use a different color scheme in light mode</strong> in the colour scheme row.",
+      "Open Settings → a profile (or Defaults) → Appearance, and tick <strong>Separate light and dark mode</strong> in the colour scheme row.",
       "Choose a scheme for each, then Save. The file now holds <code>\"colorScheme\": { \"light\": \"…\", \"dark\": \"…\" }</code>.",
       "Change the Windows appearance setting. The pane follows immediately.",
     ],
@@ -283,7 +283,7 @@ window.FEATURE_DETAILS = {
       { key: "theme", def: "\"system\"", note: "This fork follows the OS by default; upstream ships \"dark\"." },
     ],
     media: [
-      { kind: "compare", before: "color-schemes-settings-upstream", after: "color-schemes-settings", caption: "The colour scheme row in Settings → Appearance: one scheme upstream; a light and a dark scheme side by side in Mullion." },
+      { kind: "compare", before: "color-schemes-settings-upstream", after: "color-schemes-settings", mode: "stack", caption: "Profiles → Defaults → Appearance: upstream has one Color scheme picker, so in dark mode the preview stays One Half Light; Mullion has Dark and Light pickers under Separate light and dark mode, and the preview follows the theme." },
     ],
   },
 
@@ -370,7 +370,7 @@ window.FEATURE_DETAILS = {
       { key: "ciPollIntervalMinutes", def: "15", note: "How often to check. 0 never checks." },
     ],
     media: [
-      { kind: "compare", before: "ci-poll-setting-upstream", after: "ci-poll-setting", caption: "CI build update poll interval, on the Compatibility page." },
+      { kind: "compare", before: "ci-poll-setting-upstream", after: "ci-poll-setting", mode: "stack", caption: "The top of Settings → Compatibility: upstream's first group ends at Width of ambiguous characters; Mullion adds CI build update poll interval (minutes) below it, marked ◆ as a fork setting." },
     ],
     notes: [
       "The check runs genuinely hidden. On a machine where Windows Terminal is the default terminal host, a hidden console process still gets a Terminal window created for it before the hide request applies — so these launches go through a wrapper that avoids that handoff entirely.",
@@ -379,7 +379,7 @@ window.FEATURE_DETAILS = {
 
   "ci-tests": {
     media: [
-      { kind: "compare", before: "ci-tests-run-upstream", after: "ci-tests-run", caption: "A push to main: without CI here, nothing builds or tests it; with it, a run builds, tests and stages both slots." },
+      { base: "ci-tests-run", caption: "One push to main, as CI ran it: the highlighted rows are the build, the two unit suites that gate it, and the one artifact that carries both slots." },
     ],
     problem:
       "Builds were made on the developer machine. A warm build tree runs to tens of gigabytes, every worktree pays for its own copy, and nothing verified a build except opening it.",
@@ -409,7 +409,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipShowRule", def: "false", note: "Name the rule the card came from, or say that none matched. The name opens that rule in Settings." },
     ],
     media: [
-      { kind: "compare", before: "link-rules-editor-upstream", after: "link-rules-editor", caption: "A rule open in the editor. The Rule Preview card shows what the pattern finds in a line of output, and the named capture it reads back." },
+      { base: "link-rules-editor", caption: "A rule open in the editor. The Rule Preview card shows what the pattern finds in a line of output, and the named capture it reads back." },
       { base: "link-rules-matched", caption: "With Show which rule matched on, the card names the rule that produced it." },
     ],
     notes: [
@@ -542,7 +542,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipNested", def: "false", note: "Preview links found inside a hover card's own content. In the pane they always are." },
     ],
     media: [
-      { kind: "compare", before: "preview-pane-follow-upstream", after: "preview-pane-follow", caption: "A link’s details in a pane beside the output it came from, with Pin link and the follow switch at the bottom." },
+      { base: "preview-pane-follow", caption: "A link’s details in a pane beside the output it came from, with Pin link and the follow switch at the bottom." },
     ],
     notes: [
       "The pane has a <code>Refresh</code> button, which refetches and, for a local file, rereads it.",
@@ -619,7 +619,7 @@ window.FEATURE_DETAILS = {
       { key: "dockSize", def: "50", note: "Percent of the monitor's work area the docked window covers, clamped to 10–90." },
     ],
     media: [
-      { kind: "compare", before: "window-dock-left-upstream", after: "window-dock-left", caption: "Docked to the left edge at 35% of the screen. The window runs full height and stops at the taskbar." },
+      { base: "window-dock-left", caption: "Docked to the left edge at 35% of the screen. The window runs full height and stops at the taskbar." },
       { base: "window-dock-settings", caption: "Dock the window, under Personalization, with the size slider inside it." },
     ],
     notes: [
@@ -678,7 +678,7 @@ window.FEATURE_DETAILS = {
       { key: "disableAnimations", def: "false", note: "The older switch, now JSON-only. Under system, true still forces animations off; full and reduced ignore it." },
     ],
     media: [
-      { kind: "compare", before: "motion-settings-upstream", after: "motion-settings", caption: "Motion under Personalization: Follow Windows, Always animate or Never animate." },
+      { kind: "compare", before: "motion-settings-upstream", after: "motion-settings", mode: "stack", caption: "Settings → Personalization: upstream has only the Pane animations switch, which does not follow Windows' animation effects; Mullion's Motion offers Follow Windows, Always animate or Never animate." },
     ],
     notes: [
       "Pane split and close animations still check the Windows switch themselves. With animation effects off in Windows, <code>Always animate</code> does not bring those back.",
@@ -705,7 +705,7 @@ window.FEATURE_DETAILS = {
       { key: "profiles.defaults.adjustIndistinguishableColors", def: "\"automatic\"", note: "Upstream's profile setting. A scheme's value now beats it; a value on the profile itself still beats the scheme." },
     ],
     media: [
-      { kind: "compare", before: "scheme-contrast-compare-upstream", after: "scheme-contrast-compare", caption: "The same foreground-on-background grid under one scheme, set to Never on the left and Always on the right." },
+      { base: "scheme-contrast-compare", caption: "The same foreground-on-background grid under one scheme, set to Never on the left and Always on the right." },
       { base: "scheme-contrast-setting", caption: "The setting on a colour scheme’s page, with Use the profile’s setting as the no-opinion choice." },
     ],
     notes: [
@@ -728,7 +728,7 @@ window.FEATURE_DETAILS = {
       "Press Ctrl+Shift+2. It opens the second profile the dropdown shows.",
     ],
     media: [
-      { kind: "compare", before: "profile-order-drag-upstream", after: "profile-order-drag", caption: "The Profiles page mid-drag: a profile lifted by its gripper on its way down the list." },
+      { kind: "compare", before: "profile-order-drag-upstream", after: "profile-order-drag", mode: "side", caption: "Terminal profiles on the Profiles page: upstream's rows have no handle to reorder them by; Mullion's rows carry a gripper, and here PowerShell is lifted mid-drag on its way down the list." },
       { base: "profile-order-dropdown", caption: "The new-tab dropdown. The Ctrl+Shift+N labels count 1, 2, 3 down the menu, in the order it shows." },
     ],
     notes: [
@@ -757,7 +757,7 @@ window.FEATURE_DETAILS = {
       { key: "compatibility.allowOSC777", def: "false", note: "Upstream's: whether applications may send OSC 777 notifications at all." },
     ],
     media: [
-      { kind: "compare", before: "focused-notifications-setting-upstream", after: "focused-notifications-setting", caption: "The switch under Profiles → Terminal Emulation, next to the OSC 777 setting." },
+      { kind: "compare", before: "focused-notifications-setting-upstream", after: "focused-notifications-setting", mode: "stack", caption: "Profiles → Terminal Emulation: upstream's OSC 777 switch is followed by the ENQ response; Mullion adds Show notifications from the pane you are looking at right under it." },
     ],
     upstream:
       "No upstream issue or PR asks for this. Upstream's notification sources are OSC 777 (microsoft/terminal#7718, closed) and the bell notification (#20011, merged). Activity notifications are an open PR, #20014.",
@@ -868,7 +868,7 @@ window.FEATURE_DETAILS = {
       "Close the Terminal and start it again. Settings → Link Tooltip opens with that group expanded.",
     ],
     media: [
-      { kind: "compare", before: "settings-accordions-linktooltip-upstream", after: "settings-accordions-linktooltip", caption: "Link Tooltip as groups, one of them open, each master switch in its header." },
+      { base: "settings-accordions-linktooltip", caption: "Link Tooltip as groups, one of them open, each master switch in its header." },
     ],
     notes: [
       "Expansion is view state, so it lives in state.json and is never an unsaved change.",
@@ -913,7 +913,7 @@ window.FEATURE_DETAILS = {
       "Choose <code>Windows Terminal</code> for the reverse, or <code>All settings</code> to put everything back.",
     ],
     media: [
-      { kind: "compare", before: "settings-filter-menu-upstream", after: "settings-filter-menu", caption: "The filter’s four choices, beside the menu button." },
+      { base: "settings-filter-menu", caption: "The filter’s four choices, beside the menu button." },
       { base: "settings-filter-mullion", caption: "Filtered to Mullion: the navigation and the page keep only what this fork added." },
     ],
     notes: [
@@ -957,7 +957,7 @@ window.FEATURE_DETAILS = {
       "Go to Shortcuts and click <code>Learn more about shortcuts</code>: it opens the Keyboard shortcuts topic rather than a website. Extensions (<code>Learn more about extensions</code>) and the Dropdown Menu's profile matcher (<code>Learn more about regular expressions</code>) do the same.",
     ],
     media: [
-      { kind: "compare", before: "in-app-docs-list-upstream", after: "in-app-docs-list", caption: "The Documentation page and its topics." },
+      { base: "in-app-docs-list", caption: "The Documentation page and its topics." },
       { base: "in-app-docs-topic", caption: "A topic open, with the breadcrumb back to the list." },
     ],
     notes: [
@@ -983,7 +983,7 @@ window.FEATURE_DETAILS = {
       { key: "activityLogMaxKilobytes", def: "4096", note: "Size at which <code>activity.jsonl</code> rotates to <code>activity.1.jsonl</code>. Values below 64 are treated as 64." },
     ],
     media: [
-      { kind: "compare", before: "activity-log-events-upstream", after: "activity-log-events", caption: "Settings → Activity, grouped by identical commands: repeats are one row with a count and when the first was seen." },
+      { base: "activity-log-events", caption: "Settings → Activity, grouped by identical commands: repeats are one row with a count and when the first was seen." },
       { base: "activity-log-pane", caption: "The activity pane beside a shell." },
     ],
     notes: [
@@ -1038,7 +1038,7 @@ window.FEATURE_DETAILS = {
       "Launch the slot again. A build carrying the watchdog does this by itself: a process left with no window is gone five seconds later.",
     ],
     media: [
-      { kind: "compare", before: "no-windowless-repair-upstream", after: "no-windowless-repair", caption: "Repair-TerminalSlots.ps1 reporting the Test slot: windows counted per process, hidden ones included." },
+      { base: "no-windowless-repair", caption: "Repair-TerminalSlots.ps1 reporting the Test slot: windows counted per process, hidden ones included." },
     ],
     notes: [
       "The script re-reads each process's path immediately before stopping it, and refuses if the pid now belongs to something outside the slot's payload.",
@@ -1060,7 +1060,7 @@ window.FEATURE_DETAILS = {
       "The build you went back from is now <code>C:\\TerminalSlots\\dev.rollback.1</code>, and the one before it <code>dev.rollback.2</code>.",
     ],
     media: [
-      { kind: "compare", before: "rollback-slots-upstream", after: "rollback-slots", caption: "C:\\TerminalSlots after a few promotions: the live payload, and the builds before it kept beside it." },
+      { base: "rollback-slots", caption: "C:\\TerminalSlots after a few promotions: the live payload, and the builds before it kept beside it." },
       { base: "rollback-fetch", caption: "Fetch-CIBuild.ps1 -Commit with an unknown sha refuses, naming it, before anything is staged." },
     ],
     notes: [
@@ -1083,7 +1083,7 @@ window.FEATURE_DETAILS = {
       "To cut a new one, run the <em>Portable customer acquisition</em> workflow with a green Build run's id. The verified ZIP and its proofs come back as the <code>portable-customer-verified</code> artifact.",
     ],
     media: [
-      { kind: "compare", before: "portable-settings-upstream", after: "portable-settings", caption: "A portable copy’s Settings: the bottom bar says it is running in portable mode." },
+      { base: "portable-settings", caption: "A portable copy’s Settings: the bottom bar says it is running in portable mode." },
       { base: "portable-about", caption: "About in a portable copy: no package version, so the version is the source commit." },
     ],
     notes: [
