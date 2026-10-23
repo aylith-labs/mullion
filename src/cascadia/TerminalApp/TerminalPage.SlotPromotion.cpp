@@ -235,7 +235,8 @@ namespace winrt::TerminalApp::implementation
 {
     // Ask whether anything is staged, and put the answer in the tab row. Cheap
     // enough to call whenever we might have missed a change; it reads one small
-    // file and returns nothing at all outside the Dev slot.
+    // file and returns nothing at all outside the Dev slot, except the Test
+    // slot's screenshot preview (SlotPromotion::PreviewPromotion).
     void TerminalPage::RefreshPendingPromotion()
     {
         if (!_tabRow)
@@ -307,6 +308,14 @@ namespace winrt::TerminalApp::implementation
 
         const auto result{ co_await presenter.ShowDialog(dialog) };
 
+        // A preview is there to be looked at. Every button, Promote included,
+        // has done its whole job by closing the dialog: nothing below runs,
+        // and the preview carries no payload or marker for it to act on.
+        if (pending->Preview)
+        {
+            co_return;
+        }
+
         // ShowDialog blocks until dismissed, so `this` may be gone by now.
         const auto strong{ weak.get() };
         if (!strong)
@@ -351,6 +360,14 @@ namespace winrt::TerminalApp::implementation
     bool TerminalPage::_armPromotionHelper(bool relaunch, const ::TerminalApp::SlotPromotion::StagedBuild& staged)
     try
     {
+        // Only the Dev slot is ever promoted into, and only a real staged build
+        // is promoted. _PromoteSlotRequested already returns before this for a
+        // preview; this says the same thing where the process is spawned.
+        if (!::TerminalApp::SlotPromotion::ThisSlotCanBePromoted() || staged.Preview || staged.Payload.empty())
+        {
+            return false;
+        }
+
         const auto helper{ std::filesystem::path{ ::TerminalApp::SlotPromotion::SlotRoot } / L"Promote-DevSlot.ps1" };
         if (!std::filesystem::exists(helper))
         {

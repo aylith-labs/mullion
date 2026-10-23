@@ -35,7 +35,8 @@ namespace winrt::TerminalApp::implementation
         WINRT_OBSERVABLE_PROPERTY(bool, ShowWorkspacesButton, PropertyChanged.raise, true);
         WINRT_OBSERVABLE_PROPERTY(winrt::hstring, WorkspaceName, PropertyChanged.raise, L"");
         // A newer build is staged for the Dev slot and can be promoted into it.
-        // Only ever true in the Dev slot; see SlotPromotion.h.
+        // Only ever true in the Dev slot, or in the Test slot's screenshot
+        // preview; see SlotPromotion.h.
         WINRT_OBSERVABLE_PROPERTY(bool, PromotionAvailable, PropertyChanged.raise, false);
         // What is staged, for the button's tooltip: "a1b2c3d+dirty (main), 4 minutes ago".
         WINRT_OBSERVABLE_PROPERTY(winrt::hstring, PromotionDescription, PropertyChanged.raise, L"");

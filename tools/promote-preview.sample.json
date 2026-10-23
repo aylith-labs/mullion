@@ -1,0 +1,54 @@
+{
+  "commit": "586824028",
+  "commitFull": "586824028467343da6c2efd9230dc1b6e565f333",
+  "branch": "main",
+  "dirty": 0,
+  "timestamp": 1792754686,
+  "timestampUtc": "2026-10-23 10:44:46 UTC",
+  "releaseNotes": [
+    {
+      "sha": "586824028",
+      "builtAt": 1792754620,
+      "run": 1,
+      "commits": [
+        {
+          "sha": "5868240",
+          "subject": "Settings: mark the page content as the main landmark (GH#12004)",
+          "features": [{ "id": "settings-accessibility", "title": "Settings a screen reader can find its way around" }],
+          "issues": [12004],
+          "refs": []
+        },
+        {
+          "sha": "adc4a35",
+          "subject": "Clear scroll marks when clearing the buffer (#20086)",
+          "features": [{ "id": "early-upstream-fixes", "title": "Upstream fixes, taken before they merge" }],
+          "issues": [20086],
+          "refs": []
+        },
+        {
+          "sha": "49cf317",
+          "subject": "Quake and docked windows: square corners, and re-fit when the work area changes",
+          "features": [{ "id": "dock-fit", "title": "Quake and docked windows sit flush, and follow the taskbar" }],
+          "issues": [10534, 16067],
+          "refs": []
+        },
+        {
+          "sha": "a9f899e",
+          "subject": "Closing a pane no longer crashes the window",
+          "features": [{ "id": "settings-save", "title": "A Save button that knows what changed" }],
+          "issues": [10627, 12424],
+          "refs": []
+        },
+        {
+          "sha": "cdc19b9",
+          "subject": "Shortcuts: filter as you type, not when the search box loses focus",
+          "features": [{ "id": "shortcut-search", "title": "Search the shortcuts list" }],
+          "issues": [11630],
+          "refs": []
+        }
+      ]
+    }
+  ],
+  "payload": "(preview: nothing to install)",
+  "source": "ci"
+}

@@ -83,6 +83,15 @@ sentence.
   focus. That is allowed only when the user is idle: use AgentDriver
   (`~/projects/windows-control/agent-driver/`) for every gesture, re-check idle
   before each, and stop the moment it reports exit 2.
+- **The promote button and dialog** exist only in `muld`, so mult shows them on
+  request: set `MULLION_PROMOTE_PREVIEW` to a marker file (same schema as
+  `dev-pending-ci.json`; `tools/promote-preview.sample.json` is a neutral one with
+  feature and issue links) and start mult *from that shell*, with no mult already
+  running — a running one owns the instance and never sees the variable:
+  `$env:MULLION_PROMOTE_PREVIEW = "$PWD\tools\promote-preview.sample.json"; mult`.
+  Only the Test package reads it. Every dialog button just closes the dialog. The
+  age shown comes from the marker's `timestamp`, so refresh it in a copy for a
+  recent-looking shot.
 - Captures are taken at 150% display scaling (the page shows them at size ÷ 1.5).
 - Privacy: no real accounts, tokens, work hosts or personal files in a shot.
 

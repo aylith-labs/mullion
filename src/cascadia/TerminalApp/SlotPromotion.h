@@ -108,6 +108,9 @@ namespace TerminalApp::SlotPromotion
         // first. Empty for a local deploy and for a marker written before CI
         // carried them.
         std::vector<StagedNoteBuild> ReleaseNotes;
+        // A screenshot preview in the Test slot (see PreviewPromotion), not a
+        // build anything can install. The dialog shows it and does nothing.
+        bool Preview{ false };
 
         // Walks the notes from the staged build back to the commit this
         // process was built from. Matching on the commit rather than on build
@@ -403,17 +406,67 @@ namespace TerminalApp::SlotPromotion
         return {};
     }
 
+    // Names a marker file (same schema as dev-pending-ci.json) for the Test
+    // slot to show as if it were staged.
+    inline constexpr std::wstring_view PreviewVariable{ L"MULLION_PROMOTE_PREVIEW" };
+
+    // The promote button and dialog, shown in the Test slot for a screenshot.
+    // They otherwise exist only in the Dev slot, whose windows show live work
+    // and are never captured.
+    //
+    // Test slot only: the Dev slot, a real install and an unpackaged or
+    // portable build all ignore the variable, since only package identity says
+    // which slot this is. The result is marked Preview, and the payload and
+    // marker it names are dropped, so it carries nothing that could be
+    // installed or deleted; _PromoteSlotRequested returns once its dialog
+    // closes.
+    inline std::optional<StagedBuild> PreviewPromotion()
+    {
+        if (BuildInfo::CurrentSlot() != BuildInfo::Slot::Test)
+        {
+            return std::nullopt;
+        }
+
+        const std::wstring name{ PreviewVariable };
+        const auto length{ GetEnvironmentVariableW(name.c_str(), nullptr, 0) };
+        if (length <= 1)
+        {
+            return std::nullopt;
+        }
+        std::wstring path(length, L'\0');
+        const auto written{ GetEnvironmentVariableW(name.c_str(), path.data(), length) };
+        if (written == 0 || written >= length)
+        {
+            return std::nullopt;
+        }
+        path.resize(written);
+
+        auto staged{ ReadStagedFrom(std::filesystem::path{ path }) };
+        if (!staged)
+        {
+            return std::nullopt;
+        }
+        staged->Preview = true;
+        staged->Payload = winrt::hstring{};
+        staged->MarkerPath.clear();
+        return staged;
+    }
+
     // The staged build worth offering, or nullopt if there is nothing to offer.
     //
     // Newest wins across every producer. A local deploy and a fetched CI build
     // can both be staged at once -- on a machine that uses both, or simply
     // because the loser's marker is still sitting there -- and the older one is
     // not a second offer, it is history.
+    //
+    // Outside the Dev slot the only thing it can return is the Test slot's
+    // preview, which is never compared with the running build: a sample is
+    // shown whatever its age.
     inline std::optional<StagedBuild> PendingPromotion()
     {
         if (!ThisSlotCanBePromoted())
         {
-            return std::nullopt;
+            return PreviewPromotion();
         }
 
         for (auto& staged : ReadAllStaged())
