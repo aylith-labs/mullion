@@ -99,6 +99,21 @@ sentence.
   summon hotkey, a menu item picked through UIA, a click. It happened in three of three
   capture runs. Do activating steps on desktop 1 inside an idle-gated AgentDriver session,
   then park the window back on desktop 2. Never leave a hidden window holding focus.
+- **Never close a capture window while it holds the foreground.** Windows hands the
+  foreground to the next window in z-order, which can be `muld` with live sessions in it.
+  Give the foreground back to the taskbar first, and refuse the close if that fails.
+- **Hover shots:** `AgentDriver hover <x> <y> --dwell-ms 1200` inside a `session begin
+  --target-hwnd`, capturing before `session end`. What it took to make them work:
+  - Upstream's link tooltip opens only on a pointer *entering* the top ~12 px of the link's
+    first cell. Approach from below, leave, come back up, then nudge 1-3 px.
+  - XAML tooltips and link cards are separate popup windows (`Xaml_WindowedPopupClass`), so
+    PrintWindow of the main window misses them. Capture each popup and composite it over the
+    window shot.
+  - A UIA Invoke/Expand/Select counts as outside input and ends the AgentDriver session.
+  - A settings reload (e.g. the theme switch) leaves hover dead in that window: use a fresh
+    window per theme.
+- **Demo content must render well, not just exist.** A Markdown preview of a file that is
+  not real Markdown reads as broken rendering.
 - **Check every shot for work identifiers before committing.** Stage scenes with stand-in data
   (`ACME-8209`, `example.atlassian.net`), and OCR each PNG (`Windows.Media.Ocr`): an
   employer's Jira key once shipped in two screenshots.
