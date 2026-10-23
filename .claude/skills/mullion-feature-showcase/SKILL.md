@@ -50,6 +50,19 @@ It renders with `docs/compare.js`: Hover, Split, Side by side and Difference
 `media/<base>-light.png` and `media/<base>-dark.png`. Until the before shot exists
 the figure falls back to the after shot alone, so a page never looks worse.
 
+**The four modes only where the pixels line up.** Hover, Split and Difference mean
+something only when the two shots are the same size and the same scene, so the
+feature's change is the only change (a link card over the same pane, a badge in the
+same tab row). Otherwise pin the figure, which drops the buttons:
+- `mode: "side"`: different layouts of the same thing (two settings pages, two
+  outputs in different fonts, tabs moved to a sidebar);
+- `mode: "stack"`: wide strips (a tab row) and text evidence panels;
+- no upstream counterpart at all: a single `{ base, caption }` image, not a compare.
+
+Look at both shots before choosing. A "before" that does not show the thing the
+caption names (an upstream About pair once had no About dialog in it) is worse than
+no before: drop it to a single image until it is retaken.
+
 What "before" is, in order of preference:
 
 1. **Upstream**: the same view in Windows Terminal Canary (installed, upstream's

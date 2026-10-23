@@ -131,7 +131,7 @@ window.FEATURE_DETAILS = {
       { key: "bufferPersistIntervalSeconds", def: "300", note: "How often, in seconds: 5 to 14,400." },
     ],
     media: [
-      { kind: "compare", before: "session-restore-page-before", after: "session-restore-page-after", caption: "Where session restore lives: one dropdown at the top of Startup upstream; a page of its own in Mullion." },
+      { kind: "compare", mode: "side", before: "session-restore-page-before", after: "session-restore-page-after", caption: "Where session restore lives: one dropdown at the top of Startup upstream; a page of its own in Mullion." },
     ],
     upstream: "Upstream restores buffer contents (#961) and has an open PR to save them periodically (#19805), in minutes. Neither gives restore a page.",
   },
@@ -189,7 +189,7 @@ window.FEATURE_DETAILS = {
       { key: "controlPipe", def: "true", note: "Serve the pipe. Set false to turn it off completely." },
     ],
     media: [
-      { kind: "compare", before: "control-pipe-list-upstream", after: "control-pipe-list", caption: "list-panes: every window, tab and pane, and what each one is running." },
+      { kind: "compare", mode: "side", before: "control-pipe-list-upstream", after: "control-pipe-list", caption: "list-panes: every window, tab and pane, and what each one is running." },
     ],
     notes: [
       "The Enter goes as its own call, never combined with the text. A single write containing both is read by some TUIs as a bulk paste and never submits.",
@@ -331,7 +331,7 @@ window.FEATURE_DETAILS = {
     how:
       "A badge in the tab row names the slot. Clicking it copies the build details. The About dialog carries the commit and build time, and when a newer build has been staged a banner says so, names it, and offers to promote it.",
     media: [
-      { kind: "compare", before: "slot-badge-upstream", after: "slot-badge", caption: "The tab-row badge naming the slot." },
+      { kind: "compare", mode: "stack", before: "slot-badge-upstream", after: "slot-badge", caption: "The tab-row badge naming the slot." },
     ],
   },
 
@@ -446,7 +446,7 @@ window.FEATURE_DETAILS = {
       { key: "safeUriSchemes", def: "[\"stith\"]", note: "Schemes that open without the unsafe-URI confirmation. Upstream's default is empty. Setting your own list replaces this one; an empty list confirms them all." },
     ],
     media: [
-      { kind: "compare", before: "click-chords-settings-upstream", after: "click-chords-settings", caption: "Make links clickable, expanded: which links a click reaches, and the two chords, each a modifier, a gesture and an action." },
+      { kind: "compare", mode: "side", before: "click-chords-settings-upstream", after: "click-chords-settings", caption: "Make links clickable, expanded: which links a click reaches, and the two chords, each a modifier, a gesture and an action." },
     ],
     notes: [
       "The pickers in Settings offer <em>Do nothing</em> and the built-in buttons. An id under <code>actions</code> is written in settings.json; once it is there the picker shows it rather than appearing blank.",
@@ -591,7 +591,7 @@ window.FEATURE_DETAILS = {
       { key: "tabWidthMode", def: "\"equal\"", note: "Upstream's. Ignored, and greyed out in Settings, while the strip is vertical." },
     ],
     media: [
-      { kind: "compare", before: "tab-edges-left-upstream", after: "tab-edges-left", caption: "The strip on the left: six tabs named after what they run, every title readable in full, and the active tab’s title up in the title bar." },
+      { kind: "compare", mode: "side", before: "tab-edges-left-upstream", after: "tab-edges-left", caption: "The strip on the left: six tabs named after what they run, every title readable in full, and the active tab’s title up in the title bar." },
       { base: "tab-edges-settings", caption: "The Tab strip group under Personalization. With the tabs on the left, Tab width mode is greyed out, because a column has no width to divide." },
     ],
     notes: [
@@ -651,7 +651,7 @@ window.FEATURE_DETAILS = {
       { key: "warning.confirmOnCloseTabThreshold", def: "3", note: "How many tabs moreThanTabs allows before it asks. The Settings tab is not counted." },
     ],
     media: [
-      { kind: "compare", before: "small-knobs-tab-numbers-upstream", after: "small-knobs-tab-numbers", caption: "Tab numbers before each title, and before the bell a tab shows when its program rang." },
+      { kind: "compare", mode: "stack", before: "small-knobs-tab-numbers-upstream", after: "small-knobs-tab-numbers", caption: "Tab numbers before each title, and before the bell a tab shows when its program rang." },
       { base: "small-knobs-settings", caption: "Interaction: the pane resize step, and the close confirmation set to warn only above a tab count." },
     ],
     notes: [
@@ -775,7 +775,7 @@ window.FEATURE_DETAILS = {
       "Report an issue opens a new issue on github.com/aylith-labs/mullion.",
     ],
     media: [
-      { kind: "compare", before: "about-dialog-about-upstream", after: "about-dialog-about", caption: "The About tab: the version, commit, branch, build time and executable path, with links to Mullion’s source and docs." },
+      { base: "about-dialog-about", caption: "The About tab: the version, commit, branch, build time and executable path, with links to Mullion’s source and docs." },
       { base: "about-dialog-release-notes", caption: "Release notes: one entry per CI build of main, the running one marked this build, each listing the commits it brought." },
     ],
   },
@@ -795,7 +795,7 @@ window.FEATURE_DETAILS = {
       { key: "settingsUIHost", def: "\"tab\"", note: "tab, dialog, or window. Honoured by <code>openSettings</code> with target <code>settingsUI</code>, which is what <code>Ctrl+,</code> runs." },
     ],
     media: [
-      { kind: "compare", before: "settings-window-dialog-upstream", after: "settings-window-dialog", caption: "Settings as a dialog over the window, with the terminal still there behind it." },
+      { kind: "compare", mode: "side", before: "settings-window-dialog-upstream", after: "settings-window-dialog", caption: "Settings as a dialog over the window, with the terminal still there behind it." },
       { base: "settings-window-option", caption: "Open settings in, on the Interaction page, with its three choices." },
     ],
     notes: [
@@ -847,7 +847,7 @@ window.FEATURE_DETAILS = {
       { key: "aylith.imprintJsonOnly", def: "false", note: "Draw ◇ beside settings Windows Terminal has but only exposes in settings.json." },
     ],
     media: [
-      { kind: "compare", before: "fork-marks-compat-upstream", after: "fork-marks-compat", caption: "The two switches on Compatibility, each carrying the fork’s own mark, with the same mark on the pages it added." },
+      { kind: "compare", mode: "side", before: "fork-marks-compat-upstream", after: "fork-marks-compat", caption: "The two switches on Compatibility, each carrying the fork’s own mark, with the same mark on the pages it added." },
       { base: "fork-marks-page", caption: "Personalization with both marks on: hollow ◇ on settings upstream hides in JSON, ◆ on the fork’s own." },
     ],
     notes: [
@@ -891,7 +891,7 @@ window.FEATURE_DETAILS = {
       "Collapse the pane with the menu button. The search box moves beside the breadcrumb and stays typeable.",
     ],
     media: [
-      { kind: "compare", before: "settings-nav-pane-upstream", after: "settings-nav-pane", caption: "The grouped navigation pane, with the search box above the first heading and Show descriptions at the foot." },
+      { kind: "compare", mode: "side", before: "settings-nav-pane-upstream", after: "settings-nav-pane", caption: "The grouped navigation pane, with the search box above the first heading and Show descriptions at the foot." },
       { base: "settings-nav-help", caption: "Descriptions off: the help badge beside a setting shows its description on hover." },
     ],
     notes: [
@@ -934,7 +934,7 @@ window.FEATURE_DETAILS = {
       "Type <code>@shaltctrl</code> to find <code>ctrl+alt+shift</code> chords without spelling them in order.",
     ],
     media: [
-      { kind: "compare", before: "shortcut-search-name-upstream", after: "shortcut-search-name", caption: "Filtering by name: the matched letters in bold." },
+      { kind: "compare", mode: "side", before: "shortcut-search-name-upstream", after: "shortcut-search-name", caption: "Filtering by name: the matched letters in bold." },
       { base: "shortcut-search-chord", caption: "An @ search by key chord, with the matching key caps in bold." },
     ],
     notes: [
@@ -1014,7 +1014,7 @@ window.FEATURE_DETAILS = {
       { key: "activityLog", def: "true", note: "Off stops pipe requests being written to the log. The tab-row badge still counts them." },
     ],
     media: [
-      { kind: "compare", before: "pipe-activity-badge-upstream", after: "pipe-activity-badge", caption: "The tab-row badge after seven pipe requests nobody has looked at yet." },
+      { kind: "compare", mode: "stack", before: "pipe-activity-badge-upstream", after: "pipe-activity-badge", caption: "The tab-row badge after seven pipe requests nobody has looked at yet." },
       { base: "pipe-activity-flyout", caption: "The list: repeated requests folded into one counted row, a refused request with no reason, and the way through to the full record." },
     ],
     notes: [
