@@ -38,19 +38,23 @@
       "</div>";
   }
 
-  // item: { kind: "compare", before: "<media base>", after: "<media base>", caption }
+  // item: { kind: "compare", before: "<media base>", after: "<media base>", caption, mode? }
+  // A fixed `mode` pins the figure to it and drops the mode buttons: "stack" (before
+  // above after) suits two evidence panels of text, which have nothing to blend or split.
   function html(item) {
     var caption = item.caption || "";
+    var fixed = item.mode === "stack" || MODE_IDS.indexOf(item.mode) >= 0 ? item.mode || "" : "";
     var buttons = "";
-    for (var i = 0; i < MODES.length; i++) {
+    for (var i = 0; i < MODES.length && !fixed; i++) {
       buttons += '<button type="button" role="radio" aria-checked="false" data-compare-mode="' + MODES[i].id +
         '" data-tip="' + esc(MODES[i].hint) + '">' + MODES[i].label + "</button>";
     }
-    return '<figure class="compare" data-compare>' +
+    return '<figure class="compare" data-compare' + (fixed ? ' data-fixed-mode="' + fixed + '"' : "") + ">" +
+      (fixed ? "" :
       '<div class="compare-bar">' +
         '<span class="compare-chip" aria-live="polite"></span>' +
         '<div class="compare-modes" role="radiogroup" aria-label="Compare view">' + buttons + "</div>" +
-      "</div>" +
+      "</div>") +
       '<div class="compare-stage" tabindex="0" aria-label="' + esc(caption) + ' (before and after)">' +
         layer("before", item.before, caption + " — upstream Windows Terminal (before)") +
         layer("after", item.after, caption + " — Mullion (after)") +
@@ -74,8 +78,11 @@
     var peeking = false;
     var split = 50;
 
+    var fixed = fig.getAttribute("data-fixed-mode");
+
     function mode() {
       if (fig.classList.contains("compare-no-before")) { return "after-only"; }
+      if (fixed) { return fixed; }
       if (override) { return override; }
       var s = window.Mullion && Mullion.settings ? Mullion.settings().compareMode : "hover";
       return MODE_IDS.indexOf(s) >= 0 ? s : "hover";
@@ -94,8 +101,10 @@
       var text = "";
       if (m === "hover") { text = peeking ? "After" : "Before"; }
       else if (m === "difference") { text = peeking ? "Difference" : "After"; }
-      chip.textContent = text;
-      chip.hidden = !text;
+      if (chip) {
+        chip.textContent = text;
+        chip.hidden = !text;
+      }
     }
 
     for (var i = 0; i < buttons.length; i++) {
@@ -105,7 +114,8 @@
         render();
       });
     }
-    fig.querySelector(".compare-modes").addEventListener("keydown", function (e) {
+    var modeGroup = fig.querySelector(".compare-modes");
+    if (modeGroup) modeGroup.addEventListener("keydown", function (e) {
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") { return; }
       e.preventDefault();
       var at = MODE_IDS.indexOf(mode());

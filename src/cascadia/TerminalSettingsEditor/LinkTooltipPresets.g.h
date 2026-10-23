@@ -2,7 +2,7 @@
 inline std::span<const LinkTooltipPreset> GetLinkTooltipPresets() noexcept
 {
     static const LinkTooltipPreset presets[] = {
-        { L"jira-issue-keys", L"Jira: Issue keys in output, like CAB-8209", L"Turns a bare issue key printed by a build or a commit message into a hoverable link", Model::HyperlinkMatchKind::Text, {  }, L"\\b(?<key>[A-Z][A-Z0-9]{1,9}-\\d{1,7})\\b", Model::HyperlinkFileTypeGroup::None, {  }, L"jira", true, { L"Jira: Issue keys in output (Text)" } },
+        { L"jira-issue-keys", L"Jira: Issue keys in output, like ACME-8209", L"Turns a bare issue key printed by a build or a commit message into a hoverable link", Model::HyperlinkMatchKind::Text, {  }, L"\\b(?<key>[A-Z][A-Z0-9]{1,9}-\\d{1,7})\\b", Model::HyperlinkFileTypeGroup::None, {  }, L"jira", true, { L"Jira: Issue keys in output (Text)" } },
         { L"jira-issue-links", L"Jira: Issue links", L"Jira issue URLs, the /browse/ form", Model::HyperlinkMatchKind::Link, {  }, L"^https?://[^/]+/browse/(?<key>[A-Z][A-Z0-9]+-\\d+)", Model::HyperlinkFileTypeGroup::None, {  }, L"jira", true, { L"Jira: Issue links (URL)" } },
         { L"github-pull-requests", L"GitHub: Pull request links", L"GitHub pull request URLs", Model::HyperlinkMatchKind::Link, {  }, L"^https://github\\.com/(?<owner>[^/]+)/(?<repo>[^/]+)/(?<ispull>pull)/(?<number>\\d+)", Model::HyperlinkFileTypeGroup::None, {  }, L"github", true, { L"GitHub: Pull requests & issues (URL)" } },
         { L"github-issues", L"GitHub: Issue links", L"GitHub issue URLs", Model::HyperlinkMatchKind::Link, {  }, L"^https://github\\.com/(?<owner>[^/]+)/(?<repo>[^/]+)/(?<isissue>issues)/(?<number>\\d+)", Model::HyperlinkFileTypeGroup::None, {  }, L"github", true, { L"GitHub: Pull requests & issues (URL)" } },
@@ -27,8 +27,8 @@ inline std::span<const LinkTooltipPreset> GetLinkTooltipPresets() noexcept
 
 inline std::wstring_view GetLinkTooltipPresetSample(std::wstring_view id) noexcept
 {
-    if (id == L"jira-issue-keys") return L"Deployed CAB-8209 to staging";
-    if (id == L"jira-issue-links") return L"https://example.atlassian.net/browse/CAB-8209";
+    if (id == L"jira-issue-keys") return L"Deployed ACME-8209 to staging";
+    if (id == L"jira-issue-links") return L"https://example.atlassian.net/browse/ACME-8209";
     if (id == L"github-pull-requests") return L"https://github.com/aylith-labs/lintel/pull/12";
     if (id == L"github-issues") return L"https://github.com/aylith-labs/lintel/issues/12";
     if (id == L"github-commits") return L"https://github.com/aylith-labs/lintel/commit/c79ccc1f0a7d4e2b1c3f5a6d8e9b0c1d2e3f4a5b";

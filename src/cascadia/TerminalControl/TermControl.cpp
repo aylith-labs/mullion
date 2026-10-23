@@ -3406,7 +3406,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             co_return;
         }
 
-        // A text match arrives here as the plain text it matched -- "CAB-8209", not a URI --
+        // A text match arrives here as the plain text it matched -- "ACME-8209", not a URI --
         // because that is what the buffer scanner found and what ControlCore reported. Only
         // an integration knows what it stands for, so give it the chance to say before the
         // event carries on to TerminalPage, which would otherwise refuse it as an invalid
@@ -4080,7 +4080,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         }
 
         // A text match nothing claims has no target at all. Returning the raw
-        // run would put "CAB-8209" where a URL belongs, and everything
+        // run would put "ACME-8209" where a URL belongs, and everything
         // downstream would go on to treat it as one.
         return _currentHyperlinkTooltipSettings.isTextMatch ? winrt::hstring{} : _hoveredUri;
     }

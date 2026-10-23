@@ -39,7 +39,7 @@
             "kind": "text",
             "pattern": "\\b(?<key>[A-Z][A-Z0-9]{1,9}-\\d{1,7})\\b",
             "suggested": true,
-            "description": "Issue keys in output, like CAB-8209",
+            "description": "Issue keys in output, like ACME-8209",
             "link": "https://{{settings.host}}/browse/{{key}}"
         }
     ],

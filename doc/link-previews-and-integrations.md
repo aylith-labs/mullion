@@ -84,7 +84,7 @@ preview.
 | Plugin | Recognizes | Needs | Notes |
 |---|---|---|---|
 | **GitHub** | `https://github.com/<owner>/<repo>/pull/<n>`, `/issues/<n>` and `/commit/<sha>` links | Nothing, if the [GitHub CLI](https://cli.github.com) is signed in. Otherwise a personal access token (credential) | Tries `gh auth token` first and falls back to a stored token — see [Authenticating from a local CLI](#authenticating-from-a-local-cli-the-gh-then-token-pattern). Tabs for the description and comments; Details / Activity / Commit field groups. |
-| **Jira** | `https://<host>/browse/<KEY>` links, and (opt-in) issue keys like `CAB-8209` in plain text | Site host (setting) + account email and API token (credentials) | Credentials are only ever sent to the configured host — see [Host guarding](#host-guarding). Create an API token at `id.atlassian.com` → Security → API tokens. Carries the transition [action](#actions), a Development [field group](#field-groups) fed by Jira's `dev-status` API, and Description / Comments [tabs](#tabs). |
+| **Jira** | `https://<host>/browse/<KEY>` links, and (opt-in) issue keys like `ACME-8209` in plain text | Site host (setting) + account email and API token (credentials) | Credentials are only ever sent to the configured host — see [Host guarding](#host-guarding). Create an API token at `id.atlassian.com` → Security → API tokens. Carries the transition [action](#actions), a Development [field group](#field-groups) fed by Jira's `dev-status` API, and Description / Comments [tabs](#tabs). |
 | **Slack** | `https://<workspace>.slack.com/archives/<channel>/p<ts>` permalinks, including thread replies (`?thread_ts=`) | A bot token (credential) | The token needs the `channels:history`, `groups:history`, and `users:read` scopes, and the bot must be a member of the channel it's reading. |
 | **Stith** | `stith://session/<id>`, `stith://focus/<id>`, `stith://copy/<id>`, `https://<server>/(s\|agent\|sessions\|embed/s)/<id>` links, and a **bare session id** printed with no scheme around it | Server URL (setting) | No credentials. The fetch allows an untrusted certificate, so a self-signed `lvh.me` cert doesn't block the preview. A [`detectPatterns`](#detectpatterns) entry makes a bare `stith://…` in plain output hoverable without OSC 8. Each verb is matched separately so a `focus` link is never read as a `session` one, and `focus` carries an [`open` action](#open-actions) that raises the terminal the session runs in. |
 | **shefrd** | Multiplexer pane addresses like `w1N:p39`, and `shefrd://pane/<id>` links | Stith server URL (setting) | Reads and focuses through stith, which already holds a socket to every multiplexer server — so the same manifest works from Windows, from WSL, and from inside a pane, with no binary invoked directly. Clicking a pane id focuses that pane ([`open`](#open-actions)); the card shows its tab, space, agent and status. |
@@ -175,7 +175,7 @@ Link previews aren't limited to actual hyperlinks. A **Link Tooltip rule** with 
 turns an arbitrary ICU regular expression into a hoverable, clickable match anywhere it appears in
 terminal output — not just inside a real link.
 
-For example, Jira's built-in text matcher recognizes issue keys like `CAB-8209` in plain output.
+For example, Jira's built-in text matcher recognizes issue keys like `ACME-8209` in plain output.
 Once a text rule for that pattern is enabled, any matching text becomes hoverable: the card shows
 the same Jira preview a real `/browse/` link would, Open navigates to the issue, and Copy link
 copies its URL.
@@ -312,7 +312,7 @@ parse is skipped and logged, never fatal.
             "pattern": "\\b(?<key>[A-Z][A-Z0-9]{1,9}-\\d{1,7})\\b",
             // Offered on the Integrations page as "Add as rule".
             "suggested": true,
-            "description": "Issue keys in output, like CAB-8209",
+            "description": "Issue keys in output, like ACME-8209",
             // How a text match becomes a URL for Open / Copy link / click.
             "link": "https://{{settings.host}}/browse/{{key}}"
         }

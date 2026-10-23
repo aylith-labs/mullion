@@ -733,8 +733,8 @@ void TerminalBufferTests::TestDelimitedURLPatternDetection()
     {
         Log::Comment(L"<uri|label> resolves to the uri from every column it covers");
 
-        constexpr auto Uri = L"https://github.com/cloudbeds/mfd/pull/9962"sv;
-        constexpr auto Link = L"<https://github.com/cloudbeds/mfd/pull/9962|mfd#9962>"sv;
+        constexpr auto Uri = L"https://github.com/acme/webapp/pull/9962"sv;
+        constexpr auto Link = L"<https://github.com/acme/webapp/pull/9962|webapp#9962>"sv;
         const auto row = writeRow(Link);
 
         for (auto x = 0; x < static_cast<til::CoordType>(Link.size()); x++)

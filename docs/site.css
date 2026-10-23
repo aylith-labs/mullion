@@ -949,6 +949,12 @@ figure.no-media img, figure.no-media video { display: none !important; }
 }
 .compare-handle:focus-visible span { outline: 2px solid var(--focus); outline-offset: 1px; }
 
+/* stacked: a fixed layout for evidence panels, before above after */
+.compare[data-mode="stack"] .compare-stage { grid-template-columns: 1fr; gap: 8px; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; }
+.compare[data-mode="stack"] .compare-before { grid-area: 1 / 1; }
+.compare[data-mode="stack"] .compare-after { grid-area: 2 / 1; }
+.compare[data-mode="stack"] .compare-layer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-card); }
+
 /* side by side, stacked on a phone */
 .compare[data-mode="side"] .compare-stage { grid-template-columns: 1fr 1fr; gap: 8px; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; }
 .compare[data-mode="side"] .compare-before { grid-area: 1 / 1; }

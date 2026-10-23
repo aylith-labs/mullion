@@ -44,8 +44,8 @@ So for the profile matcher, `Ubuntu` does **not** match the profile named `Ubunt
 `Ubuntu.*` does, and `^` and `$` are implied, so adding them changes nothing. For a link
 rule, `github\.com` is enough; you do not have to describe the rest of the URL.
 
-For a text rule, anchor it yourself with `\b` if you want whole words: `\bCAB-\d+\b` rather
-than `CAB-\d+`, which would also match the `CAB-8` inside `XCAB-81`.
+For a text rule, anchor it yourself with `\b` if you want whole words: `\bACME-\d+\b` rather
+than `ACME-\d+`, which would also match the `ACME-8` inside `XACME-81`.
 
 > [!TIP]
 > Start a pattern with `(?i)` to make it case-insensitive wherever it is not already:

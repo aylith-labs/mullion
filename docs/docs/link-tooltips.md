@@ -20,7 +20,7 @@ click*:
   clickable output.
 - **Matches from your rules** — a rule of kind *Text* turns any pattern you like into a
   hoverable match, even though nothing in the output said it was a link. This is how an
-  issue key such as `CAB-8209` becomes clickable.
+  issue key such as `ACME-8209` becomes clickable.
 
 ## Defaults
 

@@ -13,7 +13,7 @@ and a switch. A disabled integration is never contacted, whatever a rule says.
 | Integration | Recognises | Needs |
 |---|---|---|
 | **GitHub** | `github.com/<owner>/<repo>/pull/<n>`, `/issues/<n>`, `/commit/<sha>` | Nothing, if the GitHub CLI is signed in. Otherwise a personal access token. |
-| **Jira** | `https://<host>/browse/<KEY>`, and opt-in bare keys like `CAB-8209` in plain text | Site host, plus your account email and an API token |
+| **Jira** | `https://<host>/browse/<KEY>`, and opt-in bare keys like `ACME-8209` in plain text | Site host, plus your account email and an API token |
 | **Slack** | `https://<workspace>.slack.com/archives/<channel>/p<ts>` permalinks, threads included | A bot token with `channels:history`, `groups:history` and `users:read` |
 | **Stith** | `stith://session/<id>`, `stith://focus/<id>`, `stith://copy/<id>`, server URLs, and bare session ids | Server URL |
 | **shefrd** | Multiplexer pane addresses like `w1N:p39`, and `shefrd://pane/<id>` | Stith server URL |
@@ -55,7 +55,7 @@ card shows no tab strip.
 **Detect in output** — patterns this integration can recognise in plain terminal output,
 each with an **Add as rule** button. Pressing it creates a matching rule on the
 [Link Tooltip](link-tooltips.md) page, which you can then rename, reorder or delete. This is
-the opt-in step that makes a bare `CAB-8209` in your build log hoverable.
+the opt-in step that makes a bare `ACME-8209` in your build log hoverable.
 
 **Source** — read-only: either `built-in`, or the path of the file it was loaded from.
 

@@ -162,7 +162,7 @@ namespace Microsoft.Terminal.Control
         // Match -> URL, or "" when nothing claims the text.
         //
         // Both matcher kinds are consulted. Text matchers are the obvious case
-        // ("CAB-8209" is not a URI and only an integration knows what it
+        // ("ACME-8209" is not a URI and only an integration knows what it
         // stands for), but a LINK matcher's `link` template matters just as
         // much: a scheme the manifest owns, like stith://, is not something
         // ShellExecute can open unless an OS protocol handler happens to be
