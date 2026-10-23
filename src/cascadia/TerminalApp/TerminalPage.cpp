@@ -5253,6 +5253,23 @@ namespace winrt::TerminalApp::implementation
                 {
                     controlSettings.DefaultSettings()->StartingDirectory(workingDirectory);
                 }
+
+                // GH#17481: a duplicate copies the focused pane's profile and
+                // directory, but what was typed alongside it still wins:
+                // `wt split-pane -D pwsh -c foo` used to open a plain copy of
+                // the focused pane and drop `pwsh -c foo` without a word.
+                if (newTerminalArgs)
+                {
+                    if (const auto commandline = newTerminalArgs.Commandline(); !commandline.empty())
+                    {
+                        const auto& defaults = controlSettings.DefaultSettings();
+                        defaults->Commandline(newTerminalArgs.AppendCommandLine() ? defaults->Commandline() + L" " + commandline : commandline);
+                    }
+                    if (const auto startingDirectory = newTerminalArgs.StartingDirectory(); !startingDirectory.empty())
+                    {
+                        controlSettings.DefaultSettings()->StartingDirectory(startingDirectory);
+                    }
+                }
             }
         }
         if (!profile)

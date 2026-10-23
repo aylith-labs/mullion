@@ -132,7 +132,8 @@ namespace
         {
             const auto splitArgs{ args ? args.try_as<MTSM::SplitPaneArgs>() : nullptr };
             // A duplicate copies the focused pane, which is never elevated
-            // unless this window already is; its content args are ignored.
+            // unless this window already is. Its content args can replace the
+            // command and directory (GH#17481), never the elevation.
             if (splitArgs && splitArgs.SplitMode() == MTSM::SplitType::Duplicate)
             {
                 return false;
