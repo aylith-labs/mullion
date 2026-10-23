@@ -22,7 +22,7 @@ Newest last. One line per step taken, plus the lesson when there is one.
 
 | Order | Step | Who | Gate |
 |---|---|---|---|
-| 1 | thechampagne/awesome-windows PR (Terminal section; OSS icon; description ends with a full stop) | PR from Steven's account | 2026-10-24 or later; awesome-wsl#124 has no "no" |
+| 1 | thechampagne/awesome-windows PR (Terminal section; OSS icon; description ends with a full stop). **Prepared**: branch `steven-pribilinskiy:add-mullion` (52728dc, the entry between MTPuTTY and Putty) and body `drafts/awesome-windows.md`. To open it: `gh pr create --repo thechampagne/awesome-windows --base main --head steven-pribilinskiy:add-mullion --title "Add Mullion to Terminal" --body-file .claude/skills/mullion-outreach/drafts/awesome-windows.md`, then add it to `docs/mentions.html` and to the digest routine's sources (already attached). | PR from Steven's account | 2026-10-24 or later; awesome-wsl#124 has no "no"; re-read Contributing.md first |
 | 2 | AlternativeTo listing, as an alternative to Windows Terminal, leading with what differs | Steven, web form | one day after step 1 |
 | 3 | Show HN, Steven's own words | Steven | close-pane crash fix verified and promoted (now in the 2026-10-23 portable ZIP); afterTabs vertical-strip bug fixed; Steven free to stay in the thread |
 | 4 | One subreddit (r/commandline) | Steven | a week after HN; rules read logged in |
