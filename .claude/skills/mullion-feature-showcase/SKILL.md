@@ -93,6 +93,15 @@ sentence.
   age shown comes from the marker's `timestamp`, so refresh it in a copy for a
   recent-looking shot.
 - Captures are taken at 150% display scaling (the page shows them at size ÷ 1.5).
+- **Virtual desktop 2 keeps no-input shots off the user's screen.** A `mult` window moved
+  there still captures correctly with PrintWindow, and UI Automation reads it. But
+  **anything that activates the window switches the user's visible desktop to it**: a
+  summon hotkey, a menu item picked through UIA, a click. It happened in three of three
+  capture runs. Do activating steps on desktop 1 inside an idle-gated AgentDriver session,
+  then park the window back on desktop 2. Never leave a hidden window holding focus.
+- **Check every shot for work identifiers before committing.** Stage scenes with stand-in data
+  (`ACME-8209`, `example.atlassian.net`), and OCR each PNG (`Windows.Media.Ocr`): an
+  employer's Jira key once shipped in two screenshots.
 - Privacy: no real accounts, tokens, work hosts or personal files in a shot.
 
 ## 4. Upstream map — `docs/upstream.html`
