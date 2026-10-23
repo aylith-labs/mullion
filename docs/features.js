@@ -12,11 +12,11 @@ window.FEATURES = [
     desc: "A quake or docked window gets square corners on Windows 11, so no wedges of desktop show where it meets the screen edge, and gets them back when it stops being docked. When the taskbar or another app bar changes the work area, a docked window re-fits to it without being shown, raised or focused; a minimized one catches up when it is next restored, and a height you dragged it to is kept. Two long-open upstream issues, #10534 and #16067.",
   },
   {
-    id: "early-upstream-fixes", title: "Upstream fixes, taken before they merge",
+    id: "early-upstream-fixes", title: "Upstream bugs, fixed without waiting",
     cat: "ui", catLabel: "UI & theming",
     dateAdded: "2026-10-22",
-    commits: ["adc4a35a4","f010d2488"], files: 2, ins: 10, del: 0,
-    desc: "Fixes that are written and reviewed upstream but still waiting in their queue, cherry-picked with their authorship and a pointer to the pull request. First in: clearing the buffer, or running clear or cls, now clears the scroll marks too, instead of leaving marks on the scrollbar pointing at rows that are gone (upstream #20086, PR #20105).",
+    commits: ["adc4a35a4","f010d2488","6587b0cd1","16fb60ef7","df25419b9"], files: 7, ins: 226, del: 4,
+    desc: "Upstream bugs fixed here instead of waiting in their queue: a reviewed pull request cherry-picked with its authorship, or a small fix written here for an issue nobody has picked up. Clear Buffer, clear and cls clear the scroll marks too (#20086, PR #20105), and split-pane -D runs the command typed after it (#17481). The tab close button names the key bound to closeTab instead of an unbound Ctrl+F4 (#10109), and closing the pane that failed closes the termination-behavior infobar with it (#11607).",
   },
   {
     id: "settings-accessibility", title: "Settings a screen reader can find its way around",

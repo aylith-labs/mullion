@@ -41,22 +41,31 @@ window.FEATURE_DETAILS = {
 
   "early-upstream-fixes": {
     problem:
-      "Some upstream fixes are written, tested and reviewed, and then wait in the queue for months. Running a fork means not having to wait: a fix that is right does not need to be merged upstream to be worth having.",
+      "Some upstream bugs have a fix that is written, tested and reviewed, and then waits in the queue for months. Others are small, labelled Help Wanted, and have sat open for years with nobody on them. Running a fork means neither has to wait.",
     how:
-      "The pull request's commits are cherry-picked with <code>git cherry-pick -x</code>, which keeps the original author and records the upstream commit each one came from, including any changes a maintainer asked for in review. When upstream does merge the pull request, the next merge brings in the same change and git reconciles the two. First in: <a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>. Clear Buffer, and <code>clear</code> or <code>cls</code> (which erase the screen with <code>ESC[2J</code> rather than going through Clear Buffer), now remove the scroll marks in the rows they erase, so the scrollbar no longer shows marks for prompts that are gone.",
+      "A fix from upstream is cherry-picked with <code>git cherry-pick -x</code>, which keeps the original author and records the upstream commit each one came from, including any changes a maintainer asked for in review; when upstream merges it, the next merge brings in the same change and git reconciles the two. A fix written here is kept small and names the issue in its commit and in the code, so the next upstream merge conflicts as little as possible." +
+      "<br><br><b>Scroll marks after clear</b> (<a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>). Clear Buffer, and <code>clear</code> or <code>cls</code> (which erase the screen with <code>ESC[2J</code> rather than going through Clear Buffer), now remove the scroll marks in the rows they erase, so the scrollbar no longer shows marks for prompts that are gone." +
+      "<br><br><b><code>split-pane -D</code> with a command</b> (#17481). A duplicate copies the focused pane's profile and working directory, and used to drop whatever followed it: <code>wt split-pane -D pwsh -c foo</code> opened a plain copy of the pane. A command line (respecting <code>appendCommandLine</code>) and a <code>-d</code> directory given with <code>-D</code> now win, as they do on a manual split. Elevation still comes from the copied profile." +
+      "<br><br><b>The tab close button's tooltip</b> (#10109). WinUI's TabView gives the close button a fixed <em>Close Tab (Ctrl+F4)</em>. Ctrl+F4 is a TabView accelerator that only works while focus is in the tab strip, and nothing in the default keymap binds it. When each tab is loaded, and whenever the key bindings change, the tooltip is replaced with <em>Close tab</em>, followed by the key bound to <code>closeTab</code> when there is one. A <code>closeTab</code> that names a tab index is not counted, since it closes some other tab." +
+      "<br><br><b>The termination-behavior infobar</b> (#11607). When a shell exits with an error, a bar across the window suggests changing the profile's <code>closeOnExit</code>. It stayed after the pane it was about had been closed. The page now remembers which panes the bar is showing for and closes it once none of them is left. Switching tabs, zooming a pane and splitting one all unload a terminal that is still in use, so a pane only counts as closed once no tab in the window holds it.",
     steps: [
-      "Turn on <code>autoMarkPrompts</code> and <code>showMarksOnScrollbar</code>, and run a few commands so marks appear on the scrollbar.",
-      "Run <code>clear</code>, or use Clear Buffer from the tab's context menu.",
-      "The marks go with the text. Upstream leaves them on the scrollbar.",
+      "Scroll marks: turn on <code>autoMarkPrompts</code> and <code>showMarksOnScrollbar</code>, run a few commands, then run <code>clear</code>. The marks go with the text.",
+      "<code>-D</code>: in a Mullion pane, run <code>wt -w 0 split-pane -D cmd /k echo duplicated</code>. The new pane uses the focused pane's profile and directory and runs the echo.",
+      "Close button: bind <code>closeTab</code> to a key (Settings, Actions), then hover a tab's close button. The tooltip names that key, or just <em>Close tab</em> when nothing is bound.",
+      "Infobar: in a split tab, run <code>exit 1</code> in one pane so the bar appears, then close that pane with Ctrl+Shift+W. The bar closes with it.",
     ],
     media: [
       { kind: "compare", before: "early-fixes-marks-before", after: "early-fixes-marks-after", caption: "The scrollbar after clear: upstream still shows marks for the erased prompts; Mullion clears them." },
+      { kind: "compare", before: "early-fixes-dup-before", after: "early-fixes-dup-after", mode: "stack", caption: "<code>split-pane -V -D -d C:\\Temp\\demo cmd /k echo …</code>: look at the right-hand pane, a plain copy of Command Prompt upstream and the typed command in Mullion." },
+      { kind: "compare", before: "early-fixes-infobar-before", after: "early-fixes-infobar-after", mode: "stack", caption: "After closing the pane whose shell exited with code 1: upstream keeps the termination-behavior bar over the pane that is left; Mullion closes it." },
+      { kind: "compare", before: "early-fixes-close-tooltip-before", after: "early-fixes-close-tooltip-after", mode: "side", caption: "Hovering the tab close button with <code>closeTab</code> bound to Ctrl+W: upstream still names Ctrl+F4; Mullion names the binding." },
     ],
     notes: [
-      "Only fixes whose review has settled are taken. A pull request still being argued over upstream is left to finish.",
+      "Only fixes whose review has settled are taken from upstream. A pull request still being argued over is left to finish.",
+      "A fix written here goes no further: Mullion opens nothing against microsoft/terminal.",
     ],
     upstream:
-      "#20086 is open; its fix, PR #20105, is approved in substance and not yet merged. A maintainer asked for the <code>clear</code>/<code>cls</code> path to be covered too, and the author added it; both commits are here.",
+      "#20086 is open; its fix, PR #20105, is approved in substance and not yet merged. A maintainer asked for the <code>clear</code>/<code>cls</code> path to be covered too, and the author added it; both commits are here. #17481, #10109 and #11607 are open with no pull request. #10109 is marked as blocked on WinUI (microsoft-ui-xaml#4930), and for #11607 a maintainer sketched the approach (tag the bar with its pane) without anyone building it.",
   },
 
   "settings-accessibility": {
