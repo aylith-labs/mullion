@@ -86,6 +86,15 @@ concentrated day with Steven in the thread, not a drip.
 
 ## Watching for responses
 
+- **The daily digest** is the cloud routine "Mullion outreach monitor" (07:30 UTC,
+  https://claude.ai/code/routines/trig_015tWF1J55Gv6EjG4B9RotTu). Read-only: it reads
+  `docs/mentions.html` and `log.md` from `main`, checks every listed GitHub PR or issue, and
+  emails steven@aylith.com (subject `[outreach] …`) when anything changed or today's step
+  is due. It keeps its state in the last line of its own sent email. It never posts.
+  The cloud sandbox reaches only repos attached to the routine as sources, so **a new
+  GitHub venue needs adding to the routine's `sources`** (RemoteTrigger update) as well as
+  an entry in `mentions.html`; until then the digest reports it as not checkable.
+
 - **stith watches** (WSL): `stith watch arm --command "<gh probe>" --repeat ...`. They
   can only raise a desktop toast here, not resume a session. One per open PR or
   thread, e.g. 2b25a099 on awesome-terminals#139, 27b67434 on any Microsoft GitHub

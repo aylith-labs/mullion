@@ -93,6 +93,31 @@
 <!-- The posted text of each entry, rendered by GitHub's own Markdown renderer
      and then pointed at this site's copies of the images (GitHub's signed image
      URLs expire within minutes). One template per entry, keyed by its id. -->
+<template id="post-awesome-wsl-124">
+<p>Adds Mullion to Terminals, at the end of the list.</p>
+<p>Mullion is my fork of Windows Terminal (MIT), under active development. The WSL parts are why I think it fits here:</p>
+<ul>
+<li><strong>WSL paths are links.</strong> <code>/home/...</code>, <code>~/...</code>, <code>/mnt/&lt;drive&gt;/...</code> and WSL <code>file://</code> links (fragments included) printed in a WSL pane resolve to the right distribution's <code>\\wsl.localhost\&lt;distro&gt;\...</code> path. <code>~/</code> means the home of whoever printed it, and a path that exists in two distributions is shown as ambiguous rather than guessed.</li>
+<li><strong>Hover previews of those files</strong>: rendered Markdown, highlighted source, images, PDFs, read without leaving the terminal.</li>
+<li><strong>Sessions come back.</strong> Reopening the terminal reattaches the tmux or zellij session a pane was running, instead of opening a fresh shell.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th><code>~/.profile</code> printed in Ubuntu, previewed on hover</th>
+<th>A tmux session reattached after a restart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img class="shot-light" alt="A ~/ path resolved into the WSL distribution" src="media/path-smarts-tilde-light.png"><img class="shot-dark" alt="A ~/ path resolved into the WSL distribution" src="media/path-smarts-tilde-dark.png"></td>
+<td><img class="shot-light" alt="A tmux session reattached after a restart" src="media/resume-toast-light.png"><img class="shot-dark" alt="A tmux session reattached after a restart" src="media/resume-toast-dark.png"></td>
+</tr>
+</tbody>
+</table>
+<p>It ships as a portable ZIP (no MSIX, no Developer Mode): <a href="https://github.com/aylith-labs/mullion/releases/latest">https://github.com/aylith-labs/mullion/releases/latest</a>. Every feature, with screenshots in light and dark: <a href="https://mullion.aylith.com/features" rel="nofollow">https://mullion.aylith.com/features</a></p>
+<p>On trademarks: the entry names Windows Terminal, and the list's notices already cover Windows® as a trademark of Microsoft Corporation. Mullion is an independent fork, not affiliated with or endorsed by Microsoft.</p>
+</template>
 <template id="post-awesome-terminals-139">
 <p>Adds Mullion to the Windows list, after Mosh.</p>
 <p><a href="https://mullion.aylith.com" rel="nofollow"><img class="shot-light" alt="Mullion: Windows Terminal, with more in it" src="media/readme-hero-light.png"><img class="shot-dark" alt="Mullion: Windows Terminal, with more in it" src="media/readme-hero-dark.png"></a></p>
@@ -140,6 +165,9 @@
   // Microsoft, and no email: this is where Mullion was announced or listed.
   // p: the platform, which picks the logo. status: open, merged, live, closed.
   var ENTRIES = [
+    { id: "awesome-wsl-124", d: "2026-10-23T11:36:28Z", p: "github", venue: "sirredbeard/awesome-wsl",
+      kind: "Awesome list", status: "open", title: "Add Mullion to Terminals",
+      url: "https://github.com/sirredbeard/awesome-wsl/pull/124" },
     { id: "awesome-terminals-139", d: "2026-10-20T19:02:34Z", p: "github", venue: "cdleon/awesome-terminals",
       kind: "Awesome list", status: "open", title: "Add Mullion to Windows",
       url: "https://github.com/cdleon/awesome-terminals/pull/139" }
