@@ -764,8 +764,14 @@ namespace winrt::TerminalApp::implementation
                            const winrt::Microsoft::Terminal::Settings::Model::Profile& profile);
         void _OpenElevatedWT(winrt::Microsoft::Terminal::Settings::Model::NewTerminalArgs newTerminalArgs);
 
-        safe_void_coroutine _ConnectionStateChangedHandler(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::Foundation::IInspectable& args);
+        safe_void_coroutine _ConnectionStateChangedHandler(winrt::weak_ref<Microsoft::Terminal::Control::TermControl> weakControl, const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::Foundation::IInspectable& args);
         void _CloseOnExitInfoDismissHandler(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::Foundation::IInspectable& args) const;
+        // GH#11607: the controls whose failed connection the close-on-exit
+        // bar is about, so it can close once none of them is in a pane.
+        std::vector<std::pair<winrt::weak_ref<Microsoft::Terminal::Control::TermControl>, winrt::event_token>> _closeOnExitInfoBarControls;
+        void _trackCloseOnExitInfoBarControl(const Microsoft::Terminal::Control::TermControl& control);
+        void _forgetCloseOnExitInfoBarControls();
+        void _dismissCloseOnExitInfoBarIfOrphaned();
         static bool _IsMessageDismissed(const winrt::Microsoft::Terminal::Settings::Model::InfoBarMessage& message);
         static void _DismissMessage(const winrt::Microsoft::Terminal::Settings::Model::InfoBarMessage& message);
 

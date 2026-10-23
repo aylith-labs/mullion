@@ -3167,7 +3167,14 @@ namespace winrt::TerminalApp::implementation
         // progress indicator on the taskbar
         term.SetTaskbarProgress({ get_weak(), &TerminalPage::_SetTaskbarProgressHandler });
 
-        term.ConnectionStateChanged({ get_weak(), &TerminalPage::_ConnectionStateChangedHandler });
+        // The event's sender is the control's core, which knows nothing of
+        // the control around it, so hand the handler the control as well.
+        term.ConnectionStateChanged([weakThis = get_weak(), weakTerm = winrt::make_weak(term)](auto&& sender, auto&& args) {
+            if (const auto page{ weakThis.get() })
+            {
+                page->_ConnectionStateChangedHandler(weakTerm, sender, args);
+            }
+        });
 
         term.PropertyChanged([weakThis = get_weak()](auto& /*sender*/, auto& e) {
             if (auto page{ weakThis.get() })
@@ -6958,10 +6965,11 @@ namespace winrt::TerminalApp::implementation
     // If the connection state is failure show information bar suggesting to configure termination behavior
     // (unless user asked not to show this message again)
     // Arguments:
+    // - weakControl: the control whose connection changed state
     // - sender: the ICoreState instance containing the connection state
     // Return Value:
     // - <none>
-    safe_void_coroutine TerminalPage::_ConnectionStateChangedHandler(const IInspectable& sender, const IInspectable& /*args*/)
+    safe_void_coroutine TerminalPage::_ConnectionStateChangedHandler(const winrt::weak_ref<TermControl> weakControl, const IInspectable& sender, const IInspectable& /*args*/)
     {
         if (const auto coreState{ sender.try_as<winrt::Microsoft::Terminal::Control::ICoreState>() })
         {
@@ -6980,8 +6988,102 @@ namespace winrt::TerminalApp::implementation
             {
                 if (const auto infoBar = FindName(L"CloseOnExitInfoBar").try_as<MUX::Controls::InfoBar>())
                 {
+                    // A bar the user already closed was about panes they
+                    // have seen; this showing is about this one onwards.
+                    if (!infoBar.IsOpen())
+                    {
+                        _forgetCloseOnExitInfoBarControls();
+                    }
+                    if (const auto control{ weakControl.get() })
+                    {
+                        _trackCloseOnExitInfoBarControl(control);
+                    }
                     infoBar.IsOpen(true);
                 }
+            }
+        }
+    }
+
+    // Method Description:
+    // - GH#11607: remembers that the close-on-exit bar is showing because of
+    //   this control, and listens for it leaving the tree.
+    void TerminalPage::_trackCloseOnExitInfoBarControl(const TermControl& control)
+    {
+        for (const auto& [weak, token] : _closeOnExitInfoBarControls)
+        {
+            if (weak.get() == control)
+            {
+                return;
+            }
+        }
+
+        const auto token = control.Unloaded([weakThis = get_weak()](auto&&, auto&&) {
+            if (const auto page{ weakThis.get() })
+            {
+                page->_dismissCloseOnExitInfoBarIfOrphaned();
+            }
+        });
+        _closeOnExitInfoBarControls.emplace_back(winrt::make_weak(control), token);
+    }
+
+    void TerminalPage::_forgetCloseOnExitInfoBarControls()
+    {
+        for (const auto& [weak, token] : _closeOnExitInfoBarControls)
+        {
+            if (const auto control{ weak.get() })
+            {
+                control.Unloaded(token);
+            }
+        }
+        _closeOnExitInfoBarControls.clear();
+    }
+
+    // Method Description:
+    // - GH#11607: closes the close-on-exit bar once every pane it was shown
+    //   for has been closed, which is what closing that pane should do.
+    // - Unloaded alone does not mean closed: switching tabs, zooming a pane
+    //   and re-parenting one on a split all unload controls that are still
+    //   very much in use. So a control only counts as gone once no pane in
+    //   this window holds it.
+    void TerminalPage::_dismissCloseOnExitInfoBarIfOrphaned()
+    {
+        if (_closeOnExitInfoBarControls.empty())
+        {
+            return;
+        }
+
+        std::vector<TermControl> liveControls;
+        for (const auto& tab : _tabs)
+        {
+            if (const auto impl{ _GetTabImpl(tab) })
+            {
+                impl->GetRootPane()->WalkTree([&](auto&& pane) {
+                    if (const auto control{ pane->GetTerminalControl() })
+                    {
+                        liveControls.push_back(control);
+                    }
+                });
+            }
+        }
+
+        std::erase_if(_closeOnExitInfoBarControls, [&](const auto& entry) {
+            const auto control{ entry.first.get() };
+            if (control && std::find(liveControls.begin(), liveControls.end(), control) != liveControls.end())
+            {
+                return false;
+            }
+            if (control)
+            {
+                control.Unloaded(entry.second);
+            }
+            return true;
+        });
+
+        if (_closeOnExitInfoBarControls.empty())
+        {
+            if (const auto infoBar = FindName(L"CloseOnExitInfoBar").try_as<MUX::Controls::InfoBar>())
+            {
+                infoBar.IsOpen(false);
             }
         }
     }
