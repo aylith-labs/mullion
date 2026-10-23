@@ -218,8 +218,92 @@ namespace winrt::TerminalApp::implementation
             }
         });
 
+        // GH#10109: the close button's tooltip is set by WinUI when the
+        // template is applied, and it names Ctrl+F4, which nothing binds
+        // here. Loaded comes after that, and again whenever the item is put
+        // back into the tree, so the real binding is restored each time.
+        TabViewItem().Loaded([weakThis = get_weak()](auto&&, auto&&) {
+            if (auto tab{ weakThis.get() })
+            {
+                tab->_UpdateCloseButtonToolTip();
+            }
+        });
+
         UpdateTitle();
         _RecalculateAndApplyTabColor();
+    }
+
+    // Method Description:
+    // - Replaces the "Close Tab (Ctrl+F4)" tooltip WinUI puts on the tab's
+    //   close button with "Close tab", followed by the key bound to closeTab
+    //   when there is one. Does nothing until the template has been applied.
+    void Tab::_UpdateCloseButtonToolTip()
+    {
+        const auto tabViewItem{ TabViewItem() };
+        if (!tabViewItem)
+        {
+            return;
+        }
+
+        const auto findCloseButton = [](const auto& self, const DependencyObject& root) -> WUX::Controls::Button {
+            const auto count{ WUX::Media::VisualTreeHelper::GetChildrenCount(root) };
+            for (int32_t i = 0; i < count; i++)
+            {
+                const auto child{ WUX::Media::VisualTreeHelper::GetChild(root, i) };
+                if (const auto button{ child.try_as<WUX::Controls::Button>() }; button && button.Name() == L"CloseButton")
+                {
+                    return button;
+                }
+                if (const auto found{ self(self, child) })
+                {
+                    return found;
+                }
+            }
+            return nullptr;
+        };
+
+        const auto closeButton{ findCloseButton(findCloseButton, tabViewItem) };
+        if (!closeButton)
+        {
+            return;
+        }
+
+        // closeTab ships unbound, so it has no Terminal.* id to look up: a
+        // user's binding arrives as User.closeTab, or with a hash of its
+        // args appended. Match on the action instead. One that names an
+        // index closes some other tab, so it is not this button's shortcut.
+        KeyChord keyChord{ nullptr };
+        if (_actionMap)
+        {
+            for (const auto& binding : _actionMap.KeyBindings())
+            {
+                const auto command{ binding.Value() };
+                if (!command)
+                {
+                    continue;
+                }
+                const auto actionAndArgs{ command.ActionAndArgs() };
+                if (!actionAndArgs || actionAndArgs.Action() != ShortcutAction::CloseTab)
+                {
+                    continue;
+                }
+                if (const auto args{ actionAndArgs.Args().try_as<CloseTabArgs>() }; args && args.Index())
+                {
+                    continue;
+                }
+                // Ask for the id's chord rather than taking this one, so a
+                // command bound to several keys shows the same one the
+                // command palette does.
+                keyChord = _actionMap.GetKeyBindingForAction(command.ID());
+                if (!keyChord)
+                {
+                    keyChord = binding.Key();
+                }
+                break;
+            }
+        }
+        const auto text{ keyChord ? RS_(L"TabClose") + L" (" + KeyChordSerialization::ToString(keyChord) + L")" : RS_(L"TabClose") };
+        WUX::Controls::ToolTipService::SetToolTip(closeButton, box_value(text));
     }
 
     void Tab::_UpdateHeaderControlMaxWidth(const WindowSettings& windowSettings)
@@ -253,6 +337,7 @@ namespace winrt::TerminalApp::implementation
 
         _actionMap = actionMap;
         _UpdateSwitchToTabKeyChord();
+        _UpdateCloseButtonToolTip();
     }
 
     // Method Description:
