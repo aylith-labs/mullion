@@ -7,7 +7,9 @@ allows, and that Windows Terminal had no way to do at all:
 - **enumerate** the panes of every window in the process,
 - **read** what is on a pane's screen,
 - **write** text into a specific pane's connection,
-- **focus** a specific pane: select its tab, focus it, and bring its window forward.
+- **focus** a specific pane: select its tab, focus it, and bring its window forward,
+- **run an action** in a specific pane, any action `settings.json` can bind to a key, without
+  pressing that key.
 
 This is a fork-only feature. Upstream has refused `wt send-input` twice (microsoft/terminal#9368,
 PR #20106) over the injection risk, and the automation surface they *are* building
@@ -76,6 +78,7 @@ Every response carries `"ok"`. On failure:
 | `needle-gone` | `requireContains` was not on the pane's screen. **Nothing was written.** |
 | `disconnected` | The pane's connection has already closed. **Nothing was written.** |
 | `missing-reason` | The request had no `reason` or no `caller` (see below). **Nothing was done**; the response also carries a `message` saying what to add. |
+| `bad-action` | `run-action` only: the `action` is a name or an object, but the settings model does not read it as an action (an unknown name, `"unbound"`, arguments its parser refuses). **Nothing was done**, not even the focus move. |
 
 Unknown members in a request are ignored, so adding a field later doesn't break an existing client.
 
@@ -208,15 +211,52 @@ session learns it without a second `list-panes`.
 own pipe, so a client looking for a session asks each `wt-control-*` pipe in turn and stops at the
 first `ok`.
 
+### run-action
+
+```json
+{"op":"run-action","pane":"1.0.3","action":"clearBuffer"}
+{"op":"run-action","pane":"1.0.3","action":{"action":"scrollUp","rowsToScroll":10}}
+{"op":"run-action","pane":"1.0.3","action":{"action":"commandPalette","launchMode":"commandLine"}}
+{"op":"run-action","pane":"1.0.3","action":{"action":"openSettings","target":"settingsUI"}}
+{"ok":true,"handled":true}
+```
+
+Runs one action in that pane as if its key binding had been pressed. `action` is exactly what
+`settings.json` puts under `"command"`: the name on its own, or an object with `"action"` and its
+arguments. It is read by the settings model's own action parser (`ActionAndArgs::Deserialize`), so
+the vocabulary is the settings file's, every action and every argument, and anything the settings
+file would not accept is refused the same way. A name or an object that does not come out as an
+action is `bad-action`; an `action` that is not a string or an object at all is `bad-request`.
+
+A key binding acts on the focused tab and its active pane, so the target is made that first —
+inside the window only. The pane's tab is selected and the pane made active within it (a tab zoomed
+onto another pane is unzoomed), each step skipped when it is already so. **The window is not
+raised, restored or activated**; there is no summon, unlike `focus-pane`. An action whose own job is
+to show a window (`globalSummon`, `quakeMode`) still does that, because that is what it does from a
+key too. Then the action goes through the window's normal dispatch, the same one a key binding
+uses.
+
+`handled` is the dispatcher's answer: `false` is an action that parsed but that nothing took here
+(`copy` with no selection, `scrollToMark` with no marks), which is not an error. An action that
+opens UI — the command palette, a dialog, the settings tab — returns as soon as the UI is up; it
+does not wait for it to close.
+
+`run-action` is the in-window counterpart of upstream's microsoft/terminal#9994 ("Allow for
+ExecuteCommandline actions to be called straight from the commandline", tracked in #4632), which
+asks for the same reach from `wt.exe`. Nothing upstream runs an arbitrary action against a running
+window.
+
 ## Guarantees
 
 - **No key synthesis.** Nothing goes through `SendInput`, `keybd_event`, `SendKeys` or the message
   queue. Text goes to the connection.
-- **No focus involvement, except in `focus-pane`.** `list-panes`, `capture-pane` and `send-input`
-  never call `SetForegroundWindow`, activate a window, switch a tab or call `Focus()`. They work with
-  the target window minimised, on another virtual desktop, and with the pane in a background tab,
-  and the user's focus is exactly where it was before the call. `focus-pane` is the one op whose
-  whole job is to move focus, and it moves it only when asked.
+- **No focus involvement, except in `focus-pane` and `run-action`.** `list-panes`, `capture-pane`
+  and `send-input` never call `SetForegroundWindow`, activate a window, switch a tab or call
+  `Focus()`. They work with the target window minimised, on another virtual desktop, and with the
+  pane in a background tab, and the user's focus is exactly where it was before the call.
+  `focus-pane` is the one op whose whole job is to move focus, and it moves it only when asked.
+  `run-action` moves it only inside the target window — tab and pane — and never summons or
+  activates that window; what the action itself does with focus is the action's business.
 - **No UI-thread blocking.** Accept, read, parse, serialise and process-name lookups all happen on
   the pipe threads. Only the pane touch is marshalled to the UI thread, and a stuck or dead client
   blocks nothing but its own thread.
@@ -231,8 +271,14 @@ The pipe can type into the user's shells, so:
 
 - The DACL is the whole story: current user SID only, no `PIPE_ACCESS_*` defaults, not Everyone, not
   Authenticated Users, no remote clients.
-- The op set is exactly the five above. There is no "run this", no file access, no settings
-  mutation, no way to spawn a pane or a process, no way to close one.
+- The op set is exactly the six above. Five of them have no file access, no settings mutation, no
+  way to spawn a pane or a process and no way to close one.
+- `run-action` is the exception, and knowingly so: it can do anything a key binding can, which
+  includes opening tabs and panes (and so starting processes), closing them, and opening the
+  settings file in an editor. It is not an allow-list, because the point is that the vocabulary is
+  the settings file's. It widens nothing an attacker on the pipe did not already have: `send-input`
+  can type any command into a live shell, which is strictly more than any action can do. What it
+  adds is the app's own commands, recorded like every other request.
 - `focus-pane` widens nothing an attacker could use. Focus is not input: it types nothing, and a
   caller who can reach the pipe can already write into any pane directly with `send-input`, which is
   strictly more powerful. What it can do is pull a window to the front, which is the same thing a
@@ -255,13 +301,13 @@ writing garbage into the pipe is exactly the one worth knowing about. Two places
 |---|---|
 | `exe`, `pid` | The **client**: the process on the other end of the pipe (`GetNamedPipeClientProcessId`), asked once per connection. |
 | `parentExe`, `parentPid` | Its parent. Clients are often a short-lived `powershell.exe`; the parent is what started it. |
-| `commandLine` | What was asked, on one line: `send-input 1.0.3 "echo hi\r"`. Control characters are spelled out, so whether the Enter was sent is visible. |
+| `commandLine` | What was asked, on one line: `send-input 1.0.3 "echo hi\r"`. Control characters are spelled out, so whether the Enter was sent is visible. A `run-action` shows its action as the JSON it was sent as: `run-action 1.0.3 {"action":"scrollUp","rowsToScroll":10}`, or `run-action 1.0.3 "clearBuffer"`. |
 | `ancestry` | The parent and every ancestor Windows still knows, nearest first: `wslhost.exe 20440 < wsl.exe 1234`. The walk stops at a pid whose process is younger than its child (a reused pid) rather than name a stranger. |
 | `reason`, `caller` | What the client said: why it asked, and who it is. Empty on a request refused for lacking them. |
-| `outcome` | How it ended: `ok`, or the error code it was answered, plus what came back (`3 panes`, `812 chars`, the pane focus-pane landed on). Records written before version 2 kept this in `reason`; the Activity page reads them that way. |
+| `outcome` | How it ended: `ok`, or the error code it was answered, plus what came back (`3 panes`, `812 chars`, the pane focus-pane landed on, `handled` or `not handled` for run-action). Records written before version 2 kept this in `reason`; the Activity page reads them that way. |
 | `op`, `target`, `result` | The same, unpacked, for a script that would rather not parse `commandLine`. |
 
-send-input text is kept in full up to 4096 characters, then cut with a count of what was dropped;
+send-input text and a run-action's JSON are kept in full up to 4096 characters, then cut with a count of what was dropped;
 filters and needles up to 256; an unparsed line's first 512 bytes. The log is governed by the
 `activityLog` and `activityLogMaxKilobytes` settings like every other event - turning the activity
 log off stops recording pipe requests too.
@@ -288,7 +334,8 @@ so the client already has its answer before any of this happens.
 | Wire format: parsing, formatting, pane ids | `src/cascadia/WindowsTerminal/ControlPipeProtocol.h` |
 | The pipe itself: threads, DACL, framing, I/O | `src/cascadia/WindowsTerminal/ControlPipeServer.cpp` |
 | Marshalling onto the UI thread (`WM_CONTROL_PIPE_REQUEST`), window enumeration | `src/cascadia/WindowsTerminal/WindowEmperor.cpp` |
-| Pane enumeration, capture, input and focus, per window | `src/cascadia/TerminalApp/TerminalPage.ControlPipe.cpp` |
+| Pane enumeration, capture, input, focus and actions, per window | `src/cascadia/TerminalApp/TerminalPage.ControlPipe.cpp` |
+| Reading an action (`run-action`) | `ActionAndArgs::Deserialize`, the settings model's own parser |
 | Viewport read and match | `ControlCore::ReadViewportText`, `ControlCore::ViewportContains` |
 | Tests for the wire format | `src/cascadia/UnitTests_Control/ControlPipeProtocolTests.cpp` |
 | Describing a request for the record (`DescribeRequest`, `SummarizeCall`) | `src/cascadia/WindowsTerminal/ControlPipeProtocol.h` |
@@ -320,9 +367,11 @@ $w.WriteLine('{"op":"list-panes",' + $who + '}'); $r.ReadLine()
 $w.WriteLine('{"op":"capture-pane","pane":"1.0.0","lines":20,' + $who + '}'); $r.ReadLine()
 $w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"echo hello-from-the-pipe",' + $who + '}'); $r.ReadLine()
 $w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"`r",' + $who + '}'); $r.ReadLine()
+$w.WriteLine('{"op":"run-action","pane":"1.0.0","action":"clearBuffer",' + $who + '}'); $r.ReadLine()
 ```
 
-The command runs in that pane, and the window stays minimised and unfocused throughout.
+The command runs in that pane, the buffer is then cleared, and the window stays minimised and
+unfocused throughout.
 
 ## Relationship to upstream
 
@@ -333,7 +382,7 @@ The command runs in that pane, and the window stays minimised and unfocused thro
 | Pane addressing | `window.tab.pane` | connection `SessionId` GUID |
 | Read | viewport-bounded | `ReadEntireBuffer()`, then split |
 | Write into a pane | yes, with an atomic guard | **no, by design** |
-| Mutating ops (new-tab, split, kill, focus) | focus only | yes |
+| Mutating ops (new-tab, split, kill, focus) | focus, and any bindable action through `run-action` | yes |
 
 The overlap is real but the shapes don't compose: upstream's surface omits the one operation this
 exists for, and its transport can't be reached from where the client lives. If `wtcli` lands, the

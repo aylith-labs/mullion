@@ -87,7 +87,18 @@ namespace TerminalApp
         // requireContains was not on the pane's screen; nothing was written.
         NeedleGone = 2,
         // The pane's connection has already closed; nothing was written.
-        Disconnected = 3
+        Disconnected = 3,
+        // run-action: the settings model did not read the JSON as an action;
+        // nothing was done.
+        BadAction = 4
+    };
+
+    struct ControlPipeActionResult
+    {
+        ControlPipeStatus Status;
+        // Only meaningful when Status is Ok: whether a handler took the action,
+        // the same answer a key binding gets.
+        Boolean Handled;
     };
 
     // Deliberately carries no pane text: enumerating panes is on the caller's

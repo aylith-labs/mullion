@@ -9,10 +9,12 @@
 //
 // Two rules this file exists to keep:
 //
-// * Only focus-pane moves focus, because moving it is its whole job. Listing,
-//   capturing and writing never focus, activate, summon or switch anything: a
-//   control client has to be able to read and write a pane in a background tab
-//   of a minimised window without the user's focus moving a pixel.
+// * Only focus-pane and run-action move focus. focus-pane because moving it is
+//   its whole job; run-action only inside the window, because an action acts on
+//   the focused pane and it never raises the window. Listing, capturing and
+//   writing never focus, activate, summon or switch anything: a control client
+//   has to be able to read and write a pane in a background tab of a minimised
+//   window without the user's focus moving a pixel.
 // * Input goes to the connection, never through the keyboard. We call the same
 //   TermControl::SendInput the sendInput action uses.
 
@@ -215,6 +217,77 @@ namespace winrt::TerminalApp::implementation
         }
         tabImpl->FocusPane(paneId);
         return TerminalApp::ControlPipeStatus::Ok;
+    }
+
+    // Runs one action as if its key binding had been pressed in that pane.
+    //
+    // The vocabulary is settings.json's, because the parse is the settings
+    // model's own: ActionAndArgs::Deserialize is what reads a serialized action
+    // list everywhere else, so a name or an argument it would not accept in a
+    // settings file is refused here the same way.
+    //
+    // A key binding is dispatched with no sender, so its handler acts on the
+    // focused tab and its active pane. Making the target that pane first is
+    // therefore what "in that pane" means, and it is done the way
+    // ControlPipeFocusPane does it minus the summon: the tab is selected and
+    // the pane made active inside this window, and the window itself is
+    // neither raised nor activated. Each step is skipped when it is already
+    // true, so an action on the pane the user is looking at moves nothing.
+    TerminalApp::ControlPipeActionResult TerminalPage::ControlPipeRunAction(uint32_t tabIndex, uint32_t paneId, hstring action)
+    {
+        TerminalApp::ControlPipeActionResult result{};
+        result.Status = TerminalApp::ControlPipeStatus::NoSuchPane;
+
+        const auto pane = _controlPipeFindPane(tabIndex, paneId);
+        if (!pane || !pane->GetTerminalControl())
+        {
+            return result;
+        }
+
+        winrt::Microsoft::Terminal::Settings::Model::ActionAndArgs parsed{ nullptr };
+        try
+        {
+            // Deserialize reads an "actions" array of exactly what settings.json
+            // holds under "command", which is what the client sent.
+            const auto list = winrt::Microsoft::Terminal::Settings::Model::ActionAndArgs::Deserialize(
+                hstring{ L"{\"actions\":[" + std::wstring{ action } + L"]}" });
+            if (list && list.Size() == 1)
+            {
+                parsed = list.GetAt(0);
+            }
+        }
+        catch (...)
+        {
+            // A client's malformed action is the client's error, answered as
+            // bad-action below; it is not worth an app error in the log.
+        }
+
+        // Invalid is what the model makes of an unknown name, of "unbound", and
+        // of arguments its parser refused.
+        if (!parsed || parsed.Action() == winrt::Microsoft::Terminal::Settings::Model::ShortcutAction::Invalid)
+        {
+            result.Status = TerminalApp::ControlPipeStatus::BadAction;
+            return result;
+        }
+
+        // _controlPipeFindPane already proved the tab and its root exist.
+        const auto tabImpl = _GetTabImpl(_tabs.GetAt(tabIndex));
+        if (const auto focusedTab = _GetFocusedTabIndex(); !focusedTab || *focusedTab != tabIndex)
+        {
+            _SelectTab(tabIndex);
+        }
+        if (tabImpl->GetActivePane() != pane)
+        {
+            if (tabImpl->IsZoomed())
+            {
+                _UnZoomIfNeeded();
+            }
+            tabImpl->FocusPane(paneId);
+        }
+
+        result.Status = TerminalApp::ControlPipeStatus::Ok;
+        result.Handled = _actionDispatch->DoAction(parsed);
+        return result;
     }
 
     // A request was answered on this process's pipe. The tab row counts it and

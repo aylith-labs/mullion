@@ -579,6 +579,10 @@ std::string ControlPipeServer::_dispatch(const ControlPipe::Request& request, Ou
         return ControlPipe::FocusPaneResponse(exchange.focused);
     }
 
+    case ControlPipe::Op::RunAction:
+        outcome.note = exchange.handled ? L"handled" : L"not handled";
+        return ControlPipe::RunActionResponse(exchange.handled);
+
     case ControlPipe::Op::SendInput:
     default:
         return ControlPipe::OkResponse();

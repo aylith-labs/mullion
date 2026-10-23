@@ -40,6 +40,7 @@ namespace ControlPipe
         CapturePane,
         SendInput,
         FocusPane,
+        RunAction,
     };
 
     enum class Error
@@ -49,6 +50,7 @@ namespace ControlPipe
         NeedleGone,
         Disconnected,
         MissingReason,
+        BadAction,
     };
 
     inline std::string_view ErrorCode(Error error) noexcept
@@ -57,6 +59,8 @@ namespace ControlPipe
         {
         case Error::MissingReason:
             return "missing-reason";
+        case Error::BadAction:
+            return "bad-action";
         case Error::NoSuchPane:
             return "no-such-pane";
         case Error::NeedleGone:
@@ -279,6 +283,11 @@ namespace ControlPipe
         std::wstring requireContains;
         // capture-pane row count. 0 means "the whole viewport".
         int32_t lines{};
+        // run-action: the action exactly as settings.json would spell it, a
+        // name ("clearBuffer") or an object ({"action":"scrollUp","rowsToScroll":5}),
+        // re-serialized as compact JSON. Only its shape is checked here; whether
+        // it names an action is the settings model's call, on the UI thread.
+        std::wstring action;
 
         // Required on every request, ping included: why it was sent, and the
         // program and code path that sent it. The pipe can only see the process
@@ -367,6 +376,10 @@ namespace ControlPipe
         else if (op == "focus-pane")
         {
             request.op = Op::FocusPane;
+        }
+        else if (op == "run-action")
+        {
+            request.op = Op::RunAction;
         }
         else
         {
@@ -465,9 +478,33 @@ namespace ControlPipe
             }
         }
 
+        // `action` is read for run-action only. A name or an object is the
+        // shape settings.json gives an action; anything else (a number, an
+        // array, null) is a malformed field rather than an unknown action.
+        auto hasAction = false;
+        if (request.op == Op::RunAction && root.isMember("action"))
+        {
+            const auto& value = root["action"];
+            if (!value.isString() && !value.isObject())
+            {
+                return std::nullopt;
+            }
+            auto widened = details::Widen(details::Serialize(value));
+            if (!widened)
+            {
+                return std::nullopt;
+            }
+            request.action = std::move(*widened);
+            hasAction = true;
+        }
+
         // A pane op without a pane, or a send-input without text, is a client
         // bug rather than a missing pane - say so.
-        if ((request.op == Op::CapturePane || request.op == Op::SendInput) && !request.pane)
+        if ((request.op == Op::CapturePane || request.op == Op::SendInput || request.op == Op::RunAction) && !request.pane)
+        {
+            return std::nullopt;
+        }
+        if (request.op == Op::RunAction && !hasAction)
         {
             return std::nullopt;
         }
@@ -586,6 +623,17 @@ namespace ControlPipe
         return details::Serialize(root);
     }
 
+    // Whether anything handled the action, the same answer a key binding gets:
+    // false is an action that parsed but did nothing here (copy with no
+    // selection, say), which is not an error.
+    inline std::string RunActionResponse(bool handled)
+    {
+        Json::Value root{ Json::objectValue };
+        root["ok"] = true;
+        root["handled"] = handled;
+        return details::Serialize(root);
+    }
+
     // ---------------------------------------------------------------------
     // Recording. Every request is written to the activity log and listed on
     // the tab row's pipe badge; these put a request into the words both of
@@ -613,6 +661,8 @@ namespace ControlPipe
             return L"send-input";
         case Op::FocusPane:
             return L"focus-pane";
+        case Op::RunAction:
+            return L"run-action";
         case Op::Ping:
         default:
             return L"ping";
@@ -756,6 +806,28 @@ namespace ControlPipe
             if (!request.requireContains.empty())
             {
                 description.detail += L" requireContains " + details::Quote(request.requireContains, MaxRecordedNeedleChars);
+            }
+            break;
+        case Op::RunAction:
+            // Kept as the JSON it was, which is already one line with its
+            // control characters escaped, so it reads back as settings.json
+            // would write it. A sendInput action carries text, so it gets the
+            // same cap as send-input.
+            if (request.action.size() <= MaxRecordedTextChars)
+            {
+                description.detail = request.action;
+            }
+            else
+            {
+                auto kept = MaxRecordedTextChars;
+                if (IS_HIGH_SURROGATE(request.action[kept - 1]))
+                {
+                    kept--;
+                }
+                description.detail = request.action.substr(0, kept);
+                description.detail.append(L" ...+");
+                description.detail.append(std::to_wstring(request.action.size() - kept));
+                description.detail.append(L" chars");
             }
             break;
         case Op::Ping:

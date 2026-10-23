@@ -67,6 +67,8 @@ struct ControlPipeExchange
     std::wstring text;
     // focus-pane: the pane that was focused.
     ControlPipe::PaneAddress focused;
+    // run-action: whether anything handled the action.
+    bool handled{};
 };
 
 class ControlPipeServer

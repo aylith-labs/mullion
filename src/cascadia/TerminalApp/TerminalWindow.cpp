@@ -1433,6 +1433,15 @@ namespace winrt::TerminalApp::implementation
         return _root->ControlPipeFocusPane(tabIndex, paneId);
     }
 
+    winrt::TerminalApp::ControlPipeActionResult TerminalWindow::ControlPipeRunAction(uint32_t tabIndex, uint32_t paneId, winrt::hstring action)
+    {
+        if (!_root)
+        {
+            return { winrt::TerminalApp::ControlPipeStatus::NoSuchPane, false };
+        }
+        return _root->ControlPipeRunAction(tabIndex, paneId, std::move(action));
+    }
+
     void TerminalWindow::ControlPipeCallRecorded(const winrt::TerminalApp::ControlPipeCall& call)
     {
         if (_root)

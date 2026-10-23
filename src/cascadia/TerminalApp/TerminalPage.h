@@ -219,6 +219,7 @@ namespace winrt::TerminalApp::implementation
         TerminalApp::ControlPipeCaptureResult ControlPipeCapturePane(uint32_t tabIndex, uint32_t paneId, int32_t lines);
         TerminalApp::ControlPipeStatus ControlPipeSendInput(uint32_t tabIndex, uint32_t paneId, hstring text, hstring requireContains);
         TerminalApp::ControlPipeStatus ControlPipeFocusPane(uint32_t tabIndex, uint32_t paneId);
+        TerminalApp::ControlPipeActionResult ControlPipeRunAction(uint32_t tabIndex, uint32_t paneId, hstring action);
         void ControlPipeCallRecorded(const TerminalApp::ControlPipeCall& call);
 
         void ToggleFocusMode();

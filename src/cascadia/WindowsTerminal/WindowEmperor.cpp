@@ -667,6 +667,34 @@ void WindowEmperor::_handleControlPipeRequest(ControlPipeExchange& exchange) con
         return;
     }
 
+    case ControlPipe::Op::RunAction:
+    {
+        // No summon here, unlike focus-pane: the action runs in the window
+        // where it is, and an action whose own job is to show a window
+        // (globalSummon, quakeMode) is the only thing that raises one.
+        const auto host = GetWindowById(request.pane->window);
+        if (!host)
+        {
+            exchange.error = ControlPipe::Error::NoSuchPane;
+            return;
+        }
+
+        const auto result = host->Logic().ControlPipeRunAction(request.pane->tab, request.pane->pane, winrt::hstring{ request.action });
+        switch (result.Status)
+        {
+        case winrt::TerminalApp::ControlPipeStatus::Ok:
+            exchange.handled = result.Handled;
+            return;
+        case winrt::TerminalApp::ControlPipeStatus::BadAction:
+            exchange.error = ControlPipe::Error::BadAction;
+            return;
+        case winrt::TerminalApp::ControlPipeStatus::NoSuchPane:
+        default:
+            exchange.error = ControlPipe::Error::NoSuchPane;
+            return;
+        }
+    }
+
     default:
         exchange.error = ControlPipe::Error::BadRequest;
         return;
