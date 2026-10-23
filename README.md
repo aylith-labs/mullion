@@ -13,6 +13,14 @@ ever take them. Named for the upright bar between window panes.
 [![Build](https://github.com/aylith-labs/mullion/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/aylith-labs/mullion/actions/workflows/build.yml)
 &nbsp;·&nbsp; **[mullion.aylith.com](https://mullion.aylith.com)**: the feature tour, with screenshots
 
+## Try it
+
+Download `mullion-windows-x64-portable.zip` from the
+[latest release](https://github.com/aylith-labs/mullion/releases/latest), extract the whole
+archive into a writable folder, and run `mullion.exe`. Settings stay beside the application,
+and nothing is installed or registered: no MSIX, no Developer Mode. Windows 10 version 2004
+or newer, x64.
+
 ## What it adds
 
 ### Links that do something
