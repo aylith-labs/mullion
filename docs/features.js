@@ -51,7 +51,7 @@ window.FEATURES = [
     cat: "automation", catLabel: "Automation",
     standout: true,
     dateAdded: "2026-08-16",
-    commits: ["7ef36403f","1c4da28dd","2d34e2e63","d915f8d41"], files: 25, ins: 2340, del: 37,
+    commits: ["7ef36403f","1c4da28dd","2d34e2e63","d915f8d41","9fe6492e2"], files: 25, ins: 2695, del: 135,
     desc: "Every window opens a local pipe another program can use: list which tabs and panes exist, read back exactly what a specific pane printed, type into it directly, or run any action a key could trigger — no simulated keystrokes, no guessing which window has focus. Scoped to your own user account, with a settings switch to turn it off entirely. Microsoft considered this exact capability twice (issue #9368, PR #20106) and passed; their own automation surface can't reach a pane running inside WSL.",
   },
   {

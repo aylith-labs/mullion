@@ -176,14 +176,14 @@ window.FEATURE_DETAILS = {
     problem:
       "Automating a terminal from outside usually means faking keystrokes at the window that happens to have focus. That breaks the moment focus moves, races anything else typing, and cannot read back what a pane actually printed. Upstream's own automation surface additionally cannot see into a pane running inside WSL.",
     how:
-      "Each window serves a named pipe, <code>\\\\.\\pipe\\wt-control-&lt;pid&gt;</code>, speaking newline-delimited JSON. The core operations are <code>ping</code>, <code>list-panes</code>, <code>capture-pane</code> and <code>send-input</code>; <code>focus-pane</code> and <code>run-action</code> came later. <code>run-action</code> takes an action exactly as <code>settings.json</code> spells it, read by the settings model's own parser, and runs it in the named pane as if its key had been pressed, without raising the window. The pipe is created with a DACL granting the current user's SID and nothing else, and rejects remote clients. It cannot change settings, and every request is recorded.",
+      "Each window serves a named pipe, <code>\\\\.\\pipe\\wt-control-&lt;pid&gt;</code>, speaking newline-delimited JSON. The core operations are <code>ping</code>, <code>list-panes</code>, <code>capture-pane</code> and <code>send-input</code>; <code>focus-pane</code> and <code>run-action</code> came later. <code>run-action</code> takes an action exactly as <code>settings.json</code> spells it, read by the settings model's own parser, and runs it in the named pane as if its key had been pressed, without raising the window. It must name text the pane is showing, so a stale address does nothing, and it refuses the few actions that would open a window, run a modal loop, elevate or write the settings file. The pipe is created with a DACL granting the current user's SID and nothing else, and rejects remote clients. It cannot change settings, and every request is recorded.",
     steps: [
       "Leave <code>controlPipe</code> on (it is by default), or set it to false to close the pipe entirely.",
       "Find the pipe: it is named after the Terminal process id, so a client can enumerate <code>\\\\.\\pipe\\wt-control-*</code> and talk to every Terminal running.",
       "Send <code>{\"op\":\"list-panes\"}</code> to see every window, tab and pane, with the process each is running.",
       "Send <code>{\"op\":\"capture-pane\",\"pane\":\"1.0.0\",\"lines\":20}</code> to read back what that pane printed.",
       "Send <code>{\"op\":\"send-input\",\"pane\":\"1.0.0\",\"text\":\"...\"}</code>, then <code>\"\\r\"</code> as a second call, to type into it.",
-      "Send <code>{\"op\":\"run-action\",\"pane\":\"1.0.0\",\"action\":\"clearBuffer\"}</code> to run an action in that pane; any action <code>settings.json</code> can bind works, with its arguments as an object.",
+      "Send <code>{\"op\":\"run-action\",\"pane\":\"1.0.0\",\"requireContains\":\"...\",\"action\":\"clearBuffer\"}</code> to run an action in that pane, as long as it still shows that text; nearly any action <code>settings.json</code> can bind works, with its arguments as an object.",
     ],
     settings: [
       { key: "controlPipe", def: "true", note: "Serve the pipe. Set false to turn it off completely." },
