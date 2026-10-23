@@ -486,7 +486,7 @@ window.FEATURE_DETAILS = {
 
   "integration-pages": {
     media: [
-      { kind: "compare", before: "integration-pages-card-upstream", after: "integration-pages-card", caption: "Hovering a GitHub link: a bare URL tooltip upstream; the service's own page inside the card in Mullion." },
+      { kind: "compare", before: "integration-pages-card-upstream", after: "integration-pages-card", caption: "Hovering a Stith session link: a bare URL tooltip upstream; Stith's own session page inside the card in Mullion, after Show Stith page." },
     ],
     problem:
       "Some services already have a better view of a thing than any card could rebuild. Stith's session view has tabs, grouped sections and live state; the card had a dozen flat fields, and the real page meant leaving the terminal for a browser.",
