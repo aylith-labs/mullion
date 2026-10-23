@@ -159,7 +159,7 @@ namespace winrt::TerminalApp::implementation
         winrt::TerminalApp::ControlPipeCaptureResult ControlPipeCapturePane(uint32_t tabIndex, uint32_t paneId, int32_t lines);
         winrt::TerminalApp::ControlPipeStatus ControlPipeSendInput(uint32_t tabIndex, uint32_t paneId, winrt::hstring text, winrt::hstring requireContains);
         winrt::TerminalApp::ControlPipeStatus ControlPipeFocusPane(uint32_t tabIndex, uint32_t paneId);
-        winrt::TerminalApp::ControlPipeActionResult ControlPipeRunAction(uint32_t tabIndex, uint32_t paneId, winrt::hstring action);
+        winrt::TerminalApp::ControlPipeActionResult ControlPipeRunAction(uint32_t tabIndex, uint32_t paneId, winrt::hstring action, winrt::hstring requireContains);
         void ControlPipeCallRecorded(const winrt::TerminalApp::ControlPipeCall& call);
 
         // -------------------------------- WinRT Events ---------------------------------

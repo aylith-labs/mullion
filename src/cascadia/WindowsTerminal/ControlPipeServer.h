@@ -65,7 +65,7 @@ struct ControlPipeExchange
     std::vector<ControlPipe::PaneEntry> panes;
     // capture-pane
     std::wstring text;
-    // focus-pane: the pane that was focused.
+    // focus-pane: the pane that was focused. run-action: the pane it ran in.
     ControlPipe::PaneAddress focused;
     // run-action: whether anything handled the action.
     bool handled{};

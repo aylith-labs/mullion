@@ -526,6 +526,36 @@ void WindowEmperor::_handleControlPipeRequest(ControlPipeExchange& exchange) con
 
     const auto& request = *exchange.request;
 
+    // focus-pane and run-action name their pane by address or by session id.
+    // A session id is looked up by the same walk list-panes does, so the ops
+    // can never disagree about which pane carries it; nothing yields between
+    // this lookup and what the op then does to the pane.
+    const auto resolvePane = [&](AppHost*& target, ControlPipe::PaneAddress& address) {
+        target = nullptr;
+        if (request.session)
+        {
+            const winrt::guid session{ *request.session };
+            for (const auto& host : _windows)
+            {
+                const auto logic = host->Logic();
+                for (const auto& pane : logic.ControlPipeListPanes({}))
+                {
+                    if (pane.SessionId == session)
+                    {
+                        target = host.get();
+                        address = { logic.WindowProperties().WindowId(), pane.TabIndex, pane.PaneId };
+                        return;
+                    }
+                }
+            }
+        }
+        else if (request.pane)
+        {
+            address = *request.pane;
+            target = GetWindowById(address.window);
+        }
+    };
+
     switch (request.op)
     {
     case ControlPipe::Op::Ping:
@@ -617,37 +647,9 @@ void WindowEmperor::_handleControlPipeRequest(ControlPipeExchange& exchange) con
 
     case ControlPipe::Op::FocusPane:
     {
-        // Resolve to an address first. A session id is looked up by the same
-        // walk list-panes does, so the two ops can never disagree about which
-        // pane carries it; nothing yields between the lookup and the focus.
         AppHost* target = nullptr;
         ControlPipe::PaneAddress address{};
-        if (request.session)
-        {
-            const winrt::guid session{ *request.session };
-            for (const auto& host : _windows)
-            {
-                const auto logic = host->Logic();
-                for (const auto& pane : logic.ControlPipeListPanes({}))
-                {
-                    if (pane.SessionId == session)
-                    {
-                        target = host.get();
-                        address = { logic.WindowProperties().WindowId(), pane.TabIndex, pane.PaneId };
-                        break;
-                    }
-                }
-                if (target)
-                {
-                    break;
-                }
-            }
-        }
-        else
-        {
-            address = *request.pane;
-            target = GetWindowById(address.window);
-        }
+        resolvePane(target, address);
 
         if (!target || target->Logic().ControlPipeFocusPane(address.tab, address.pane) != winrt::TerminalApp::ControlPipeStatus::Ok)
         {
@@ -670,23 +672,38 @@ void WindowEmperor::_handleControlPipeRequest(ControlPipeExchange& exchange) con
     case ControlPipe::Op::RunAction:
     {
         // No summon here, unlike focus-pane: the action runs in the window
-        // where it is, and an action whose own job is to show a window
-        // (globalSummon, quakeMode) is the only thing that raises one.
-        const auto host = GetWindowById(request.pane->window);
-        if (!host)
+        // where it is. Actions that would raise or open a window are refused
+        // inside ControlPipeRunAction, before anything is done.
+        AppHost* target = nullptr;
+        ControlPipe::PaneAddress address{};
+        resolvePane(target, address);
+        if (!target)
         {
             exchange.error = ControlPipe::Error::NoSuchPane;
             return;
         }
 
-        const auto result = host->Logic().ControlPipeRunAction(request.pane->tab, request.pane->pane, winrt::hstring{ request.action });
+        const auto result = target->Logic().ControlPipeRunAction(address.tab,
+                                                                 address.pane,
+                                                                 winrt::hstring{ request.action },
+                                                                 winrt::hstring{ request.requireContains });
         switch (result.Status)
         {
         case winrt::TerminalApp::ControlPipeStatus::Ok:
+            exchange.focused = address;
             exchange.handled = result.Handled;
+            return;
+        case winrt::TerminalApp::ControlPipeStatus::NeedleGone:
+            exchange.error = ControlPipe::Error::NeedleGone;
             return;
         case winrt::TerminalApp::ControlPipeStatus::BadAction:
             exchange.error = ControlPipe::Error::BadAction;
+            return;
+        case winrt::TerminalApp::ControlPipeStatus::ActionNotAllowed:
+            exchange.error = ControlPipe::Error::ActionNotAllowed;
+            return;
+        case winrt::TerminalApp::ControlPipeStatus::ActionFailed:
+            exchange.error = ControlPipe::Error::ActionFailed;
             return;
         case winrt::TerminalApp::ControlPipeStatus::NoSuchPane:
         default:

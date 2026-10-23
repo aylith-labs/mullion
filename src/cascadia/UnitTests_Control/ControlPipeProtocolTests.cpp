@@ -128,18 +128,27 @@ namespace ControlUnitTests
         }
         {
             // An action by name, the short form settings.json allows.
-            const auto request = ControlPipe::ParseRequest(R"({"op":"run-action","pane":"1.0.3","action":"clearBuffer"})");
+            const auto request = ControlPipe::ParseRequest(R"({"op":"run-action","pane":"1.0.3","action":"clearBuffer","requireContains":"PS C:\\"})");
             VERIFY_IS_TRUE(request.has_value());
             VERIFY_IS_TRUE(request->op == ControlPipe::Op::RunAction);
             VERIFY_IS_TRUE(request->pane.has_value());
+            VERIFY_IS_FALSE(request->session.has_value());
             VERIFY_ARE_EQUAL(std::wstring{ LR"("clearBuffer")" }, request->action);
+            VERIFY_ARE_EQUAL(std::wstring{ LR"(PS C:\)" }, request->requireContains);
         }
         {
             // An action with arguments arrives as compact JSON, ready to be
             // read by the settings model.
-            const auto request = ControlPipe::ParseRequest(R"({"op":"run-action","pane":"1.0.3","action":{ "action" : "scrollUp", "rowsToScroll" : 5 }})");
+            const auto request = ControlPipe::ParseRequest(R"({"op":"run-action","pane":"1.0.3","action":{ "action" : "scrollUp", "rowsToScroll" : 5 },"requireContains":"x"})");
             VERIFY_IS_TRUE(request.has_value());
             VERIFY_ARE_EQUAL(std::wstring{ LR"({"action":"scrollUp","rowsToScroll":5})" }, request->action);
+        }
+        {
+            // Addressed by session id instead, as focus-pane can be.
+            const auto request = ControlPipe::ParseRequest(R"({"op":"run-action","session":"{6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8}","action":"clearBuffer","requireContains":"x"})");
+            VERIFY_IS_TRUE(request.has_value());
+            VERIFY_IS_TRUE(request->session.has_value());
+            VERIFY_IS_FALSE(request->pane.has_value());
         }
         {
             // `action` is ignored by every other op, like any unknown member.
@@ -206,13 +215,20 @@ namespace ControlUnitTests
             R"({"op":"focus-pane","session":"not-a-guid"})",
             R"({"op":"focus-pane","session":5})",
             R"({"op":"focus-pane","pane":"nonsense"})",
-            // run-action needs a pane and an action shaped like one. Whether
-            // the action exists is not decided here (that is bad-action).
-            R"({"op":"run-action","action":"clearBuffer"})",
-            R"({"op":"run-action","pane":"1.0.0"})",
-            R"({"op":"run-action","pane":"1.0.0","action":5})",
-            R"({"op":"run-action","pane":"1.0.0","action":null})",
-            R"({"op":"run-action","pane":"1.0.0","action":["clearBuffer"]})",
+            // run-action needs a pane named exactly one way, an action shaped
+            // like one, and its guard. Whether the action exists is not
+            // decided here (that is bad-action).
+            R"({"op":"run-action","action":"clearBuffer","requireContains":"x"})",
+            R"({"op":"run-action","pane":"1.0.0","requireContains":"x"})",
+            R"({"op":"run-action","pane":"1.0.0","action":5,"requireContains":"x"})",
+            R"({"op":"run-action","pane":"1.0.0","action":null,"requireContains":"x"})",
+            R"({"op":"run-action","pane":"1.0.0","action":["clearBuffer"],"requireContains":"x"})",
+            R"({"op":"run-action","pane":"1.0.0","session":"{6f1a2b3c-4d5e-6f70-8192-a3b4c5d6e7f8}","action":"clearBuffer","requireContains":"x"})",
+            R"({"op":"run-action","session":"not-a-guid","action":"clearBuffer","requireContains":"x"})",
+            // The guard is required, not advised: absent, empty or mistyped.
+            R"({"op":"run-action","pane":"1.0.0","action":"clearBuffer"})",
+            R"({"op":"run-action","pane":"1.0.0","action":"clearBuffer","requireContains":""})",
+            R"({"op":"run-action","pane":"1.0.0","action":"clearBuffer","requireContains":5})",
             // Two objects on one line is not one request.
             R"({"op":"ping"}{"op":"ping"})",
         };
@@ -277,8 +293,12 @@ namespace ControlUnitTests
         VERIFY_ARE_EQUAL(std::string{ "disconnected" }, std::string{ ControlPipe::ErrorCode(ControlPipe::Error::Disconnected) });
         VERIFY_ARE_EQUAL(std::string{ "bad-request" }, std::string{ ControlPipe::ErrorCode(ControlPipe::Error::BadRequest) });
         VERIFY_ARE_EQUAL(std::string{ "bad-action" }, std::string{ ControlPipe::ErrorCode(ControlPipe::Error::BadAction) });
-        VERIFY_ARE_EQUAL(std::string{ R"({"handled":true,"ok":true})" }, ControlPipe::RunActionResponse(true));
-        VERIFY_ARE_EQUAL(std::string{ R"({"handled":false,"ok":true})" }, ControlPipe::RunActionResponse(false));
+        VERIFY_ARE_EQUAL(std::string{ "action-not-allowed" }, std::string{ ControlPipe::ErrorCode(ControlPipe::Error::ActionNotAllowed) });
+        VERIFY_ARE_EQUAL(std::string{ "action-failed" }, std::string{ ControlPipe::ErrorCode(ControlPipe::Error::ActionFailed) });
+        VERIFY_ARE_EQUAL(std::string{ R"({"error":"action-not-allowed","ok":false})" }, ControlPipe::ErrorResponse(ControlPipe::Error::ActionNotAllowed));
+        VERIFY_ARE_EQUAL(std::string{ R"({"error":"action-failed","ok":false})" }, ControlPipe::ErrorResponse(ControlPipe::Error::ActionFailed));
+        VERIFY_ARE_EQUAL(std::string{ R"({"handled":true,"id":"1.0.3","ok":true})" }, ControlPipe::RunActionResponse({ 1, 0, 3 }, true));
+        VERIFY_ARE_EQUAL(std::string{ R"({"handled":false,"id":"2.1.4","ok":true})" }, ControlPipe::RunActionResponse({ 2, 1, 4 }, false));
 
         const auto ping = ControlPipe::PingResponse(24680, { 1, 2 });
         VERIFY_IS_TRUE(singleLine(ping));
@@ -338,11 +358,14 @@ namespace ControlUnitTests
         VERIFY_ARE_EQUAL(std::wstring{ L"focus-pane 1.0.3" }, summarize(R"({"op":"focus-pane","pane":"1.0.3"})"));
         VERIFY_ARE_EQUAL(std::wstring{ L"focus-pane {6f1a2b3c-0000-4000-8000-00000000000a}" },
                          summarize(R"({"op":"focus-pane","session":"6F1A2B3C-0000-4000-8000-00000000000A"})"));
-        VERIFY_ARE_EQUAL(std::wstring{ LR"(run-action 1.0.3 "clearBuffer")" }, summarize(R"({"op":"run-action","pane":"1.0.3","action":"clearBuffer"})"));
+        VERIFY_ARE_EQUAL(std::wstring{ LR"(run-action 1.0.3 "clearBuffer" requireContains "needle")" },
+                         summarize(R"({"op":"run-action","pane":"1.0.3","action":"clearBuffer","requireContains":"needle"})"));
         // Control characters inside an action stay escaped, as JSON spells them,
         // so a sendInput action's Enter is visible and does not end the line.
-        VERIFY_ARE_EQUAL(std::wstring{ LR"(run-action 1.0.3 {"action":"sendInput","input":"ls\r"})" },
-                         summarize(R"({"op":"run-action","pane":"1.0.3","action":{"action":"sendInput","input":"ls\r"}})"));
+        VERIFY_ARE_EQUAL(std::wstring{ LR"(run-action 1.0.3 {"action":"sendInput","input":"ls\r"} requireContains "$ ")" },
+                         summarize(R"({"op":"run-action","pane":"1.0.3","action":{"action":"sendInput","input":"ls\r"},"requireContains":"$ "})"));
+        VERIFY_ARE_EQUAL(std::wstring{ LR"(run-action {6f1a2b3c-0000-4000-8000-00000000000a} "clearBuffer" requireContains "x")" },
+                         summarize(R"({"op":"run-action","session":"6F1A2B3C-0000-4000-8000-00000000000A","action":"clearBuffer","requireContains":"x"})"));
 
         // The structured fields the log also writes, for a script that would
         // rather not parse the summary back apart.

@@ -90,7 +90,14 @@ namespace TerminalApp
         Disconnected = 3,
         // run-action: the settings model did not read the JSON as an action;
         // nothing was done.
-        BadAction = 4
+        BadAction = 4,
+        // run-action: an action the pipe refuses to run (it would open or
+        // raise a window, run a modal loop, elevate, write a file or settings,
+        // or stop the process); nothing was done.
+        ActionNotAllowed = 5,
+        // run-action: the action threw while it ran. It may have done part of
+        // its work.
+        ActionFailed = 6
     };
 
     struct ControlPipeActionResult

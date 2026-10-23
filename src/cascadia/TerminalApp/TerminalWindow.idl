@@ -168,10 +168,11 @@ namespace TerminalApp
         ControlPipeStatus ControlPipeSendInput(UInt32 tabIndex, UInt32 paneId, String text, String requireContains);
         ControlPipeStatus ControlPipeFocusPane(UInt32 tabIndex, UInt32 paneId);
         // Runs an action, given as settings.json spells it, as if its key
-        // binding had been pressed with that pane focused. It selects the tab
-        // and focuses the pane inside the window, but never raises or
-        // activates the window itself.
-        ControlPipeActionResult ControlPipeRunAction(UInt32 tabIndex, UInt32 paneId, String action);
+        // binding had been pressed with that pane focused - only if the pane's
+        // screen still contains requireContains. It selects the tab and
+        // focuses the pane inside the window, but never raises or activates
+        // the window itself.
+        ControlPipeActionResult ControlPipeRunAction(UInt32 tabIndex, UInt32 paneId, String action, String requireContains);
         // A request any client made of this process's pipe, after it was
         // answered. Every window gets every call: the badge is there to say the
         // pipe is being used at all, not which window it was used on.

@@ -51,6 +51,8 @@ namespace ControlPipe
         Disconnected,
         MissingReason,
         BadAction,
+        ActionNotAllowed,
+        ActionFailed,
     };
 
     inline std::string_view ErrorCode(Error error) noexcept
@@ -61,6 +63,10 @@ namespace ControlPipe
             return "missing-reason";
         case Error::BadAction:
             return "bad-action";
+        case Error::ActionNotAllowed:
+            return "action-not-allowed";
+        case Error::ActionFailed:
+            return "action-failed";
         case Error::NoSuchPane:
             return "no-such-pane";
         case Error::NeedleGone:
@@ -270,16 +276,17 @@ namespace ControlPipe
     struct Request
     {
         Op op{ Op::Ping };
-        // Set for capture-pane and send-input, and for focus-pane when it
-        // names its pane by address.
+        // Set for capture-pane and send-input, and for focus-pane and
+        // run-action when they name their pane by address.
         std::optional<PaneAddress> pane;
-        // focus-pane only: the pane's connection session id (WT_SESSION).
+        // focus-pane and run-action: the pane's connection session id (WT_SESSION).
         std::optional<GUID> session;
         // list-panes filter. Empty means "no filter", which is also what an
         // absent `containing` means.
         std::wstring containing;
         // send-input payload, verbatim.
         std::wstring text;
+        // The guard: optional for send-input, required for run-action.
         std::wstring requireContains;
         // capture-pane row count. 0 means "the whole viewport".
         int32_t lines{};
@@ -462,9 +469,9 @@ namespace ControlPipe
             request.lines = std::max(0, value.asInt());
         }
 
-        // `session` is read for focus-pane only; every other op ignores it
-        // like any unknown member.
-        if (request.op == Op::FocusPane && root.isMember("session"))
+        // `session` is read for focus-pane and run-action only; every other op
+        // ignores it like any unknown member.
+        if ((request.op == Op::FocusPane || request.op == Op::RunAction) && root.isMember("session"))
         {
             const auto& value = root["session"];
             if (!value.isString())
@@ -500,16 +507,21 @@ namespace ControlPipe
 
         // A pane op without a pane, or a send-input without text, is a client
         // bug rather than a missing pane - say so.
-        if ((request.op == Op::CapturePane || request.op == Op::SendInput || request.op == Op::RunAction) && !request.pane)
+        if ((request.op == Op::CapturePane || request.op == Op::SendInput) && !request.pane)
         {
             return std::nullopt;
         }
-        if (request.op == Op::RunAction && !hasAction)
+        // focus-pane and run-action name their pane exactly one way: both at
+        // once could disagree.
+        if ((request.op == Op::FocusPane || request.op == Op::RunAction) && request.pane.has_value() == request.session.has_value())
         {
             return std::nullopt;
         }
-        // focus-pane names its pane exactly one way: both at once could disagree.
-        if (request.op == Op::FocusPane && request.pane.has_value() == request.session.has_value())
+        // run-action must carry its guard. A positional address goes stale
+        // the moment a tab closes or moves, and an action aimed at the wrong
+        // pane can close it, clear it or type into it - so unlike send-input,
+        // where it is merely advised, requireContains is not optional here.
+        if (request.op == Op::RunAction && (!hasAction || request.requireContains.empty()))
         {
             return std::nullopt;
         }
@@ -625,11 +637,13 @@ namespace ControlPipe
 
     // Whether anything handled the action, the same answer a key binding gets:
     // false is an action that parsed but did nothing here (copy with no
-    // selection, say), which is not an error.
-    inline std::string RunActionResponse(bool handled)
+    // selection, say), which is not an error. `id` is the pane it ran in, so a
+    // client that asked by session learns the address, as with focus-pane.
+    inline std::string RunActionResponse(const PaneAddress& address, bool handled)
     {
         Json::Value root{ Json::objectValue };
         root["ok"] = true;
+        root["id"] = FormatPaneAddress(address);
         root["handled"] = handled;
         return details::Serialize(root);
     }
@@ -829,6 +843,7 @@ namespace ControlPipe
                 description.detail.append(std::to_wstring(request.action.size() - kept));
                 description.detail.append(L" chars");
             }
+            description.detail += L" requireContains " + details::Quote(request.requireContains, MaxRecordedNeedleChars);
             break;
         case Op::Ping:
         case Op::FocusPane:

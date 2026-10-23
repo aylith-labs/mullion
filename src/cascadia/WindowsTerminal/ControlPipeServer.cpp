@@ -580,8 +580,12 @@ std::string ControlPipeServer::_dispatch(const ControlPipe::Request& request, Ou
     }
 
     case ControlPipe::Op::RunAction:
-        outcome.note = exchange.handled ? L"handled" : L"not handled";
-        return ControlPipe::RunActionResponse(exchange.handled);
+    {
+        const auto ran = ControlPipe::FormatPaneAddress(exchange.focused);
+        outcome.note.assign(ran.begin(), ran.end());
+        outcome.note += exchange.handled ? L" handled" : L" not handled";
+        return ControlPipe::RunActionResponse(exchange.focused, exchange.handled);
+    }
 
     case ControlPipe::Op::SendInput:
     default:

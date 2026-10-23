@@ -74,11 +74,13 @@ Every response carries `"ok"`. On failure:
 | Code | Meaning |
 |---|---|
 | `bad-request` | Not JSON, not an object, unknown `op`, a malformed pane id, a field of the wrong type, or an over-long line. |
-| `no-such-pane` | The window/tab/pane triple (or, for `focus-pane`, the session id) doesn't name a live terminal pane in this process. |
-| `needle-gone` | `requireContains` was not on the pane's screen. **Nothing was written.** |
+| `no-such-pane` | The window/tab/pane triple (or, for `focus-pane` and `run-action`, the session id) doesn't name a live terminal pane in this process. |
+| `needle-gone` | `requireContains` was not on the pane's screen. **Nothing was written**, and for `run-action` nothing was done. |
 | `disconnected` | The pane's connection has already closed. **Nothing was written.** |
 | `missing-reason` | The request had no `reason` or no `caller` (see below). **Nothing was done**; the response also carries a `message` saying what to add. |
 | `bad-action` | `run-action` only: the `action` is a name or an object, but the settings model does not read it as an action (an unknown name, `"unbound"`, arguments its parser refuses). **Nothing was done**, not even the focus move. |
+| `action-not-allowed` | `run-action` only: an action the pipe refuses to run - see [the list](#refused-actions). **Nothing was done**, not even the focus move. |
+| `action-failed` | `run-action` only: the action threw while it ran. Unlike the codes above, **it may have done part of its work**; the pane was already focused. |
 
 Unknown members in a request are ignored, so adding a field later doesn't break an existing client.
 
@@ -214,11 +216,11 @@ first `ok`.
 ### run-action
 
 ```json
-{"op":"run-action","pane":"1.0.3","action":"clearBuffer"}
-{"op":"run-action","pane":"1.0.3","action":{"action":"scrollUp","rowsToScroll":10}}
-{"op":"run-action","pane":"1.0.3","action":{"action":"commandPalette","launchMode":"commandLine"}}
-{"op":"run-action","pane":"1.0.3","action":{"action":"openSettings","target":"settingsUI"}}
-{"ok":true,"handled":true}
+{"op":"run-action","pane":"1.0.3","requireContains":"PS C:\\demo>","action":"clearBuffer"}
+{"op":"run-action","pane":"1.0.3","requireContains":"PS C:\\demo>","action":{"action":"scrollUp","rowsToScroll":10}}
+{"op":"run-action","session":"{6f1a2b3c-....}","requireContains":"$ ","action":{"action":"commandPalette","launchMode":"commandLine"}}
+{"op":"run-action","pane":"1.0.3","requireContains":"$ ","action":{"action":"openSettings","target":"settingsUITab"}}
+{"ok":true,"id":"1.0.3","handled":true}
 ```
 
 Runs one action in that pane as if its key binding had been pressed. `action` is exactly what
@@ -228,18 +230,47 @@ the vocabulary is the settings file's, every action and every argument, and anyt
 file would not accept is refused the same way. A name or an object that does not come out as an
 action is `bad-action`; an `action` that is not a string or an object at all is `bad-request`.
 
-A key binding acts on the focused tab and its active pane, so the target is made that first —
+Name the pane **exactly one** way, as for `focus-pane`: `pane` or `session`. The response's `id` is
+the address it resolved to.
+
+**`requireContains` is required here**, and must be non-empty; a request without it is
+`bad-request`. It is the same guard as `send-input`'s, for the same reason, only more so: a
+`window.tab.pane` address goes stale the moment a tab closes or moves, and `closePane`,
+`closeTab`, `clearBuffer`, `restartConnection` or a `sendInput` action aimed at the wrong pane is
+somebody else's shell closed, wiped or typed into. It is checked against the pane's screen first,
+on the same trip to the UI thread as everything else; if the text is not there the answer is
+`needle-gone` and **nothing is done**, not even the focus move. Unlike `send-input`, a pane whose
+process has exited is still a valid target — `restartConnection` exists for exactly that pane.
+
+A key binding acts on the focused tab and its active pane, so the target is made that next —
 inside the window only. The pane's tab is selected and the pane made active within it (a tab zoomed
 onto another pane is unzoomed), each step skipped when it is already so. **The window is not
-raised, restored or activated**; there is no summon, unlike `focus-pane`. An action whose own job is
-to show a window (`globalSummon`, `quakeMode`) still does that, because that is what it does from a
-key too. Then the action goes through the window's normal dispatch, the same one a key binding
-uses.
+raised, restored or activated**; there is no summon, unlike `focus-pane`. Then the action goes
+through the window's normal dispatch, the same one a key binding uses.
 
 `handled` is the dispatcher's answer: `false` is an action that parsed but that nothing took here
-(`copy` with no selection, `scrollToMark` with no marks), which is not an error. An action that
-opens UI — the command palette, a dialog, the settings tab — returns as soon as the UI is up; it
-does not wait for it to close.
+(`copy` with no selection, say), which is not an error. `globalSummon` and `quakeMode` always
+answer `handled:false`: they are hotkeys the window manager registers, and their in-window handlers
+decline on purpose, so over the pipe they do nothing. An action that opens UI — the command palette,
+a dialog, the settings tab — returns as soon as the UI is up; it does not wait for it to close. An
+action that throws while it runs is `action-failed`, never `handled:false`.
+
+#### Refused actions
+
+These are answered `action-not-allowed` with nothing done. The list lives in one place,
+`IsRefusedOverPipe` in `TerminalPage.ControlPipe.cpp`, with the reason for each entry beside it.
+
+| Action | Why |
+|---|---|
+| `openSystemMenu` | `TrackPopupMenu` runs a nested modal message loop inside the pipe's `SendMessage`, so the pipe would re-enter itself under the menu. |
+| `newWindow`, `openWorkspace` | Open a new window. |
+| `moveTab`, `movePane` with a `window` | Move to another or a new window, which opens or raises it. Moving within the window is allowed. |
+| `openSettings` with a file target (`settingsFile`, `defaultsFile`, `allFiles`, `directory`) | Opens an external editor or Explorer. `settingsUITab` is always allowed; `settingsUI` is allowed unless `settingsUIHost` is `"window"`. |
+| `searchWeb`, `openCWD` | Hand a URL or folder to the shell, which opens a browser or Explorer in front of the user. |
+| `exportBuffer` without a `path` | Shows a file picker, a modal dialog. With a `path` it writes the file and returns. |
+| `newTab` or `splitPane` that would elevate | An `elevate` argument, or a profile with `elevate` set: a UAC prompt and a new elevated window. A duplicating `splitPane` copies the focused pane and is allowed. |
+| `saveSnippet` | Writes `settings.json`. The pipe does not change settings. |
+| `breakIntoDebugger` | `DebugBreak` with no debugger attached takes the whole process down. |
 
 `run-action` is the in-window counterpart of upstream's microsoft/terminal#9994 ("Allow for
 ExecuteCommandline actions to be called straight from the commandline", tracked in #4632), which
@@ -273,10 +304,15 @@ The pipe can type into the user's shells, so:
   Authenticated Users, no remote clients.
 - The op set is exactly the six above. Five of them have no file access, no settings mutation, no
   way to spawn a pane or a process and no way to close one.
-- `run-action` is the exception, and knowingly so: it can do anything a key binding can, which
-  includes opening tabs and panes (and so starting processes), closing them, and opening the
-  settings file in an editor. It is not an allow-list, because the point is that the vocabulary is
-  the settings file's. It widens nothing an attacker on the pipe did not already have: `send-input`
+- `run-action` is the exception, and knowingly so: it can do nearly anything a key binding can,
+  which includes opening tabs and panes (and so starting processes) and closing them. It is a
+  deny-list, not an allow-list, because the point is that the vocabulary is the settings file's;
+  what it refuses is [listed above](#refused-actions): nothing that opens or raises a window, runs
+  a modal loop, elevates, crashes the process, or writes `settings.json`. **The pipe still cannot
+  change settings**: `saveSnippet`, the one action that writes the settings file, is refused, and
+  opening the file in an editor is refused with it. `exportBuffer` with a `path` does write that
+  file, as it would from a key. Every `run-action` must carry `requireContains`, so a stale address
+  fails as `needle-gone` instead of acting on someone else's pane. It widens nothing an attacker on the pipe did not already have: `send-input`
   can type any command into a live shell, which is strictly more than any action can do. What it
   adds is the app's own commands, recorded like every other request.
 - `focus-pane` widens nothing an attacker could use. Focus is not input: it types nothing, and a
@@ -301,10 +337,10 @@ writing garbage into the pipe is exactly the one worth knowing about. Two places
 |---|---|
 | `exe`, `pid` | The **client**: the process on the other end of the pipe (`GetNamedPipeClientProcessId`), asked once per connection. |
 | `parentExe`, `parentPid` | Its parent. Clients are often a short-lived `powershell.exe`; the parent is what started it. |
-| `commandLine` | What was asked, on one line: `send-input 1.0.3 "echo hi\r"`. Control characters are spelled out, so whether the Enter was sent is visible. A `run-action` shows its action as the JSON it was sent as: `run-action 1.0.3 {"action":"scrollUp","rowsToScroll":10}`, or `run-action 1.0.3 "clearBuffer"`. |
+| `commandLine` | What was asked, on one line: `send-input 1.0.3 "echo hi\r"`. Control characters are spelled out, so whether the Enter was sent is visible. A `run-action` shows its action as the JSON it was sent as, then its guard: `run-action 1.0.3 {"action":"scrollUp","rowsToScroll":10} requireContains "$ "`, or `run-action 1.0.3 "clearBuffer" requireContains "$ "`. |
 | `ancestry` | The parent and every ancestor Windows still knows, nearest first: `wslhost.exe 20440 < wsl.exe 1234`. The walk stops at a pid whose process is younger than its child (a reused pid) rather than name a stranger. |
 | `reason`, `caller` | What the client said: why it asked, and who it is. Empty on a request refused for lacking them. |
-| `outcome` | How it ended: `ok`, or the error code it was answered, plus what came back (`3 panes`, `812 chars`, the pane focus-pane landed on, `handled` or `not handled` for run-action). Records written before version 2 kept this in `reason`; the Activity page reads them that way. |
+| `outcome` | How it ended: `ok`, or the error code it was answered, plus what came back (`3 panes`, `812 chars`, the pane focus-pane landed on, and for run-action the pane it ran in and `handled` or `not handled`: `ok, 1.0.3 handled`). Records written before version 2 kept this in `reason`; the Activity page reads them that way. |
 | `op`, `target`, `result` | The same, unpacked, for a script that would rather not parse `commandLine`. |
 
 send-input text and a run-action's JSON are kept in full up to 4096 characters, then cut with a count of what was dropped;
@@ -367,7 +403,7 @@ $w.WriteLine('{"op":"list-panes",' + $who + '}'); $r.ReadLine()
 $w.WriteLine('{"op":"capture-pane","pane":"1.0.0","lines":20,' + $who + '}'); $r.ReadLine()
 $w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"echo hello-from-the-pipe",' + $who + '}'); $r.ReadLine()
 $w.WriteLine('{"op":"send-input","pane":"1.0.0","text":"`r",' + $who + '}'); $r.ReadLine()
-$w.WriteLine('{"op":"run-action","pane":"1.0.0","action":"clearBuffer",' + $who + '}'); $r.ReadLine()
+$w.WriteLine('{"op":"run-action","pane":"1.0.0","action":"clearBuffer","requireContains":"hello-from-the-pipe",' + $who + '}'); $r.ReadLine()
 ```
 
 The command runs in that pane, the buffer is then cleared, and the window stays minimised and
