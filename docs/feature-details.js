@@ -215,7 +215,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipMaxWidth", def: "640", note: "Cap on the card's width, further limited by the pane." },
     ],
     media: [
-      { kind: "compare", before: "link-card-upstream", after: "link-card", caption: "The card names the link, says what a click will do, and shows the path it will really open — with the actions that were previously buried in a right-click menu." },
+      { kind: "compare", before: "link-card-hover-upstream", after: "link-card-hover", caption: "Hovering an OSC 8 link to a file in WSL: upstream's tooltip shows the raw file:/// URI and asks for Ctrl+Click; Mullion's card shows the path it will really open, previews the file, and carries the actions that were previously buried in a right-click menu." },
     ],
   },
 
@@ -233,7 +233,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.remoteFilePreviews", def: "false", note: "In a pane whose OSC 7 says it is on another machine (a shefrd pane showing a saved machine), read its paths from that machine through <code>shefrd machine read</code> instead of looking them up in WSL. The card says <em>on &lt;machine&gt;</em>; text files only, and a quiet <em>Preview unavailable</em> when the machine is not connected." },
     ],
     media: [
-      { kind: "compare", before: "link-card-upstream", after: "link-card", caption: "Hovering a file inside WSL. The arrow shows what will actually open: the \\\\wsl.localhost path for this pane's distro, not the POSIX path as written." },
+      { kind: "compare", before: "link-card-hover-upstream", after: "link-card-hover", caption: "Hovering a file inside WSL: upstream shows only the file:/// URI as written; in Mullion the arrow shows what will actually open, the \\\\wsl.localhost path for this pane's distro." },
     ],
     notes: [
       "Resolution is deliberately gated on the pane really being WSL. Without that, a Windows program printing <code>file:///etc/hosts</code> into a PowerShell tab would silently resolve against whichever distro is default.",
@@ -242,7 +242,7 @@ window.FEATURE_DETAILS = {
 
   "plain-click": {
     media: [
-      { kind: "compare", before: "plain-click-hover-upstream", after: "plain-click-hover", caption: "Hovering a link with plain click on: upstream asks for Ctrl+click; Mullion follows on a plain click and says so." },
+      { kind: "compare", before: "plain-click-hover-upstream", after: "plain-click-hover", caption: "Hovering a URL: upstream's tooltip says Ctrl+Click to follow link; Mullion's card asks for no modifier, because a plain click follows it, and offers Open, Copy link and Show in pane." },
     ],
     problem:
       "Opening a link meant Ctrl+clicking it, and inside anything using the mouse — tmux, an editor, a TUI — links stopped being clickable at all, because the application had taken the mouse.",
@@ -264,7 +264,7 @@ window.FEATURE_DETAILS = {
       "Hover any part of it, label included: the card shows <code>https://example.com</code>, and clicking opens it.",
     ],
     media: [
-      { kind: "compare", before: "slack-links-upstream", after: "slack-links", caption: "A Slack-style link is one link from bracket to bracket; the card shows the URL before the pipe." },
+      { kind: "compare", before: "slack-links-upstream", after: "slack-links", caption: "A Slack-style link, a URL and a label split by a pipe: upstream's match runs through the pipe into the label (…/4182|deploy); in Mullion it is one link from bracket to bracket, and the card shows the URL before the pipe." },
     ],
   },
 
@@ -474,7 +474,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.integrationDisplayMode", def: "\"above\"", note: "Where the integration's logo sits on the card: <code>none</code>, <code>above</code> or <code>left</code>." },
     ],
     media: [
-      { kind: "compare", before: "integration-previews-github-upstream", after: "integration-previews-github", caption: "Hovering a GitHub issue link: the issue’s title, state, author and comment count, with its description and comments behind tabs." },
+      { kind: "compare", before: "integration-previews-github-upstream", after: "integration-previews-github", caption: "Hovering a GitHub issue link: upstream's tooltip is the bare URL; Mullion's card shows the issue’s title, state, author and comment count, with its description and comments behind tabs." },
       { base: "integration-previews-settings", caption: "Part of an integration’s page: credentials kept in Windows Credential Manager, never in settings.json, and which fields the card shows." },
     ],
     notes: [
@@ -516,7 +516,7 @@ window.FEATURE_DETAILS = {
       "In a WSL pane, run <code>realpath ~/.bashrc</code> and hover the result. The file inside the distro previews the same way.",
     ],
     media: [
-      { kind: "compare", before: "file-previews-markdown-upstream", after: "file-previews-markdown", caption: "A Markdown file under the pointer, rendered, with its frontmatter as metadata and the Formatted / Raw switch." },
+      { kind: "compare", before: "file-previews-markdown-upstream", after: "file-previews-markdown", caption: "A Markdown file's path under the pointer: upstream does not detect the path, so nothing appears; Mullion renders the file, with its frontmatter as metadata and the Formatted / Raw switch." },
       { base: "file-previews-pane", caption: "A PDF in the pane: page picker, Fit and fixed zoom levels." },
     ],
     notes: [
@@ -564,7 +564,7 @@ window.FEATURE_DETAILS = {
       { key: "profiles.list[].pathTranslationStyle", def: "\"none\"", note: "How dropped paths are rewritten: <code>none</code>, <code>wsl</code>, <code>cygwin</code>, <code>msys2</code> or <code>mingw</code>. Generated WSL profiles get <code>wsl</code>." },
     ],
     media: [
-      { kind: "compare", before: "path-smarts-tilde-upstream", after: "path-smarts-tilde", caption: "A <code>~/</code> path at the end of a sentence in a WSL pane, resolved to the distro user’s home, with the full stop left out." },
+      { kind: "compare", before: "path-smarts-tilde-upstream", after: "path-smarts-tilde", caption: "A <code>~/</code> path at the end of a sentence in a WSL pane: upstream does not detect it; Mullion resolves it to the distro user’s home, leaves the full stop out, and previews the file." },
     ],
     notes: [
       "A <code>~/</code> path hovered before that distribution's home is cached shows nothing yet rather than a guessed path. Opening the link, and the card's buttons, look the home up on a background thread, so they work even then.",
@@ -819,7 +819,7 @@ window.FEATURE_DETAILS = {
       "Turn on <code>Auto-save</code> beside Save. Both buttons go grey, and every change from now on is written to settings.json straight away.",
     ],
     media: [
-      { kind: "compare", before: "settings-save-tooltip-upstream", after: "settings-save-tooltip", caption: "Hovering Save lists exactly what a save would change, old value to new." },
+      { kind: "compare", before: "settings-save-tooltip-upstream", after: "settings-save-tooltip", mode: "side", caption: "Hovering Save with a change pending: upstream's tooltip only says Save all unsaved settings; Mullion's lists exactly what a save would change, old value to new." },
       { base: "settings-save-close", caption: "Closing with unsaved changes is refused once, and the footer says why." },
     ],
     notes: [
