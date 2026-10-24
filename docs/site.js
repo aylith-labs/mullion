@@ -504,15 +504,70 @@
   // when there is no room) and kept inside the viewport, which a CSS-only
   // tooltip cannot do for a tag near either edge.
   var tip = null, tipFor = null;
+  // Under the anchor, or above it when there is no room; inside the viewport.
+  // align "center" for a tooltip, "start" for a popover read from its left edge.
+  function place(box, anchor, align) {
+    var r = anchor.getBoundingClientRect(), t = box.getBoundingClientRect();
+    var want = align === "start" ? r.left : r.left + r.width / 2 - t.width / 2;
+    var left = Math.min(Math.max(8, want), window.innerWidth - t.width - 8);
+    var top = r.bottom + 8 + t.height > window.innerHeight ? Math.max(8, r.top - 8 - t.height) : r.bottom + 8;
+    box.style.left = Math.round(left) + "px";
+    box.style.top = Math.round(top) + "px";
+  }
   function showTip(anchor) {
     tipFor = anchor;
     tip.textContent = anchor.getAttribute("data-tip");
     tip.classList.add("shown");
-    var r = anchor.getBoundingClientRect(), t = tip.getBoundingClientRect();
-    var left = Math.min(Math.max(8, r.left + r.width / 2 - t.width / 2), window.innerWidth - t.width - 8);
-    var top = r.bottom + 8 + t.height > window.innerHeight ? r.top - 8 - t.height : r.bottom + 8;
-    tip.style.left = Math.round(left) + "px";
-    tip.style.top = Math.round(top) + "px";
+    place(tip, anchor, "center");
+  }
+
+  // A title marked .has-desc shows the .desc beside it in a popover, unless its
+  // table already shows descriptions inline (.show-desc). Unlike a tooltip it
+  // can hold links, so it stays open while the pointer is over it. Touch
+  // screens show descriptions inline instead (site.css).
+  var pop = null, popFor = null, popShow = 0, popHide = 0;
+  function showPop(anchor) {
+    clearTimeout(popHide);
+    if (popFor === anchor || anchor.closest(".show-desc")) { return; }
+    var desc = anchor.parentNode.querySelector(".desc");
+    if (!desc) { return; }
+    hidePop();
+    popFor = anchor;
+    pop.innerHTML = desc.innerHTML;
+    pop.hidden = false;
+    anchor.setAttribute("aria-describedby", "desc-pop");
+    place(pop, anchor, "start");
+  }
+  function hidePop() {
+    clearTimeout(popShow);
+    if (popFor) { popFor.removeAttribute("aria-describedby"); }
+    popFor = null;
+    if (pop) { pop.hidden = true; }
+  }
+  function wireDescPopover() {
+    pop = el("div", { "class": "desc-pop", role: "tooltip", id: "desc-pop" });
+    pop.hidden = true;
+    document.body.appendChild(pop);
+    document.addEventListener("pointerover", function (e) {
+      if (e.pointerType !== "mouse" || !e.target.closest) { return; }
+      var a = e.target.closest(".has-desc");
+      clearTimeout(popShow);
+      if (a) {
+        clearTimeout(popHide);
+        popShow = setTimeout(function () { showPop(a); }, 250);
+      } else if (e.target.closest(".desc-pop")) {
+        clearTimeout(popHide);
+      } else if (popFor) {
+        clearTimeout(popHide);
+        popHide = setTimeout(hidePop, 180);
+      }
+    });
+    document.addEventListener("focusin", function (e) {
+      var a = e.target.closest && e.target.closest(".has-desc");
+      if (a) { showPop(a); } else if (!pop.contains(e.target)) { hidePop(); }
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { hidePop(); } });
+    window.addEventListener("scroll", hidePop, { passive: true, capture: true });
   }
   function hideTip() { if (tip) { tip.classList.remove("shown"); } tipFor = null; }
   function wireTips() {
@@ -535,6 +590,7 @@
   function onReady() {
     wireTips();
     wirePopover();
+    wireDescPopover();
     syncPictures();
     formatDates();
   }

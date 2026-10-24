@@ -7,8 +7,8 @@
 <meta name="description" content="Windows Terminal issues and pull requests that Mullion answers, fully or in part, with a link to each feature page." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-24c" />
-<script src="site.js?v=2026-10-24c"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-24d" />
+<script src="site.js?v=2026-10-24d"></script>
 </head>
 <body>
 
@@ -34,11 +34,27 @@
 <main id="content" tabindex="-1">
   <div class="container page-head">
     <h1>Upstream issues</h1>
-    <p>Requests on <a href="https://github.com/microsoft/terminal">microsoft/terminal</a> that Mullion already answers, fully or in part. Each row links to the issue and to the Mullion feature page; where the match is partial, the note says what is missing.</p>
+    <p>Requests on <a href="https://github.com/microsoft/terminal">microsoft/terminal</a> that Mullion already answers, fully or in part. Hover a title for what Mullion covers and, where the match is partial, what is missing.</p>
   </div>
 
   <div class="container upstream">
     <p class="upstream-note">Those threads are for Windows Terminal's own work. If one of them is what brought you here, please don't mention Mullion there.</p>
+
+    <div class="toolbar upstream-bar" role="search">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <label class="visually-hidden" for="filter">Filter issues</label>
+        <input type="search" id="filter" placeholder="Filter by number, title, note or feature" autocomplete="off" />
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+      <div class="toolbar-end">
+        <div id="fields"></div>
+      </div>
+      <div class="chip-groups">
+        <div class="chip-row" id="type-chips" role="group" aria-label="Type"></div>
+        <div class="chip-row" id="cov-chips" role="group" aria-label="Coverage"></div>
+      </div>
+    </div>
 
     <div class="tabs" role="tablist" aria-label="Upstream items">
       <button type="button" role="tab" id="tab-open" aria-controls="panel-open" aria-selected="true">Open issues <span class="count" data-count="open"></span></button>
@@ -47,7 +63,7 @@
     </div>
 
     <div role="tabpanel" id="panel-open" aria-labelledby="tab-open" tabindex="0">
-      <div class="table-scroll">
+      <div class="table-scroll scroll-y">
         <table class="feature-table upstream-table">
           <thead></thead>
           <tbody id="open-body"></tbody>
@@ -56,7 +72,7 @@
     </div>
 
     <div role="tabpanel" id="panel-prs" aria-labelledby="tab-prs" tabindex="0" hidden>
-      <div class="table-scroll">
+      <div class="table-scroll scroll-y">
         <table class="feature-table upstream-table">
           <thead></thead>
           <tbody id="prs-body"></tbody>
@@ -66,7 +82,7 @@
 
     <div role="tabpanel" id="panel-closed" aria-labelledby="tab-closed" tabindex="0" hidden>
       <p class="upstream-sub">Closed by the maintainers, either declined or answered another way. Mullion went the other way.</p>
-      <div class="table-scroll">
+      <div class="table-scroll scroll-y">
         <table class="feature-table upstream-table">
           <thead></thead>
           <tbody id="closed-body"></tbody>
@@ -92,7 +108,8 @@
   </div>
 </footer>
 
-<script src="features.js?v=2026-10-24c"></script>
+<script src="table.js?v=2026-10-24d"></script>
+<script src="features.js?v=2026-10-24d"></script>
 <script>
 (function () {
   var GH = "https://github.com/microsoft/terminal/";
@@ -115,7 +132,7 @@
       note: "Regex rules with named groups turn any text into a link, and an integration file can map a match to a URL template. Launching an arbitrary program with the captures, and parsing <code>file:line:col</code>, are not done." },
     { n: 8914, k: "feature", d: "2021-01-27", t: "Profile reordering for Settings UI", f: "profile-order", full: true,
       note: "Profiles reorder in the Settings UI, and Ctrl+Shift+N follows the new menu order." },
-    { n: 10109, k: "bug", d: "2021-05-17", t: "Tabs display the close tab shortcut as Ctrl+F4, even though that's not bound by default", f: "early-upstream-fixes", full: true,
+    { n: 10109, k: "bug", s: "2026-10-24", d: "2021-05-17", t: "Tabs display the close tab shortcut as Ctrl+F4, even though that's not bound by default", f: "early-upstream-fixes", full: true,
       note: "The close button says <em>Close tab</em>, followed by the key bound to <code>closeTab</code> when there is one. Upstream waits on a WinUI change (microsoft-ui-xaml#4930); this replaces the tooltip from the Terminal side." },
     { n: 10534, k: "task", d: "2021-06-29", t: "Quake mode has rounded corners in Windows 11", f: "dock-fit", full: true,
       note: "A quake or docked window asks DWM for square corners and hands them back when it stops being docked." },
@@ -123,7 +140,7 @@
       note: "http(s) icons are kept as a local copy and the jump list points at it. Glyph and emoji icons are drawn into real <code>.ico</code> files." },
     { n: 10627, k: "feature", d: "2021-07-12", t: "Settings UI feedback of configuration changes", f: "settings-save",
       note: "An Auto-save switch applies each change as it is made, and hovering Save lists what would change. The button's label is unchanged." },
-    { n: 11607, k: "bug", d: "2021-10-25", t: "Closing a pane that summoned the termination behavior infobar should just dismiss it", f: "early-upstream-fixes", full: true,
+    { n: 11607, k: "bug", s: "2026-10-24", d: "2021-10-25", t: "Closing a pane that summoned the termination behavior infobar should just dismiss it", f: "early-upstream-fixes", full: true,
       note: "The bar closes once every pane it was shown for has been closed. Switching tabs, zooming and splitting leave it alone." },
     { n: 11630, k: "task", d: "2021-10-27", t: "Allow search by name in the Actions dialog", f: "shortcut-search", full: true,
       note: "The Shortcuts page filters by command name; a leading <code>@</code> searches by key chord." },
@@ -145,11 +162,11 @@
       note: "A quake or docked window re-fits when the work area changes, without being shown or raised; a minimized one catches up on its next restore." },
     { n: 16984, k: "task", d: "2024-04-01", t: "Set different color schemes for light mode and dark mode via UI settings", f: "color-schemes", full: true,
       note: "Profiles → Appearance offers a light and a dark scheme side by side and saves them as a pair." },
-    { n: 17481, k: "bug", d: "2024-06-28", t: "wt split-pane -D overwrites command line command with profile command", f: "early-upstream-fixes", full: true,
+    { n: 17481, k: "bug", s: "2026-10-24", d: "2024-06-28", t: "wt split-pane -D overwrites command line command with profile command", f: "early-upstream-fixes", full: true,
       note: "<code>split-pane -D</code> still copies the focused pane's profile and directory, and a command or <code>-d</code> given with it now wins." },
     { n: 17843, k: "feature", d: "2024-09-01", t: "Rows or columns to resize a pane by from the keyboard", f: "small-knobs",
       note: "<code>paneResizeStep</code> sets the step, and <code>resizePane</code> takes an <code>amount</code>, but both are percentages, not rows or columns." },
-    { n: 20086, k: "bug", d: "2026-04-07", t: "Clear buffer doesn't clear scroll marks", f: "early-upstream-fixes", full: true,
+    { n: 20086, k: "bug", s: "2026-10-22", d: "2026-04-07", t: "Clear buffer doesn't clear scroll marks", f: "early-upstream-fixes", full: true,
       note: "Upstream's own fix, <a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>, taken before it merges. Covers Clear Buffer and <code>clear</code>/<code>cls</code>." },
     { n: 20698, k: "feature", d: "2026-09-19", t: "Copy link URL from OSC 8 hyperlinks", f: "link-card",
       note: "The link card has a Copy link button, and a click chord can copy instead of open. There is no context-menu entry." }
@@ -173,25 +190,6 @@
   var byId = {};
   (window.FEATURES || []).forEach(function (f) { byId[f.id] = f; });
 
-  function row(r) {
-    var f = byId[r.f];
-    var url = GH + (r.pr ? "pull/" : "issues/") + r.n;
-    var tag = r.full ? '<span class="tag tag-success">Covered</span>' : '<span class="tag">In part</span>';
-    var age = '<td class="age-cell"><span class="age-label">Opened </span>' + ago(r.d) +
-      (r.c ? '<span class="closed-on">closed ' + ago(r.c) + "</span>" : "") + "</td>";
-    // id: the promote dialog in Mullion links a commit to its issue's row as
-    // upstream.html#issue-<n>.
-    return '<tr id="issue-' + r.n + '">' +
-      '<td class="id-cell"><a href="' + url + '">#' + r.n + "</a></td>" +
-      '<td class="title-cell"><a href="' + url + '">' + esc(r.t) + "</a>" +
-        '<div class="desc">' + r.note + "</div></td>" +
-      '<td class="nowrap">' + typeTag(r.k) + "</td>" +
-      age +
-      '<td class="title-cell"><a href="feature.html?id=' + encodeURIComponent(r.f) + '">' + esc(f ? f.title : r.f) + "</a>" +
-        (f && f.dateAdded ? '<div class="added">Added ' + ago(f.dateAdded) + "</div>" : "") + "</td>" +
-      '<td class="nowrap">' + tag + "</td>" +
-      "</tr>";
-  }
   // The type is upstream's own Issue-* label. An unlabelled item (the PR) is
   // classed by what it asks for.
   var TYPES = {
@@ -212,50 +210,123 @@
     var rel = window.Mullion ? window.Mullion.relative(iso) : iso;
     return '<time datetime="' + iso + '" data-tip="' + iso + '">' + esc(rel) + "</time>";
   }
-  // Every column sorts. A first click sorts ascending (oldest first for dates,
-  // Covered first for coverage, bugs first for type); a second click on the same column reverses.
   function title(r) { var f = byId[r.f]; return f ? f.title : r.f; }
-  var COLS = [
-    { key: "n", label: "#", cmp: function (a, b) { return a.n - b.n; } },
-    { key: "t", label: null, cmp: function (a, b) { return a.t.localeCompare(b.t); } },
-    { key: "k", label: "Type", cmp: function (a, b) { return TYPE_ORDER.indexOf(a.k) - TYPE_ORDER.indexOf(b.k); } },
-    { key: "d", label: "Opened", cmp: function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; } },
-    { key: "f", label: "In Mullion", cmp: function (a, b) { return title(a).localeCompare(title(b)); } },
-    { key: "cov", label: "Coverage", cmp: function (a, b) { return (b.full ? 1 : 0) - (a.full ? 1 : 0); } }
-  ];
-  function table(bodyId, rows, itemLabel) {
-    var body = document.getElementById(bodyId);
-    var head = body.parentNode.querySelector("thead");
-    var state = { key: "n", dir: 1 };
-    head.innerHTML = "<tr>" + COLS.map(function (c) {
-      return '<th scope="col" data-key="' + c.key + '"><button type="button">' + esc(c.label || itemLabel) + "</button></th>";
-    }).join("") + "</tr>";
-    var ths = Array.prototype.slice.call(head.querySelectorAll("th"));
-    function render() {
-      var col = COLS.filter(function (c) { return c.key === state.key; })[0];
-      var sorted = rows.slice().sort(function (a, b) { return col.cmp(a, b) * state.dir || a.n - b.n; });
-      body.innerHTML = sorted.map(row).join("");
-      ths.forEach(function (th) {
-        if (th.getAttribute("data-key") === state.key) { th.setAttribute("aria-sort", state.dir === 1 ? "ascending" : "descending"); }
-        else { th.removeAttribute("aria-sort"); }
-      });
-    }
-    ths.forEach(function (th) {
-      th.querySelector("button").addEventListener("click", function () {
-        var key = th.getAttribute("data-key");
-        state = key === state.key ? { key: key, dir: -state.dir } : { key: key, dir: 1 };
-        render();
-      });
-    });
-    render();
-  }
-  table("open-body", OPEN, "Issue");
-  table("prs-body", PRS, "Pull request");
-  table("closed-body", CLOSED, "Issue");
-  var counts = { open: OPEN.length, prs: PRS.length, closed: CLOSED.length };
-  Array.prototype.forEach.call(document.querySelectorAll("[data-count]"), function (el) {
-    el.textContent = counts[el.getAttribute("data-count")];
+  function url(r) { return GH + (r.pr ? "pull/" : "issues/") + r.n; }
+  // When Mullion got it: the row's own date when a fix landed apart from its
+  // feature (s), otherwise the feature's. A bug is fixed; anything else added.
+  function shipped(r) { var f = byId[r.f]; return r.s || (f && f.dateAdded) || ""; }
+  function byDate(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+
+  // Compact by default: with Descriptions off, hovering a title shows its
+  // description (site.js).
+  var picker = Mullion.fieldPicker(document.getElementById("fields"), {
+    storageKey: "mullion.upstream.fields",
+    fields: [
+      { key: "k", label: "Type", on: true },
+      { key: "d", label: "Opened", on: true },
+      { key: "c", label: "Closed date", on: true },
+      { key: "f", label: "In Mullion", on: true },
+      { key: "s", label: "Fixed / added", on: true },
+      { key: "cov", label: "Coverage", on: true },
+      { key: "desc", label: "Descriptions", on: false }
+    ],
+    onChange: renderAll
   });
+
+  // Every column sorts. A first click sorts ascending (oldest first for dates,
+  // Covered first for coverage, bugs first for type); a second click reverses.
+  function columns(itemLabel) {
+    return [
+      { key: "n", label: "#", cmp: function (a, b) { return a.n - b.n; },
+        cell: function (r) { return '<td class="id-cell"><a href="' + url(r) + '">#' + r.n + "</a></td>"; } },
+      { key: "t", label: itemLabel, cmp: function (a, b) { return a.t.localeCompare(b.t); },
+        cell: function (r) {
+          return '<td class="title-cell"><a class="has-desc" href="' + url(r) + '">' + esc(r.t) + "</a>" +
+            '<div class="desc">' + r.note + "</div></td>";
+        } },
+      { key: "k", label: "Type", cmp: function (a, b) { return TYPE_ORDER.indexOf(a.k) - TYPE_ORDER.indexOf(b.k); },
+        cell: function (r) { return '<td class="nowrap">' + typeTag(r.k) + "</td>"; } },
+      { key: "d", label: "Opened", cmp: function (a, b) { return byDate(a.d, b.d); },
+        cell: function (r) {
+          return '<td class="age-cell"><span class="age-label">Opened </span>' + ago(r.d) +
+            (r.c && picker.shown("c") ? '<span class="closed-on">closed ' + ago(r.c) + "</span>" : "") + "</td>";
+        } },
+      { key: "f", label: "In Mullion", cmp: function (a, b) { return title(a).localeCompare(title(b)); },
+        cell: function (r) {
+          return '<td class="title-cell"><a href="feature.html?id=' + encodeURIComponent(r.f) + '">' + esc(title(r)) + "</a></td>";
+        } },
+      { key: "s", label: "Shipped", cmp: function (a, b) { return byDate(shipped(a), shipped(b)); },
+        cell: function (r) {
+          var d = shipped(r);
+          return '<td class="age-cell">' + (d ? (r.k === "bug" ? "Fixed " : "Added ") + ago(d) : "") + "</td>";
+        } },
+      { key: "cov", label: "Coverage", cmp: function (a, b) { return (b.full ? 1 : 0) - (a.full ? 1 : 0); },
+        cell: function (r) {
+          return '<td class="nowrap">' + (r.full ? '<span class="tag tag-success">Covered</span>' : '<span class="tag">In part</span>') + "</td>";
+        } }
+    ];
+  }
+
+  // Filters: the text box, then one type and one coverage at a time.
+  var filter = { q: "", k: "all", cov: "all" };
+  function haystack(r) {
+    return ("#" + r.n + " " + r.t + " " + r.note.replace(/<[^>]+>/g, " ") + " " + title(r) + " " + (TYPES[r.k] || {}).label).toLowerCase();
+  }
+  function passes(r, skip) {
+    if (filter.q && haystack(r).indexOf(filter.q) === -1) { return false; }
+    if (skip !== "k" && filter.k !== "all" && r.k !== filter.k) { return false; }
+    if (skip !== "cov" && filter.cov !== "all" && (filter.cov === "full") !== !!r.full) { return false; }
+    return true;
+  }
+
+  // id: the promote dialog in Mullion links a commit to its issue's row as
+  // upstream.html#issue-<n>.
+  var LISTS = [
+    { tab: "open", rows: OPEN, label: "Issue" },
+    { tab: "prs", rows: PRS, label: "Pull request" },
+    { tab: "closed", rows: CLOSED, label: "Issue" }
+  ];
+  LISTS.forEach(function (l) {
+    l.table = Mullion.dataTable(document.querySelector("#panel-" + l.tab + " table"), {
+      columns: columns(l.label),
+      sort: { key: "n", dir: 1 },
+      tie: function (a, b) { return a.n - b.n; },
+      rowAttrs: function (r) { return ' id="issue-' + r.n + '"'; },
+      visible: picker.shown,
+      desc: function () { return picker.shown("desc"); }
+    });
+  });
+  var ALL = OPEN.concat(PRS, CLOSED);
+
+  function count(group, test) {
+    return function (id) {
+      return ALL.filter(function (r) { return passes(r, group) && (id === "all" || test(r, id)); }).length;
+    };
+  }
+  var paintType = Mullion.chipRow(document.getElementById("type-chips"), {
+    options: [{ id: "all", label: "All types" }].concat(TYPE_ORDER.filter(function (k) {
+      return ALL.some(function (r) { return r.k === k; });
+    }).map(function (k) { return { id: k, label: TYPES[k].label }; })),
+    count: count("k", function (r, id) { return r.k === id; }),
+    onSelect: function (id) { filter.k = id; renderAll(); }
+  });
+  var paintCov = Mullion.chipRow(document.getElementById("cov-chips"), {
+    options: [{ id: "all", label: "Any coverage" }, { id: "full", label: "Covered" }, { id: "part", label: "In part" }],
+    count: count("cov", function (r, id) { return (id === "full") === !!r.full; }),
+    onSelect: function (id) { filter.cov = id; renderAll(); }
+  });
+  Mullion.searchBox(document.getElementById("filter"), function (q) { filter.q = q.toLowerCase(); renderAll(); });
+
+  function renderAll() {
+    LISTS.forEach(function (l) {
+      var list = l.rows.filter(function (r) { return passes(r); });
+      l.table.render(list);
+      document.querySelector('[data-count="' + l.tab + '"]').textContent = list.length;
+    });
+    paintType(filter.k);
+    paintCov(filter.cov);
+  }
+  renderAll();
 
   // Tabs: the chosen one lives in the hash (#open, #prs, #closed) so it can be
   // linked to and survives a reload.

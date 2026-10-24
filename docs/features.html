@@ -7,8 +7,8 @@
 <meta name="description" content="Every feature this Windows Terminal fork has that upstream doesn't, with dates, size, and links to the commits." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-24c" />
-<script src="site.js?v=2026-10-24c"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-24d" />
+<script src="site.js?v=2026-10-24d"></script>
 </head>
 <body>
 
@@ -53,6 +53,7 @@
           <option value="size-desc">Largest change</option>
           <option value="size-asc">Smallest change</option>
           <option value="alpha">A&ndash;Z</option>
+          <option value="type">Type</option>
           <option value="cat">Category</option>
         </select>
         <div class="view-switch" role="group" aria-label="Layout">
@@ -60,14 +61,11 @@
           <button type="button" data-view="preview" aria-pressed="false">Preview</button>
           <button type="button" data-view="table" aria-pressed="false">Table</button>
         </div>
+        <div id="fields" hidden></div>
       </div>
-      <div class="chip-row" id="category-chips" role="group" aria-label="Category">
-        <button type="button" class="chip" data-cat="all" aria-pressed="true">All</button>
-        <button type="button" class="chip" data-cat="automation" aria-pressed="false">Automation</button>
-        <button type="button" class="chip" data-cat="links" aria-pressed="false">Links</button>
-        <button type="button" class="chip" data-cat="ui" aria-pressed="false">UI &amp; theming</button>
-        <button type="button" class="chip" data-cat="settings" aria-pressed="false">Settings UI</button>
-        <button type="button" class="chip" data-cat="deploy" aria-pressed="false">Deploy system</button>
+      <div class="chip-groups">
+        <div class="chip-row" id="type-chips" role="group" aria-label="Type"></div>
+        <div class="chip-row" id="category-chips" role="group" aria-label="Category"></div>
       </div>
     </div>
   </div>
@@ -76,17 +74,9 @@
     <p class="result-count" id="result-count" aria-live="polite"></p>
     <div class="feature-grid" id="view-cards"></div>
     <div class="feature-grid preview" id="view-preview" hidden></div>
-    <div class="table-scroll" id="view-table" hidden>
+    <div class="table-scroll scroll-y" id="view-table" hidden>
       <table class="feature-table">
-        <thead>
-          <tr>
-            <th scope="col" data-sort-col="alpha"><button type="button">Feature</button></th>
-            <th scope="col" data-sort-col="cat"><button type="button">Category</button></th>
-            <th scope="col" data-sort-col="date-desc"><button type="button">Added</button></th>
-            <th scope="col" data-sort-col="size-desc" data-section="stats"><button type="button">Changed</button></th>
-            <th scope="col" data-section="commits"><span class="plain">Commits</span></th>
-          </tr>
-        </thead>
+        <thead></thead>
         <tbody id="table-body"></tbody>
       </table>
     </div>
@@ -112,16 +102,69 @@
   </div>
 </footer>
 
-<script src="features.js?v=2026-10-24c"></script>
-<script src="feature-details.js?v=2026-10-24c"></script>
+<script src="table.js?v=2026-10-24d"></script>
+<script src="features.js?v=2026-10-24d"></script>
+<script src="feature-details.js?v=2026-10-24d"></script>
 <script>
 (function () {
   var REPO = "https://github.com/aylith-labs/mullion/commit/";
   var FEATURES = window.FEATURES || [];
   var DETAILS = window.FEATURE_DETAILS || {};
   var VIEWS = ["cards", "preview", "table"];
-  var CATS = ["all", "automation", "links", "ui", "settings", "deploy"];
-  var SORTS = ["date-desc", "date-asc", "size-desc", "size-asc", "alpha", "cat"];
+  var CATS = [
+    { id: "all", label: "All" }, { id: "automation", label: "Automation" }, { id: "links", label: "Links" },
+    { id: "ui", label: "UI & theming" }, { id: "settings", label: "Settings UI" }, { id: "deploy", label: "Deploy system" }
+  ];
+  var KINDS = {
+    feature: { label: "Feature", cls: "tag-accent", tip: "Something upstream cannot do" },
+    improvement: { label: "Improvement", cls: "", tip: "Upstream does it; Mullion does it better" },
+    fix: { label: "Bug fix", cls: "tag-bug", tip: "An upstream bug, fixed" }
+  };
+  var KIND_ORDER = ["feature", "improvement", "fix"];
+  function ids(list) { return list.map(function (x) { return x.id; }); }
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function plain(html) { var d = document.createElement("div"); d.innerHTML = html; return d.textContent || ""; }
+  function byTitle(a, b) { return a.title.localeCompare(b.title); }
+
+  // One set of columns sorts both the table and the cards. A sort id is what
+  // the dropdown and the URL carry (?sort=alpha); each maps to a column and a
+  // direction.
+  var COLUMNS = [
+    { key: "title", label: "Feature", cmp: byTitle,
+      cell: function (f) {
+        return '<td class="title-cell"><a class="has-desc" href="' + docHref(f) + '">' + esc(f.title) + "</a>" +
+          (f.standout ? " " + badge(f) : "") + '<div class="desc">' + f.desc + "</div></td>";
+      } },
+    { key: "kind", label: "Type", cmp: function (a, b) { return KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind); },
+      cell: function (f) { return '<td class="nowrap">' + kindTag(f) + "</td>"; } },
+    { key: "cat", label: "Category", cmp: function (a, b) { return a.catLabel.localeCompare(b.catLabel); },
+      cell: function (f) { return '<td class="nowrap">' + esc(f.catLabel) + "</td>"; } },
+    { key: "added", label: "Added", first: -1, cmp: function (a, b) { return a.dateAdded.localeCompare(b.dateAdded); },
+      cell: function (f) { return '<td class="nowrap">' + Mullion.timeTag(f.dateAdded) + "</td>"; } },
+    { key: "changed", label: "Changed", first: -1, cmp: function (a, b) { return (a.ins + a.del) - (b.ins + b.del); },
+      cell: function (f) {
+        return '<td class="nowrap"><span class="stat-add">+' + f.ins.toLocaleString() + '</span> <span class="stat-del">&minus;' + f.del.toLocaleString() + "</span></td>";
+      } },
+    { key: "commits", label: "Commits", sortable: false,
+      cell: function (f) { return '<td><div class="commit-row">' + commitLinks(f) + "</div></td>"; } }
+  ];
+  var SORTS = {
+    "date-desc": { key: "added", dir: -1 }, "date-asc": { key: "added", dir: 1 },
+    "size-desc": { key: "changed", dir: -1 }, "size-asc": { key: "changed", dir: 1 },
+    "alpha": { key: "title", dir: 1 }, "alpha-desc": { key: "title", dir: -1 },
+    "type": { key: "kind", dir: 1 }, "type-desc": { key: "kind", dir: -1 },
+    "cat": { key: "cat", dir: 1 }, "cat-desc": { key: "cat", dir: -1 }
+  };
+  function sortId(s) {
+    for (var id in SORTS) { if (SORTS[id].key === s.key && SORTS[id].dir === s.dir) { return id; } }
+    return "date-desc";
+  }
+  function compare(a, b) {
+    var s = SORTS[state.sort];
+    var col = COLUMNS.filter(function (c) { return c.key === s.key; })[0];
+    return col.cmp(a, b) * s.dir || byTitle(a, b);
+  }
 
   // Filters live in the URL, so a filtered list can be linked to (the home
   // page links straight to ?cat=links) and survives back/forward.
@@ -131,8 +174,9 @@
   }
   var state = {
     query: param("q"),
-    cat: CATS.indexOf(param("cat")) !== -1 ? param("cat") : "all",
-    sort: SORTS.indexOf(param("sort")) !== -1 ? param("sort") : "date-desc",
+    cat: ids(CATS).indexOf(param("cat")) !== -1 ? param("cat") : "all",
+    kind: KIND_ORDER.indexOf(param("type")) !== -1 ? param("type") : "all",
+    sort: SORTS[param("sort")] ? param("sort") : "date-desc",
     view: VIEWS.indexOf(param("view")) !== -1 ? param("view") : "cards"
   };
   // The layout is a per-visitor preference rather than part of a link.
@@ -144,34 +188,26 @@
     var q = [];
     if (state.query) { q.push("q=" + encodeURIComponent(state.query)); }
     if (state.cat !== "all") { q.push("cat=" + state.cat); }
+    if (state.kind !== "all") { q.push("type=" + state.kind); }
     if (state.sort !== "date-desc") { q.push("sort=" + state.sort); }
     var url = window.location.pathname + (q.length ? "?" + q.join("&") : "");
     try { history.replaceState(null, "", url); } catch (e) {}
   }
 
-  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-  function plain(html) { var d = document.createElement("div"); d.innerHTML = html; return d.textContent || ""; }
-
-  function matches(f) {
-    if (state.cat !== "all" && f.cat !== state.cat) { return false; }
+  function matches(f, skip) {
+    if (skip !== "cat" && state.cat !== "all" && f.cat !== state.cat) { return false; }
+    if (skip !== "kind" && state.kind !== "all" && f.kind !== state.kind) { return false; }
     if (!state.query) { return true; }
     var q = state.query.toLowerCase();
-    return (f.title + " " + plain(f.desc) + " " + f.catLabel).toLowerCase().indexOf(q) !== -1;
-  }
-
-  function compare(a, b) {
-    switch (state.sort) {
-      case "date-asc": return a.dateAdded.localeCompare(b.dateAdded) || a.title.localeCompare(b.title);
-      case "date-desc": return b.dateAdded.localeCompare(a.dateAdded) || a.title.localeCompare(b.title);
-      case "size-desc": return (b.ins + b.del) - (a.ins + a.del);
-      case "size-asc": return (a.ins + a.del) - (b.ins + b.del);
-      case "alpha": return a.title.localeCompare(b.title);
-      case "cat": return a.catLabel.localeCompare(b.catLabel) || a.title.localeCompare(b.title);
-      default: return 0;
-    }
+    return (f.title + " " + plain(f.desc) + " " + f.catLabel + " " + KINDS[f.kind].label).toLowerCase().indexOf(q) !== -1;
   }
 
   function docHref(f) { return "feature.html?id=" + encodeURIComponent(f.id); }
+
+  function kindTag(f) {
+    var k = KINDS[f.kind] || KINDS.feature;
+    return '<span class="tag ' + k.cls + '" data-tip="' + esc(k.tip) + '">' + k.label + "</span>";
+  }
 
   function commitLinks(f) {
     return f.commits.map(function (sha) {
@@ -215,22 +251,12 @@
         : NO_SHOT;
     }
     return '<article class="fcard">' + thumb +
-      '<div class="card-top"><span class="kicker">' + esc(f.catLabel) + "</span>" + badge(f) + "</div>" +
+      '<div class="card-top"><span class="kicker">' + esc(f.catLabel) + "</span>" + kindTag(f) + badge(f) + "</div>" +
       '<h3><a href="' + docHref(f) + '">' + esc(f.title) + "</a></h3>" +
       '<p class="desc">' + f.desc + "</p>" +
       metaRow(f) +
       '<div class="commit-row" data-section="commits">' + commitLinks(f) + "</div>" +
       "</article>";
-  }
-
-  function row(f) {
-    return "<tr>" +
-      '<td class="title-cell"><a href="' + docHref(f) + '">' + esc(f.title) + "</a>" + (f.standout ? " " + badge(f) : "") + "</td>" +
-      '<td class="nowrap">' + esc(f.catLabel) + "</td>" +
-      '<td class="nowrap">' + Mullion.timeTag(f.dateAdded) + "</td>" +
-      '<td class="nowrap" data-section="stats"><span class="stat-add">+' + f.ins.toLocaleString() + '</span> <span class="stat-del">&minus;' + f.del.toLocaleString() + "</span></td>" +
-      '<td data-section="commits"><div class="commit-row">' + commitLinks(f) + "</div></td>" +
-      "</tr>";
   }
 
   var els = {
@@ -246,16 +272,57 @@
     if (thumb) { thumb.outerHTML = NO_SHOT; }
   }, true);
 
+  // The table's fields; descriptions show on hover until switched on.
+  var fieldsEl = document.getElementById("fields");
+  var picker = Mullion.fieldPicker(fieldsEl, {
+    storageKey: "mullion.features.fields",
+    fields: [
+      { key: "kind", label: "Type", on: true },
+      { key: "cat", label: "Category", on: true },
+      { key: "added", label: "Added", on: true },
+      { key: "changed", label: "Changed", on: true },
+      { key: "commits", label: "Commits", on: true },
+      { key: "desc", label: "Descriptions", on: false }
+    ],
+    onChange: render
+  });
+  var table = Mullion.dataTable(els.table.querySelector("table"), {
+    columns: COLUMNS,
+    tie: byTitle,
+    visible: picker.shown,
+    desc: function () { return picker.shown("desc"); },
+    empty: "No feature matches that search.",
+    onSort: function (s) { state.sort = sortId(s); render(); }
+  });
+
+  function chipCount(group, test) {
+    return function (id) {
+      return FEATURES.filter(function (f) { return matches(f, group) && (id === "all" || test(f, id)); }).length;
+    };
+  }
+  var paintKinds = Mullion.chipRow(document.getElementById("type-chips"), {
+    options: [{ id: "all", label: "All types" }].concat(KIND_ORDER.map(function (k) { return { id: k, label: KINDS[k].label }; })),
+    count: chipCount("kind", function (f, id) { return f.kind === id; }),
+    onSelect: function (id) { state.kind = id; render(); }
+  });
+  var paintCats = Mullion.chipRow(document.getElementById("category-chips"), {
+    options: CATS,
+    count: chipCount("cat", function (f, id) { return f.cat === id; }),
+    onSelect: function (id) { state.cat = id; render(); }
+  });
+
   function render() {
-    var list = FEATURES.filter(matches).sort(compare);
+    var list = FEATURES.filter(function (f) { return matches(f); }).sort(compare);
     document.getElementById("result-count").textContent =
       list.length === FEATURES.length ? FEATURES.length + " features" : list.length + " of " + FEATURES.length + " features";
     document.getElementById("empty").hidden = list.length !== 0;
 
     // Only the visible layout is rendered; switching layouts re-renders.
     for (var i = 0; i < VIEWS.length; i++) { els[VIEWS[i]].hidden = !list.length || VIEWS[i] !== state.view; }
+    fieldsEl.hidden = state.view !== "table";
     if (state.view === "table") {
-      document.getElementById("table-body").innerHTML = list.map(row).join("");
+      table.setSort(SORTS[state.sort]);
+      table.render(list);
     } else {
       els[state.view].innerHTML = list.map(function (f) { return card(f, state.view === "preview"); }).join("");
     }
@@ -266,40 +333,22 @@
   }
 
   function syncControls() {
-    var chips = document.querySelectorAll("#category-chips .chip");
-    for (var i = 0; i < chips.length; i++) {
-      var cat = chips[i].getAttribute("data-cat");
-      chips[i].setAttribute("aria-pressed", String(cat === state.cat));
-      var n = cat === "all" ? FEATURES.length : FEATURES.filter(function (f) { return f.cat === cat; }).length;
-      var label = chips[i].getAttribute("data-label") || chips[i].textContent;
-      chips[i].setAttribute("data-label", label);
-      chips[i].innerHTML = esc(label) + ' <span class="count">' + n + "</span>";
-    }
+    paintKinds(state.kind);
+    paintCats(state.cat);
     var buttons = document.querySelectorAll(".view-switch button");
     for (var j = 0; j < buttons.length; j++) {
       buttons[j].setAttribute("aria-pressed", String(buttons[j].getAttribute("data-view") === state.view));
     }
-    document.getElementById("sort-select").value = state.sort;
+    // A reversed column sort (alpha-desc) has no menu entry; the menu keeps
+    // its closest one.
+    var select = document.getElementById("sort-select");
+    select.value = select.querySelector('option[value="' + state.sort + '"]') ? state.sort : state.sort.replace(/-desc$/, "");
     sortDropdown.refresh();
-    var ths = document.querySelectorAll("th[data-sort-col]");
-    for (var k = 0; k < ths.length; k++) {
-      var col = ths[k].getAttribute("data-sort-col");
-      var on = col === state.sort || (col === "date-desc" && state.sort === "date-asc") || (col === "size-desc" && state.sort === "size-asc");
-      if (on) { ths[k].setAttribute("aria-sort", /asc$|alpha|cat/.test(state.sort) ? "ascending" : "descending"); }
-      else { ths[k].removeAttribute("aria-sort"); }
-    }
   }
 
   var search = document.getElementById("search");
   search.value = state.query;
-  search.addEventListener("input", function () { state.query = search.value.trim(); render(); });
-
-  document.getElementById("category-chips").addEventListener("click", function (e) {
-    var chip = e.target.closest(".chip");
-    if (!chip) { return; }
-    state.cat = chip.getAttribute("data-cat");
-    render();
-  });
+  Mullion.searchBox(search, function (q) { state.query = q; render(); });
 
   var sortDropdown = Mullion.dropdown(document.getElementById("sort-select"));
   document.getElementById("sort-select").addEventListener("change", function (e) { state.sort = e.target.value; render(); });
@@ -312,33 +361,8 @@
     render();
   });
 
-  // Column headers sort too; a second click on the same column reverses it.
-  document.querySelector(".feature-table thead").addEventListener("click", function (e) {
-    var th = e.target.closest("th[data-sort-col]");
-    if (!th) { return; }
-    var col = th.getAttribute("data-sort-col");
-    if (col === "date-desc") { state.sort = state.sort === "date-desc" ? "date-asc" : "date-desc"; }
-    else if (col === "size-desc") { state.sort = state.sort === "size-desc" ? "size-asc" : "size-desc"; }
-    else { state.sort = col; }
-    render();
-  });
-
   document.getElementById("clear-filters").addEventListener("click", function () {
-    state.query = ""; state.cat = "all"; search.value = ""; render(); search.focus();
-  });
-
-  // "/" jumps to search, as on GitHub; Esc in the box clears it.
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      var t = e.target;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) { return; }
-      e.preventDefault();
-      search.focus();
-      search.select();
-    }
-  });
-  search.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && search.value) { e.stopPropagation(); search.value = ""; state.query = ""; render(); }
+    state.query = ""; state.cat = "all"; state.kind = "all"; search.value = ""; render(); search.focus();
   });
 
   render();

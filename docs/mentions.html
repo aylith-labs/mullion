@@ -7,8 +7,8 @@
 <meta name="description" content="Where Mullion has been announced or listed: awesome lists, directories and forum posts, each with the text exactly as it was posted." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-24c" />
-<script src="site.js?v=2026-10-24c"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-24d" />
+<script src="site.js?v=2026-10-24d"></script>
 </head>
 <body>
 
@@ -47,12 +47,13 @@
       </div>
       <div class="toolbar-end">
         <button type="button" class="btn btn-secondary btn-sm mentions-toggle-all" id="toggle-all"></button>
+        <div id="fields" hidden></div>
         <div class="view-switch" role="group" aria-label="Layout">
           <button type="button" data-view="timeline" aria-pressed="true">Timeline</button>
           <button type="button" data-view="table" aria-pressed="false">Table</button>
         </div>
       </div>
-      <div class="mentions-chips">
+      <div class="chip-groups">
         <div class="chip-row" id="kind-chips" role="group" aria-label="Kind"></div>
         <div class="chip-row" id="status-chips" role="group" aria-label="Status"></div>
       </div>
@@ -62,7 +63,7 @@
     <ol class="mentions-timeline" id="view-timeline"></ol>
     <div class="empty" id="empty" hidden>No post matches. <button type="button" class="btn btn-secondary btn-sm" id="clear">Clear filters</button></div>
 
-    <div class="table-scroll" id="view-table" hidden>
+    <div class="table-scroll scroll-y" id="view-table" hidden>
       <table class="feature-table mentions-table">
         <thead></thead>
         <tbody id="table-body"></tbody>
@@ -159,6 +160,7 @@
 </ul>
 </template>
 
+<script src="table.js?v=2026-10-24d"></script>
 <script>
 (function () {
   // Only things that were actually posted, newest first. Nothing that went to
@@ -212,27 +214,22 @@
     var t = document.getElementById("post-" + e.id);
     text[e.id] = [e.venue, e.title, e.kind, STATUS_LABEL[e.status], t ? t.content.textContent : ""].join(" ").toLowerCase();
   });
-  function shown() {
+  // skip: leave one chip group out, to count what each of its chips would show.
+  function shown(skip) {
     var words = filter.q.toLowerCase().split(/\s+/).filter(Boolean);
     return ENTRIES.filter(function (e) {
-      return (filter.kind === "all" || e.kind === filter.kind) &&
-        (filter.status === "all" || e.status === filter.status) &&
+      return (skip === "kind" || filter.kind === "all" || e.kind === filter.kind) &&
+        (skip === "status" || filter.status === "all" || e.status === filter.status) &&
         words.every(function (w) { return text[e.id].indexOf(w) !== -1; });
     });
   }
-  function chips(id, field, values, label) {
-    var row = document.getElementById(id);
-    var counts = {};
-    ENTRIES.forEach(function (e) { counts[e[field]] = (counts[e[field]] || 0) + 1; });
-    row.innerHTML = ['<button type="button" class="chip" data-v="all" aria-pressed="true">All ' + label + "</button>"].concat(values.map(function (v) {
-      return '<button type="button" class="chip" data-v="' + esc(v) + '" aria-pressed="false">' + esc(field === "status" ? STATUS_LABEL[v] : v) +
-        ' <span class="count">' + counts[v] + "</span></button>";
-    })).join("");
-    row.addEventListener("click", function (ev) {
-      var b = ev.target.closest("button[data-v]");
-      if (!b) { return; }
-      filter[field] = b.getAttribute("data-v");
-      render();
+  function chips(id, field, label) {
+    return Mullion.chipRow(document.getElementById(id), {
+      options: [{ id: "all", label: "All " + label }].concat(uniq(field).map(function (v) {
+        return { id: v, label: field === "status" ? STATUS_LABEL[v] : v };
+      })),
+      count: function (v) { return v === "all" ? null : shown(field).filter(function (e) { return e[field] === v; }).length; },
+      onSelect: function (v) { filter[field] = v; render(); }
     });
   }
   function uniq(field) {
@@ -240,8 +237,8 @@
     ENTRIES.forEach(function (e) { if (seen.indexOf(e[field]) === -1) { seen.push(e[field]); } });
     return seen.sort();
   }
-  chips("kind-chips", "kind", uniq("kind"), "kinds");
-  chips("status-chips", "status", uniq("status"), "states");
+  var paintKind = chips("kind-chips", "kind", "kinds");
+  var paintStatus = chips("status-chips", "status", "states");
 
   // --- Timeline: one card per entry, grouped by month, newest first. -------
   var timeline = document.getElementById("view-timeline");
@@ -282,43 +279,37 @@
   });
 
   // --- Table: sortable, a row opens the posted text in a drawer. -----------
-  var COLS = [
-    { key: "d", label: "Posted", cmp: function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; } },
-    { key: "venue", label: "Where", cmp: function (a, b) { return a.venue.localeCompare(b.venue); } },
-    { key: "title", label: "Title", cmp: function (a, b) { return a.title.localeCompare(b.title); } },
-    { key: "kind", label: "Kind", cmp: function (a, b) { return a.kind.localeCompare(b.kind); } },
-    { key: "status", label: "Status", cmp: function (a, b) { return a.status.localeCompare(b.status); } }
-  ];
-  var body = document.getElementById("table-body");
-  var head = body.parentNode.querySelector("thead");
-  var sort = { key: "d", dir: -1 };
-  head.innerHTML = "<tr>" + COLS.map(function (c) {
-    return '<th scope="col" data-key="' + c.key + '"><button type="button">' + c.label + "</button></th>";
-  }).join("") + "</tr>";
-  var ths = Array.prototype.slice.call(head.querySelectorAll("th"));
-  function renderTable(list) {
-    var col = COLS.filter(function (c) { return c.key === sort.key; })[0];
-    var rows = list.slice().sort(function (a, b) { return col.cmp(a, b) * sort.dir || (a.d < b.d ? 1 : -1); });
-    body.innerHTML = rows.map(function (e) {
-      return '<tr tabindex="0" data-id="' + esc(e.id) + '" aria-label="Read the posted text: ' + esc(e.title) + '">' +
-        '<td class="mention-when nowrap"><span class="mentions-label">Posted </span>' + ago(e.d) + "</td>" +
-        '<td class="mention-where">' + logo(e) + '<span class="mention-venue">' + esc(e.venue) + "</span></td>" +
-        '<td class="title-cell">' + link(e) + "</td>" +
-        '<td class="nowrap">' + esc(e.kind) + "</td>" +
-        '<td class="nowrap">' + (STATUS[e.status] || "") + "</td></tr>";
-    }).join("");
-    ths.forEach(function (th) {
-      if (th.getAttribute("data-key") === sort.key) { th.setAttribute("aria-sort", sort.dir === 1 ? "ascending" : "descending"); }
-      else { th.removeAttribute("aria-sort"); }
-    });
-  }
-  ths.forEach(function (th) {
-    th.querySelector("button").addEventListener("click", function () {
-      var key = th.getAttribute("data-key");
-      sort = key === sort.key ? { key: key, dir: -sort.dir } : { key: key, dir: key === "d" ? -1 : 1 };
-      render();
-    });
+  var fieldsEl = document.getElementById("fields");
+  var picker = Mullion.fieldPicker(fieldsEl, {
+    storageKey: "mullion.mentions.fields",
+    fields: [
+      { key: "d", label: "Posted", on: true },
+      { key: "venue", label: "Where", on: true },
+      { key: "kind", label: "Kind", on: true },
+      { key: "status", label: "Status", on: true }
+    ],
+    onChange: function () { render(); }
   });
+  function byText(field) { return function (a, b) { return a[field].localeCompare(b[field]); }; }
+  var table = Mullion.dataTable(document.querySelector("#view-table table"), {
+    columns: [
+      { key: "d", label: "Posted", first: -1, cmp: function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; },
+        cell: function (e) { return '<td class="mention-when nowrap"><span class="mentions-label">Posted </span>' + ago(e.d) + "</td>"; } },
+      { key: "venue", label: "Where", cmp: byText("venue"),
+        cell: function (e) { return '<td class="mention-where">' + logo(e) + '<span class="mention-venue">' + esc(e.venue) + "</span></td>"; } },
+      { key: "title", label: "Title", cmp: byText("title"),
+        cell: function (e) { return '<td class="title-cell">' + link(e) + "</td>"; } },
+      { key: "kind", label: "Kind", cmp: byText("kind"),
+        cell: function (e) { return '<td class="nowrap">' + esc(e.kind) + "</td>"; } },
+      { key: "status", label: "Status", cmp: byText("status"),
+        cell: function (e) { return '<td class="nowrap">' + (STATUS[e.status] || "") + "</td>"; } }
+    ],
+    sort: { key: "d", dir: -1 },
+    tie: function (a, b) { return a.d < b.d ? 1 : -1; },
+    visible: picker.shown,
+    rowAttrs: function (e) { return ' tabindex="0" data-id="' + esc(e.id) + '" aria-label="Read the posted text: ' + esc(e.title) + '"'; }
+  });
+  var body = table.body;
 
   var drawer = document.getElementById("drawer"), scrim = document.getElementById("scrim"), opener = null;
   function openDrawer(id, from) {
@@ -364,12 +355,9 @@
   function render() {
     var list = shown();
     renderTimeline(list);
-    renderTable(list);
-    ["kind", "status"].forEach(function (field) {
-      Array.prototype.forEach.call(document.querySelectorAll("#" + field + "-chips .chip"), function (c) {
-        c.setAttribute("aria-pressed", String(c.getAttribute("data-v") === filter[field]));
-      });
-    });
+    table.render(list);
+    paintKind(filter.kind);
+    paintStatus(filter.status);
     var filtered = filter.q || filter.kind !== "all" || filter.status !== "all";
     document.getElementById("count").textContent = filtered
       ? list.length + " of " + ENTRIES.length + " posts"
@@ -377,16 +365,10 @@
     empty.hidden = list.length > 0;
     setView(view);
   }
-  input.addEventListener("input", function () { filter.q = input.value.trim(); render(); });
+  Mullion.searchBox(input, function (q) { filter.q = q; render(); });
   document.getElementById("clear").addEventListener("click", function () {
     filter = { q: "", kind: "all", status: "all" }; input.value = ""; render(); input.focus();
   });
-  document.addEventListener("keydown", function (ev) {
-    if (ev.key === "/" && document.activeElement !== input && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
-      ev.preventDefault(); input.focus();
-    }
-  });
-
   // --- View switch: ?view= wins, then the last choice, then the timeline. ---
   var VIEWS = ["timeline", "table"], KEY = "mullion-mentions-view";
   var view = new URLSearchParams(window.location.search).get("view");
@@ -401,6 +383,7 @@
     document.getElementById("view-timeline").hidden = none || v !== "timeline";
     document.getElementById("view-table").hidden = none || v !== "table";
     toggleAll.hidden = v !== "timeline";
+    fieldsEl.hidden = v !== "table";
     buttons.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === v)); });
     if (v !== "table") { closeDrawer(); }
   }

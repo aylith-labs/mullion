@@ -602,10 +602,30 @@ table.feature-table th button:hover { background: var(--control-hover); }
 table.feature-table th button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 table.feature-table th .plain { display: block; padding: 10px 14px; }
 table.feature-table th[aria-sort] button { color: var(--accent-text); }
+/* Sort arrows: a hint on hover, the direction once a column is sorted. */
+table.feature-table th button::after { content: ""; width: 0.9em; opacity: 0.55; }
+table.feature-table th button:hover::after { content: "\2195"; }
+table.feature-table th[aria-sort="ascending"] button::after { content: "\2191"; opacity: 1; }
+table.feature-table th[aria-sort="descending"] button::after { content: "\2193"; opacity: 1; }
+table.feature-table tr.empty-row td { color: var(--muted); text-align: center; padding: 28px 14px; }
+table.feature-table tbody tr.empty-row:hover td { background: none; }
 table.feature-table tbody tr:hover td { background: var(--control-hover); }
 table.feature-table td.title-cell a { font-weight: 600; color: var(--text); }
 table.feature-table td.title-cell a:hover { color: var(--accent-text); }
 table.feature-table td.title-cell .desc { display: block; font-size: 0.84rem; color: var(--muted); margin-top: 2px; }
+/* Descriptions: inline when the table shows them, and on touch screens (no
+   hover); otherwise in a popover on the title (site.js). */
+table.feature-table td.title-cell .has-desc ~ .desc { display: none; }
+table.feature-table.show-desc td.title-cell .has-desc ~ .desc { display: block; }
+@media (hover: none) { table.feature-table td.title-cell .has-desc ~ .desc { display: block; } }
+/* A long list scrolls in its own box, so the filters above it and its header
+   row stay in view. */
+.table-scroll.scroll-y { max-height: calc(100vh - 190px); max-height: calc(100dvh - 190px); overflow: auto; }
+.table-scroll.scroll-y table.feature-table thead th { position: sticky; top: 0; z-index: 2; }
+@media (max-width: 640px) {
+  .table-scroll.scroll-y { max-height: none; }
+  .table-scroll.scroll-y table.feature-table thead th { position: static; }
+}
 table.feature-table td.nowrap { white-space: nowrap; color: var(--muted); }
 
 /* ======================================================================
@@ -629,15 +649,34 @@ table.feature-table td.nowrap { white-space: nowrap; color: var(--muted); }
 [role="tabpanel"]:focus-visible { outline-offset: 4px; }
 table.upstream-table { min-width: 0; width: 100%; }
 table.upstream-table { table-layout: fixed; }
-table.upstream-table th:nth-child(1) { width: 5.5rem; }
-table.upstream-table th:nth-child(2) { width: 40%; }
-table.upstream-table th:nth-child(3) { width: 7rem; }
-table.upstream-table th:nth-child(4) { width: 8.5rem; }
-table.upstream-table th:nth-child(6) { width: 8rem; }
-table.upstream-table th button::after { content: ""; width: 0.9em; opacity: 0.55; }
-table.upstream-table th button:hover::after { content: "\2195"; }
-table.upstream-table th[aria-sort="ascending"] button::after { content: "\2191"; opacity: 1; }
-table.upstream-table th[aria-sort="descending"] button::after { content: "\2193"; opacity: 1; }
+table.upstream-table th[data-key="n"] { width: 5.5rem; }
+table.upstream-table th[data-key="k"] { width: 7rem; }
+table.upstream-table th[data-key="d"] { width: 8.5rem; }
+table.upstream-table th[data-key="f"] { width: 22%; }
+table.upstream-table th[data-key="s"] { width: 10rem; }
+table.upstream-table th[data-key="cov"] { width: 8rem; }
+.desc-pop {
+  position: fixed; z-index: 200; max-width: min(28rem, calc(100vw - 16px));
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--card); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-pop);
+  font-size: 0.85rem; line-height: 1.5;
+}
+.desc-pop[hidden] { display: none; }
+.desc-pop a { color: var(--accent-text); }
+.desc-pop code { font-size: 0.8rem; }
+.upstream-bar { padding-top: 4px; padding-bottom: 12px; margin-bottom: 0; }
+.fields-menu { position: relative; }
+.fields-menu .dropdown-trigger { min-width: 8rem; }
+.fields-pop {
+  position: absolute; z-index: 50; top: calc(100% + 4px); right: 0; min-width: 12rem;
+  display: flex; flex-direction: column; padding: 6px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-pop);
+}
+.fields-pop[hidden] { display: none; }
+.fields-pop label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; font-size: 0.88rem; cursor: pointer; white-space: nowrap; }
+.fields-pop label:hover { background: var(--control-hover); }
+.fields-pop input { accent-color: var(--accent); }
+.fields-reset { margin-top: 4px; padding: 6px 8px; border: 0; border-top: 1px solid var(--stroke-subtle); background: none; color: var(--accent-text); font-size: 0.84rem; text-align: left; cursor: pointer; }
 /* The whole # cell opens the ticket. */
 table.upstream-table td.id-cell { position: relative; white-space: nowrap; font-variant-numeric: tabular-nums; }
 table.upstream-table td.id-cell a { font-weight: 600; color: var(--accent-text); }
@@ -647,9 +686,6 @@ table.upstream-table td.title-cell .desc code { font-size: 0.8rem; }
 table.upstream-table td.age-cell { color: var(--muted); white-space: nowrap; }
 table.upstream-table td.age-cell time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }
 table.upstream-table .closed-on { display: block; font-size: 0.8rem; }
-/* "Added 3 weeks ago" under the Mullion feature, the same relative time as Opened. */
-table.upstream-table .added { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-table.upstream-table .added time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }
 /* The row a link like upstream.html#issue-10534 points at. */
 table.upstream-table tr.is-target td { background: var(--accent-soft); }
 table.upstream-table .age-label { display: none; }
@@ -675,8 +711,9 @@ table.upstream-table td.title-cell .desc a { font-weight: 400; color: var(--acce
  * Mentions (mentions.html)
  * ==================================================================== */
 .mentions-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
-.mentions-chips { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 18px; }
-.mentions-chips .chip-row { flex-basis: auto; }
+/* Two or more pill rows side by side, wrapping as a group. */
+.chip-groups { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.toolbar .chip-groups .chip-row { flex-basis: auto; }
 .mentions-toggle-all { height: var(--control-h); }
 .mentions-toggle-all[hidden] { display: none; }
 .mention-logo { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--control); border: 1px solid var(--stroke-subtle); color: var(--text); }
@@ -719,14 +756,10 @@ table.upstream-table td.title-cell .desc a { font-weight: 400; color: var(--acce
 .mention-missing { color: var(--text-tertiary); font-style: italic; }
 
 table.mentions-table { min-width: 0; table-layout: fixed; }
-table.mentions-table th:nth-child(1) { width: 8rem; }
-table.mentions-table th:nth-child(2) { width: 30%; }
-table.mentions-table th:nth-child(4) { width: 9rem; }
-table.mentions-table th:nth-child(5) { width: 7rem; }
-table.mentions-table th button::after { content: ""; width: 0.9em; opacity: 0.55; }
-table.mentions-table th button:hover::after { content: "\2195"; }
-table.mentions-table th[aria-sort="ascending"] button::after { content: "\2191"; opacity: 1; }
-table.mentions-table th[aria-sort="descending"] button::after { content: "\2193"; opacity: 1; }
+table.mentions-table th[data-key="d"] { width: 8rem; }
+table.mentions-table th[data-key="venue"] { width: 30%; }
+table.mentions-table th[data-key="kind"] { width: 9rem; }
+table.mentions-table th[data-key="status"] { width: 7rem; }
 table.mentions-table tbody tr { cursor: pointer; }
 table.mentions-table tbody tr:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 table.mentions-table tbody tr.is-selected td { background: var(--accent-soft); }

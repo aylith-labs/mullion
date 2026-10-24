@@ -63,6 +63,7 @@ for (const f of FEATURES) {
   if (ids.has(id)) err(id, "duplicate id");
   ids.add(id);
   for (const key of ["title", "cat", "catLabel", "dateAdded", "desc"]) if (!f[key]) err(id, `features.js is missing ${key}`);
+  if (!["feature", "improvement", "fix"].includes(f.kind)) err(id, `kind "${f.kind}" is not feature, improvement or fix`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(f.dateAdded ?? "")) err(id, `dateAdded "${f.dateAdded}" is not YYYY-MM-DD`);
   if (!Array.isArray(f.commits) || f.commits.length === 0) err(id, "no commits");
   else {

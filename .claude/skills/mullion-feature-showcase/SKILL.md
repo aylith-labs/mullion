@@ -15,7 +15,9 @@ follows the same steps.
 
 One object per feature: `id` (kebab-case, permanent: it is the page URL),
 `title` (what the user gets, not the implementation), `cat` + `catLabel` (reuse an
-existing pair: automation, deploy, links, settings, ui), `dateAdded` (the date the
+existing pair: automation, deploy, links, settings, ui), `kind` (`feature`: something
+upstream cannot do; `improvement`: upstream does it, Mullion does it better; `fix`: an
+upstream bug fixed), `dateAdded` (the date the
 first commit landed), `commits`, `files`, `ins`, `del`, `desc` (two to four
 sentences; name upstream issue numbers it answers). `standout: true` only for a
 headline feature.
