@@ -47,18 +47,22 @@ Every feature has at least one comparison with upstream:
 { kind: "compare", before: "<base>-upstream", after: "<base>", caption: "…" }
 ```
 
-It renders with `docs/compare.js`: Hover, Split, Side by side and Difference
-(hovering blends the two so only what changed lights up). Each side needs
-`media/<base>-light.png` and `media/<base>-dark.png`. Until the before shot exists
-the figure falls back to the after shot alone, so a page never looks worse.
+It renders with `docs/compare.js`. Each side needs `media/<base>-light.png` and
+`media/<base>-dark.png`. A capture that does not exist renders nothing: with only the
+after shot the figure is that one image, with no after shot there is no figure, and a
+"What it looks like" section left empty goes too. No placeholder ever shows.
 
-**The four modes only where the pixels line up.** Hover, Split and Difference mean
-something only when the two shots are the same size and the same scene, so the
-feature's change is the only change (a link card over the same pane, a badge in the
-same tab row). Otherwise pin the figure, which drops the buttons:
-- `mode: "side"`: different layouts of the same thing (two settings pages, two
-  outputs in different fonts, tabs moved to a sidebar);
-- `mode: "stack"`: wide strips (a tab row) and text evidence panels;
+**The views depend on whether the pixels line up.** Hover and Split mean something
+only when the two shots are the same size and the same scene, so the feature's
+change is the only change (a link card over the same pane, a badge in the same tab
+row). Mark those `aligned: true`; they offer Hover, Split, Side by side and Stacked,
+opening in the reader's default (Display settings, under Screenshots). Every other
+pair offers only **Side by side | Stacked** and opens stacked, each shot the full
+width of the column: two different layouts side by side are too small to read.
+- different layouts of the same thing (two settings pages, two outputs in different
+  fonts, tabs moved to a sidebar): leave `aligned` out;
+- `frame: "square"` drops the figure's rounded frame, for a shot whose own corners
+  are the point (dock-fit's quake corners);
 - no upstream counterpart at all: a single `{ base, caption }` image, not a compare.
 
 Look at both shots before choosing. A "before" that does not show the thing the
@@ -72,8 +76,23 @@ What "before" is, in order of preference:
 2. **Mullion with the feature off**: when upstream has no such view (deploy and
    automation features), the setting switched off in `mult`.
 3. **The evidence, rendered**: for something with no pixels (a UIA landmark, a
-   pipe protocol, a CI run), the evidence (UIA tree, command output, run summary)
-   laid out as a themed panel and captured in both themes.
+   pipe protocol, a CI run), the evidence itself as a real HTML table, never a
+   screenshot of one. It is themed with the page, reads at any width, and can be
+   selected and searched:
+
+   ```js
+   { kind: "evidence", caption: "…",
+     source: "the command or probe that produced it",
+     columns: ["Landmark", "Control type", "AutomationId"],
+     before: { label: "Windows Terminal Canary 1.27.2931.0 (upstream)", rows: [[…], …], mark: [2] },
+     after:  { label: "Mullion (Test slot)", rows: [[…], …], mark: [2] },
+     note: "How it was read." }
+   ```
+
+   `label` and `note` are HTML (link the run or commit); a `null` cell reads
+   "(none)"; `mark` lists the row indexes the caption points at. Leave `before` out
+   for evidence with no upstream side (a CI run). Copy the values from the real
+   output, never retype them from memory. Screenshots of real app UI stay images.
 
 The caption says what the reader should look at, before vs after, in one
 sentence.
@@ -89,7 +108,7 @@ sentence.
   Canary's (`…\Microsoft.WindowsTerminalCanary_8wekyb3d8bbwe\LocalState\`) to
   `"light"` then `"dark"`; settings hot-reload, no restart. Back Canary's file up
   first and restore it after.
-- **Same size, same content** on both sides, so Split and Difference line up:
+- **Same size, same content** on both sides, so Hover and Split line up:
   fixed window size (`--size`/`--pos` on launch), same profile, same font, same
   text in the pane.
 - **`tools/Capture-Window.ps1`** takes the window's own pixels with PrintWindow

@@ -9,8 +9,16 @@
 //   how       what it actually does, in enough detail to be checkable
 //   steps     a walkthrough someone can follow in their own build
 //   settings  the settings.json keys involved, with real defaults
-//   media     { base, caption } — resolves to media/<base>-light.png and
-//             media/<base>-dark.png, or -.mp4 for kind:"video"
+//   media     a list of:
+//             { base, caption } — a screenshot, media/<base>-light.png and
+//               media/<base>-dark.png, or -.mp4 for kind: "video"
+//             { kind: "compare", before, after, caption, aligned?, frame? } —
+//               upstream beside Mullion (compare.js). aligned: true only when the
+//               two shots line up pixel for pixel; frame: "square" drops the
+//               rounded frame for a shot whose corners are the point
+//             { kind: "evidence", caption, columns, source?, note?, before?, after } —
+//               text evidence (a UIA tree, a CI run) as a real table, never a
+//               picture of one (compare.js)
 //   upstream  what Microsoft did about it, where that is known
 window.FEATURE_DETAILS = {
 
@@ -29,8 +37,8 @@ window.FEATURE_DETAILS = {
       { key: "dockWindow", def: "\"off\"", note: "Any value but off docks the window, and with it gets the square corners and the work-area re-fit. Quake mode always has both." },
     ],
     media: [
-      { kind: "compare", before: "dock-fit-corners-before", after: "dock-fit-corners-after", caption: "The top corners of a quake window on Windows 11: rounded in upstream, square in Mullion." },
-      { kind: "compare", before: "dock-fit-workarea-before", after: "dock-fit-workarea-after", caption: "A docked window after the taskbar grows: upstream keeps its old size and runs under the taskbar; Mullion re-fits." },
+      { kind: "compare", aligned: true, frame: "square", before: "dock-fit-corners-before", after: "dock-fit-corners-after", caption: "The top corners of a quake window on Windows 11: rounded in upstream, square in Mullion." },
+      { kind: "compare", aligned: true, before: "dock-fit-workarea-before", after: "dock-fit-workarea-after", caption: "A docked window after the taskbar grows: upstream keeps its old size and runs under the taskbar; Mullion re-fits." },
     ],
     notes: [
       "The re-fit never makes a dismissed quake window reappear. Dismissing minimizes and hides it, so it is only marked, and fitted when you summon it.",
@@ -55,10 +63,10 @@ window.FEATURE_DETAILS = {
       "Infobar: in a split tab, run <code>exit 1</code> in one pane so the bar appears, then close that pane with Ctrl+Shift+W. The bar closes with it.",
     ],
     media: [
-      { kind: "compare", before: "early-fixes-marks-before", after: "early-fixes-marks-after", caption: "The scrollbar after clear: upstream still shows marks for the erased prompts; Mullion clears them." },
-      { kind: "compare", before: "early-fixes-dup-before", after: "early-fixes-dup-after", mode: "stack", caption: "<code>split-pane -V -D -d C:\\Temp\\demo cmd /k echo …</code>: look at the right-hand pane, a plain copy of Command Prompt upstream and the typed command in Mullion." },
-      { kind: "compare", before: "early-fixes-infobar-before", after: "early-fixes-infobar-after", mode: "stack", caption: "After closing the pane whose shell exited with code 1: upstream keeps the termination-behavior bar over the pane that is left; Mullion closes it." },
-      { kind: "compare", before: "early-fixes-close-tooltip-before", after: "early-fixes-close-tooltip-after", mode: "side", caption: "Hovering the tab close button with <code>closeTab</code> bound to Ctrl+W: upstream still names Ctrl+F4; Mullion names the binding." },
+      { kind: "compare", aligned: true, before: "early-fixes-marks-before", after: "early-fixes-marks-after", caption: "The scrollbar after clear: upstream still shows marks for the erased prompts; Mullion clears them." },
+      { kind: "compare", before: "early-fixes-dup-before", after: "early-fixes-dup-after", caption: "<code>split-pane -V -D -d C:\\Temp\\demo cmd /k echo …</code>: look at the right-hand pane, a plain copy of Command Prompt upstream and the typed command in Mullion." },
+      { kind: "compare", before: "early-fixes-infobar-before", after: "early-fixes-infobar-after", caption: "After closing the pane whose shell exited with code 1: upstream keeps the termination-behavior bar over the pane that is left; Mullion closes it." },
+      { kind: "compare", before: "early-fixes-close-tooltip-before", after: "early-fixes-close-tooltip-after", caption: "Hovering the tab close button with <code>closeTab</code> bound to Ctrl+W: upstream still names Ctrl+F4; Mullion names the binding." },
     ],
     notes: [
       "Only fixes whose review has settled are taken from upstream. A pull request still being argued over is left to finish.",
@@ -78,7 +86,23 @@ window.FEATURE_DETAILS = {
       "Press D (Narrator's landmark key) to move between landmarks: the navigation pane, then the main content.",
     ],
     media: [
-      { kind: "compare", before: "settings-a11y-landmarks-before", after: "settings-a11y-landmarks-after", mode: "stack", caption: "The landmarks UI Automation reports on the Settings page: only navigation upstream; navigation and main in Mullion." },
+      {
+        kind: "evidence",
+        caption: "The landmarks UI Automation reports on the Settings page: only navigation upstream; navigation and main in Mullion.",
+        source: "every element of the Settings tab, read for UIA_LandmarkTypePropertyId (30157)",
+        columns: ["Landmark", "Control type", "AutomationId"],
+        before: {
+          label: "Windows Terminal Canary 1.27.2931.0 (upstream)",
+          rows: [["Navigation", "Button", "TogglePaneButton"], ["Navigation", "LandmarkTarget", "NavigationBreadcrumbBar"], ["Main", null, null]],
+          mark: [2],
+        },
+        after: {
+          label: "Mullion (Test slot)",
+          rows: [["Navigation", "Button", "TogglePaneButton"], ["Navigation", "LandmarkTarget", "NavigationBreadcrumbBar"], ["Main", "ScrollViewer", "SettingsMainPage_ScrollViewer"]],
+          mark: [2],
+        },
+        note: "Read with UI Automation from outside the process. No input was sent.",
+      },
     ],
     upstream: "Open since 2021 as #12004, one of a batch of accessibility reports against Settings that are still open upstream.",
   },
@@ -94,7 +118,7 @@ window.FEATURE_DETAILS = {
       "Promote when nothing you mind losing is running. The Terminal restarts on the new build.",
     ],
     media: [
-      { kind: "compare", before: "promote-tab-row-before", after: "promote-tab-row-after", caption: "The tab row with a newer build staged: look right of the new-tab dropdown, where upstream shows nothing and Mullion shows the Update button." },
+      { kind: "compare", aligned: true, before: "promote-tab-row-before", after: "promote-tab-row-after", caption: "The tab row with a newer build staged: look right of the new-tab dropdown, where upstream shows nothing and Mullion shows the Update button." },
       { base: "promote-dialog-after", caption: "Update pressed: the staged commit and its age, the latest commits each linked to its feature page and upstream issues, and the choice between applying now and on next launch." },
     ],
     notes: [
@@ -140,7 +164,7 @@ window.FEATURE_DETAILS = {
       { key: "bufferPersistIntervalSeconds", def: "300", note: "How often, in seconds: 5 to 14,400." },
     ],
     media: [
-      { kind: "compare", mode: "side", before: "session-restore-page-before", after: "session-restore-page-after", caption: "Where session restore lives: one dropdown at the top of Startup upstream; a page of its own in Mullion." },
+      { kind: "compare", before: "session-restore-page-before", after: "session-restore-page-after", caption: "Where session restore lives: one dropdown at the top of Startup upstream; a page of its own in Mullion." },
     ],
     upstream: "Upstream restores buffer contents (#961) and has an open PR to save them periodically (#19805), in minutes. Neither gives restore a page.",
   },
@@ -198,7 +222,7 @@ window.FEATURE_DETAILS = {
       { key: "controlPipe", def: "true", note: "Serve the pipe. Set false to turn it off completely." },
     ],
     media: [
-      { kind: "compare", mode: "side", before: "control-pipe-list-upstream", after: "control-pipe-list", caption: "list-panes: every window, tab and pane, and what each one is running." },
+      { kind: "compare", before: "control-pipe-list-upstream", after: "control-pipe-list", caption: "list-panes: every window, tab and pane, and what each one is running." },
     ],
     notes: [
       "The Enter goes as its own call, never combined with the text. A single write containing both is read by some TUIs as a bulk paste and never submits.",
@@ -224,7 +248,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.tooltipMaxWidth", def: "640", note: "Cap on the card's width, further limited by the pane." },
     ],
     media: [
-      { kind: "compare", before: "link-card-hover-upstream", after: "link-card-hover", caption: "Hovering an OSC 8 link to a file in WSL: upstream's tooltip shows the raw file:/// URI and asks for Ctrl+Click; Mullion's card shows the path it will really open, previews the file, and carries the actions that were previously buried in a right-click menu." },
+      { kind: "compare", aligned: true, before: "link-card-hover-upstream", after: "link-card-hover", caption: "Hovering an OSC 8 link to a file in WSL: upstream's tooltip shows the raw file:/// URI and asks for Ctrl+Click; Mullion's card shows the path it will really open, previews the file, and carries the actions that were previously buried in a right-click menu." },
     ],
   },
 
@@ -242,7 +266,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.remoteFilePreviews", def: "false", note: "In a pane whose OSC 7 says it is on another machine (a shefrd pane showing a saved machine), read its paths from that machine through <code>shefrd machine read</code> instead of looking them up in WSL. The card says <em>on &lt;machine&gt;</em>; text files only, and a quiet <em>Preview unavailable</em> when the machine is not connected." },
     ],
     media: [
-      { kind: "compare", before: "link-card-hover-upstream", after: "link-card-hover", caption: "Hovering a file inside WSL: upstream shows only the file:/// URI as written; in Mullion the arrow shows what will actually open, the \\\\wsl.localhost path for this pane's distro." },
+      { kind: "compare", aligned: true, before: "link-card-hover-upstream", after: "link-card-hover", caption: "Hovering a file inside WSL: upstream shows only the file:/// URI as written; in Mullion the arrow shows what will actually open, the \\\\wsl.localhost path for this pane's distro." },
     ],
     notes: [
       "Resolution is deliberately gated on the pane really being WSL. Without that, a Windows program printing <code>file:///etc/hosts</code> into a PowerShell tab would silently resolve against whichever distro is default.",
@@ -251,7 +275,7 @@ window.FEATURE_DETAILS = {
 
   "plain-click": {
     media: [
-      { kind: "compare", before: "plain-click-hover-upstream", after: "plain-click-hover", caption: "Hovering a URL: upstream's tooltip says Ctrl+Click to follow link; Mullion's card asks for no modifier, because a plain click follows it, and offers Open, Copy link and Show in pane." },
+      { kind: "compare", aligned: true, before: "plain-click-hover-upstream", after: "plain-click-hover", caption: "Hovering a URL: upstream's tooltip says Ctrl+Click to follow link; Mullion's card asks for no modifier, because a plain click follows it, and offers Open, Copy link and Show in pane." },
     ],
     problem:
       "Opening a link meant Ctrl+clicking it, and inside anything using the mouse — tmux, an editor, a TUI — links stopped being clickable at all, because the application had taken the mouse.",
@@ -273,7 +297,7 @@ window.FEATURE_DETAILS = {
       "Hover any part of it, label included: the card shows <code>https://example.com</code>, and clicking opens it.",
     ],
     media: [
-      { kind: "compare", before: "slack-links-upstream", after: "slack-links", caption: "A Slack-style link, a URL and a label split by a pipe: upstream's match runs through the pipe into the label (…/4182|deploy); in Mullion it is one link from bracket to bracket, and the card shows the URL before the pipe." },
+      { kind: "compare", aligned: true, before: "slack-links-upstream", after: "slack-links", caption: "A Slack-style link, a URL and a label split by a pipe: upstream's match runs through the pipe into the label (…/4182|deploy); in Mullion it is one link from bracket to bracket, and the card shows the URL before the pipe." },
     ],
   },
 
@@ -292,7 +316,7 @@ window.FEATURE_DETAILS = {
       { key: "theme", def: "\"system\"", note: "This fork follows the OS by default; upstream ships \"dark\"." },
     ],
     media: [
-      { kind: "compare", before: "color-schemes-settings-upstream", after: "color-schemes-settings", mode: "stack", caption: "Profiles → Defaults → Appearance: upstream has one Color scheme picker, so in dark mode the preview stays One Half Light; Mullion has Dark and Light pickers under Separate light and dark mode, and the preview follows the theme." },
+      { kind: "compare", before: "color-schemes-settings-upstream", after: "color-schemes-settings", caption: "Profiles → Defaults → Appearance: upstream has one Color scheme picker, so in dark mode the preview stays One Half Light; Mullion has Dark and Light pickers under Separate light and dark mode, and the preview follows the theme." },
     ],
   },
 
@@ -340,7 +364,7 @@ window.FEATURE_DETAILS = {
     how:
       "A badge in the tab row names the slot. Clicking it copies the build details. The About dialog carries the commit and build time, and when a newer build has been staged a banner says so, names it, and offers to promote it.",
     media: [
-      { kind: "compare", mode: "stack", before: "slot-badge-upstream", after: "slot-badge", caption: "The tab-row badge naming the slot." },
+      { kind: "compare", before: "slot-badge-upstream", after: "slot-badge", caption: "The tab-row badge naming the slot." },
     ],
   },
 
@@ -379,7 +403,7 @@ window.FEATURE_DETAILS = {
       { key: "ciPollIntervalMinutes", def: "15", note: "How often to check. 0 never checks." },
     ],
     media: [
-      { kind: "compare", before: "ci-poll-setting-upstream", after: "ci-poll-setting", mode: "stack", caption: "The top of Settings → Compatibility: upstream's first group ends at Width of ambiguous characters; Mullion adds CI build update poll interval (minutes) below it, marked ◆ as a fork setting." },
+      { kind: "compare", before: "ci-poll-setting-upstream", after: "ci-poll-setting", caption: "The top of Settings → Compatibility: upstream's first group ends at Width of ambiguous characters; Mullion adds CI build update poll interval (minutes) below it, marked ◆ as a fork setting." },
     ],
     notes: [
       "The check runs genuinely hidden. On a machine where Windows Terminal is the default terminal host, a hidden console process still gets a Terminal window created for it before the hide request applies — so these launches go through a wrapper that avoids that handoff entirely.",
@@ -388,7 +412,29 @@ window.FEATURE_DETAILS = {
 
   "ci-tests": {
     media: [
-      { base: "ci-tests-run", caption: "One push to main, as CI ran it: the highlighted rows are the build, the two unit suites that gate it, and the one artifact that carries both slots." },
+      {
+        kind: "evidence",
+        caption: "One push to main, as CI ran it: the highlighted rows are the build, the two unit suites that gate it, and the one artifact that carries both slots.",
+        source: "gh run view 39949539634 --repo aylith-labs/mullion --json jobs",
+        columns: ["Step", "Result", "Time"],
+        after: {
+          label: '<a href="https://github.com/aylith-labs/mullion/actions/runs/39949539634">aylith-labs/mullion · build.yml</a> · push of <a href="https://github.com/aylith-labs/mullion/commit/9b415976249fe53729c35f77d0c2b2d79723b870"><code>9b41597</code></a> · success in 44m 31s',
+          rows: [
+            ["Promotion helper regression tests", "success", "12s"],
+            ["Settings model consistency", "success", "1s"],
+            ["XAML comments · XAML resource keys", "success", "2s"],
+            ["Native file preview preflight", "success", "44s"],
+            ["Release notes", "success", "35s"],
+            ["Restore and build", "success", "39m 29s"],
+            ["Unit tests (Types, Control)", "success", "8s"],
+            ["Unit tests (SettingsModel, diagnostic only)", "success", "2m 28s"],
+            ["Upload artifact: dev-payload (both slots, 17.8 MB)", "success", "5s"],
+            ["Collect and upload symbols", "success", "18s"],
+          ],
+          mark: [5, 6, 8],
+        },
+        note: "Fetch-CIBuild.ps1 then stages dev-payload into dev-staged-ci (muld) and test-staged-ci (mult).",
+      },
     ],
     problem:
       "Builds were made on the developer machine. A warm build tree runs to tens of gigabytes, every worktree pays for its own copy, and nothing verified a build except opening it.",
@@ -455,7 +501,7 @@ window.FEATURE_DETAILS = {
       { key: "safeUriSchemes", def: "[\"stith\"]", note: "Schemes that open without the unsafe-URI confirmation. Upstream's default is empty. Setting your own list replaces this one; an empty list confirms them all." },
     ],
     media: [
-      { kind: "compare", mode: "side", before: "click-chords-settings-upstream", after: "click-chords-settings", caption: "Make links clickable, expanded: which links a click reaches, and the two chords, each a modifier, a gesture and an action." },
+      { kind: "compare", before: "click-chords-settings-upstream", after: "click-chords-settings", caption: "Make links clickable, expanded: which links a click reaches, and the two chords, each a modifier, a gesture and an action." },
     ],
     notes: [
       "The pickers in Settings offer <em>Do nothing</em> and the built-in buttons. An id under <code>actions</code> is written in settings.json; once it is there the picker shows it rather than appearing blank.",
@@ -483,7 +529,7 @@ window.FEATURE_DETAILS = {
       { key: "hyperlink.integrationDisplayMode", def: "\"above\"", note: "Where the integration's logo sits on the card: <code>none</code>, <code>above</code> or <code>left</code>." },
     ],
     media: [
-      { kind: "compare", before: "integration-previews-github-upstream", after: "integration-previews-github", caption: "Hovering a GitHub issue link: upstream's tooltip is the bare URL; Mullion's card shows the issue’s title, state, author and comment count, with its description and comments behind tabs." },
+      { kind: "compare", aligned: true, before: "integration-previews-github-upstream", after: "integration-previews-github", caption: "Hovering a GitHub issue link: upstream's tooltip is the bare URL; Mullion's card shows the issue’s title, state, author and comment count, with its description and comments behind tabs." },
       { base: "integration-previews-settings", caption: "Part of an integration’s page: credentials kept in Windows Credential Manager, never in settings.json, and which fields the card shows." },
     ],
     notes: [
@@ -525,7 +571,7 @@ window.FEATURE_DETAILS = {
       "In a WSL pane, run <code>realpath ~/.bashrc</code> and hover the result. The file inside the distro previews the same way.",
     ],
     media: [
-      { kind: "compare", before: "file-previews-markdown-upstream", after: "file-previews-markdown", caption: "A Markdown file's path under the pointer: upstream does not detect the path, so nothing appears; Mullion renders the file, with its frontmatter as metadata and the Formatted / Raw switch." },
+      { kind: "compare", aligned: true, before: "file-previews-markdown-upstream", after: "file-previews-markdown", caption: "A Markdown file's path under the pointer: upstream does not detect the path, so nothing appears; Mullion renders the file, with its frontmatter as metadata and the Formatted / Raw switch." },
       { base: "file-previews-pane", caption: "A PDF in the pane: page picker, Fit and fixed zoom levels." },
     ],
     notes: [
@@ -573,7 +619,7 @@ window.FEATURE_DETAILS = {
       { key: "profiles.list[].pathTranslationStyle", def: "\"none\"", note: "How dropped paths are rewritten: <code>none</code>, <code>wsl</code>, <code>cygwin</code>, <code>msys2</code> or <code>mingw</code>. Generated WSL profiles get <code>wsl</code>." },
     ],
     media: [
-      { kind: "compare", before: "path-smarts-tilde-upstream", after: "path-smarts-tilde", caption: "A <code>~/</code> path at the end of a sentence in a WSL pane: upstream does not detect it; Mullion resolves it to the distro user’s home, leaves the full stop out, and previews the file." },
+      { kind: "compare", aligned: true, before: "path-smarts-tilde-upstream", after: "path-smarts-tilde", caption: "A <code>~/</code> path at the end of a sentence in a WSL pane: upstream does not detect it; Mullion resolves it to the distro user’s home, leaves the full stop out, and previews the file." },
     ],
     notes: [
       "A <code>~/</code> path hovered before that distribution's home is cached shows nothing yet rather than a guessed path. Opening the link, and the card's buttons, look the home up on a background thread, so they work even then.",
@@ -600,7 +646,7 @@ window.FEATURE_DETAILS = {
       { key: "tabWidthMode", def: "\"equal\"", note: "Upstream's. Ignored, and greyed out in Settings, while the strip is vertical." },
     ],
     media: [
-      { kind: "compare", mode: "side", before: "tab-edges-left-upstream", after: "tab-edges-left", caption: "The strip on the left: six tabs named after what they run, every title readable in full, and the active tab’s title up in the title bar." },
+      { kind: "compare", before: "tab-edges-left-upstream", after: "tab-edges-left", caption: "The strip on the left: six tabs named after what they run, every title readable in full, and the active tab’s title up in the title bar." },
       { base: "tab-edges-settings", caption: "The Tab strip group under Personalization. With the tabs on the left, Tab width mode is greyed out, because a column has no width to divide." },
     ],
     notes: [
@@ -660,7 +706,7 @@ window.FEATURE_DETAILS = {
       { key: "warning.confirmOnCloseTabThreshold", def: "3", note: "How many tabs moreThanTabs allows before it asks. The Settings tab is not counted." },
     ],
     media: [
-      { kind: "compare", mode: "stack", before: "small-knobs-tab-numbers-upstream", after: "small-knobs-tab-numbers", caption: "Tab numbers before each title, and before the bell a tab shows when its program rang." },
+      { kind: "compare", before: "small-knobs-tab-numbers-upstream", after: "small-knobs-tab-numbers", caption: "Tab numbers before each title, and before the bell a tab shows when its program rang." },
       { base: "small-knobs-settings", caption: "Interaction: the pane resize step, and the close confirmation set to warn only above a tab count." },
     ],
     notes: [
@@ -687,7 +733,7 @@ window.FEATURE_DETAILS = {
       { key: "disableAnimations", def: "false", note: "The older switch, now JSON-only. Under system, true still forces animations off; full and reduced ignore it." },
     ],
     media: [
-      { kind: "compare", before: "motion-settings-upstream", after: "motion-settings", mode: "stack", caption: "Settings → Personalization: upstream has only the Pane animations switch, which does not follow Windows' animation effects; Mullion's Motion offers Follow Windows, Always animate or Never animate." },
+      { kind: "compare", before: "motion-settings-upstream", after: "motion-settings", caption: "Settings → Personalization: upstream has only the Pane animations switch, which does not follow Windows' animation effects; Mullion's Motion offers Follow Windows, Always animate or Never animate." },
     ],
     notes: [
       "Pane split and close animations still check the Windows switch themselves. With animation effects off in Windows, <code>Always animate</code> does not bring those back.",
@@ -737,7 +783,7 @@ window.FEATURE_DETAILS = {
       "Press Ctrl+Shift+2. It opens the second profile the dropdown shows.",
     ],
     media: [
-      { kind: "compare", before: "profile-order-drag-upstream", after: "profile-order-drag", mode: "side", caption: "Terminal profiles on the Profiles page: upstream's rows have no handle to reorder them by; Mullion's rows carry a gripper, and here PowerShell is lifted mid-drag on its way down the list." },
+      { kind: "compare", before: "profile-order-drag-upstream", after: "profile-order-drag", caption: "Terminal profiles on the Profiles page: upstream's rows have no handle to reorder them by; Mullion's rows carry a gripper, and here PowerShell is lifted mid-drag on its way down the list." },
       { base: "profile-order-dropdown", caption: "The new-tab dropdown. The Ctrl+Shift+N labels count 1, 2, 3 down the menu, in the order it shows." },
     ],
     notes: [
@@ -766,7 +812,7 @@ window.FEATURE_DETAILS = {
       { key: "compatibility.allowOSC777", def: "false", note: "Upstream's: whether applications may send OSC 777 notifications at all." },
     ],
     media: [
-      { kind: "compare", before: "focused-notifications-setting-upstream", after: "focused-notifications-setting", mode: "stack", caption: "Profiles → Terminal Emulation: upstream's OSC 777 switch is followed by the ENQ response; Mullion adds Show notifications from the pane you are looking at right under it." },
+      { kind: "compare", before: "focused-notifications-setting-upstream", after: "focused-notifications-setting", caption: "Profiles → Terminal Emulation: upstream's OSC 777 switch is followed by the ENQ response; Mullion adds Show notifications from the pane you are looking at right under it." },
     ],
     upstream:
       "No upstream issue or PR asks for this. Upstream's notification sources are OSC 777 (microsoft/terminal#7718, closed) and the bell notification (#20011, merged). Activity notifications are an open PR, #20014.",
@@ -804,7 +850,7 @@ window.FEATURE_DETAILS = {
       { key: "settingsUIHost", def: "\"tab\"", note: "tab, dialog, or window. Honoured by <code>openSettings</code> with target <code>settingsUI</code>, which is what <code>Ctrl+,</code> runs." },
     ],
     media: [
-      { kind: "compare", mode: "side", before: "settings-window-dialog-upstream", after: "settings-window-dialog", caption: "Settings as a dialog over the window, with the terminal still there behind it." },
+      { kind: "compare", before: "settings-window-dialog-upstream", after: "settings-window-dialog", caption: "Settings as a dialog over the window, with the terminal still there behind it." },
       { base: "settings-window-option", caption: "Open settings in, on the Interaction page, with its three choices." },
     ],
     notes: [
@@ -828,7 +874,7 @@ window.FEATURE_DETAILS = {
       "Turn on <code>Auto-save</code> beside Save. Both buttons go grey, and every change from now on is written to settings.json straight away.",
     ],
     media: [
-      { kind: "compare", before: "settings-save-tooltip-upstream", after: "settings-save-tooltip", mode: "side", caption: "Hovering Save with a change pending: upstream's tooltip only says Save all unsaved settings; Mullion's lists exactly what a save would change, old value to new." },
+      { kind: "compare", before: "settings-save-tooltip-upstream", after: "settings-save-tooltip", caption: "Hovering Save with a change pending: upstream's tooltip only says Save all unsaved settings; Mullion's lists exactly what a save would change, old value to new." },
       { base: "settings-save-close", caption: "Closing with unsaved changes is refused once, and the footer says why." },
     ],
     notes: [
@@ -856,7 +902,7 @@ window.FEATURE_DETAILS = {
       { key: "aylith.imprintJsonOnly", def: "false", note: "Draw ◇ beside settings Windows Terminal has but only exposes in settings.json." },
     ],
     media: [
-      { kind: "compare", mode: "side", before: "fork-marks-compat-upstream", after: "fork-marks-compat", caption: "The two switches on Compatibility, each carrying the fork’s own mark, with the same mark on the pages it added." },
+      { kind: "compare", before: "fork-marks-compat-upstream", after: "fork-marks-compat", caption: "The two switches on Compatibility, each carrying the fork’s own mark, with the same mark on the pages it added." },
       { base: "fork-marks-page", caption: "Personalization with both marks on: hollow ◇ on settings upstream hides in JSON, ◆ on the fork’s own." },
     ],
     notes: [
@@ -900,7 +946,7 @@ window.FEATURE_DETAILS = {
       "Collapse the pane with the menu button. The search box moves beside the breadcrumb and stays typeable.",
     ],
     media: [
-      { kind: "compare", mode: "side", before: "settings-nav-pane-upstream", after: "settings-nav-pane", caption: "The grouped navigation pane, with the search box above the first heading and Show descriptions at the foot." },
+      { kind: "compare", before: "settings-nav-pane-upstream", after: "settings-nav-pane", caption: "The grouped navigation pane, with the search box above the first heading and Show descriptions at the foot." },
       { base: "settings-nav-help", caption: "Descriptions off: the help badge beside a setting shows its description on hover." },
     ],
     notes: [
@@ -943,7 +989,7 @@ window.FEATURE_DETAILS = {
       "Type <code>@shaltctrl</code> to find <code>ctrl+alt+shift</code> chords without spelling them in order.",
     ],
     media: [
-      { kind: "compare", mode: "side", before: "shortcut-search-name-upstream", after: "shortcut-search-name", caption: "Filtering by name: the matched letters in bold." },
+      { kind: "compare", before: "shortcut-search-name-upstream", after: "shortcut-search-name", caption: "Filtering by name: the matched letters in bold." },
       { base: "shortcut-search-chord", caption: "An @ search by key chord, with the matching key caps in bold." },
     ],
     notes: [
@@ -1023,7 +1069,7 @@ window.FEATURE_DETAILS = {
       { key: "activityLog", def: "true", note: "Off stops pipe requests being written to the log. The tab-row badge still counts them." },
     ],
     media: [
-      { kind: "compare", mode: "stack", before: "pipe-activity-badge-upstream", after: "pipe-activity-badge", caption: "The tab-row badge after seven pipe requests nobody has looked at yet." },
+      { kind: "compare", before: "pipe-activity-badge-upstream", after: "pipe-activity-badge", caption: "The tab-row badge after seven pipe requests nobody has looked at yet." },
       { base: "pipe-activity-flyout", caption: "The list: repeated requests folded into one counted row, a refused request with no reason, and the way through to the full record." },
     ],
     notes: [

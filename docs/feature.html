@@ -7,8 +7,8 @@
 <meta name="description" content="What this feature does, why it exists, and how to try it in your own build." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-24d" />
-<script src="site.js?v=2026-10-24d"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-24e" />
+<script src="site.js?v=2026-10-24e"></script>
 </head>
 <body>
 
@@ -25,7 +25,7 @@
       <a href="docs/">Docs</a>
       <a href="https://github.com/aylith-labs/mullion">GitHub<svg class="ext" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
     </nav>
-    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" title="Display settings" hidden>
+    <button type="button" class="icon-btn" data-settings-trigger aria-label="Display settings" data-tip="Display settings" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   </div>
@@ -47,9 +47,9 @@
   </div>
 </footer>
 
-<script src="features.js?v=2026-10-24d"></script>
-<script src="feature-details.js?v=2026-10-24d"></script>
-<script src="compare.js?v=2026-10-24d"></script>
+<script src="features.js?v=2026-10-24e"></script>
+<script src="feature-details.js?v=2026-10-24e"></script>
+<script src="compare.js?v=2026-10-24e"></script>
 <script>
 (function () {
   function esc(s) {
@@ -106,13 +106,12 @@
     var figs = "";
     for (var m = 0; m < d.media.length; m++) {
       var item = d.media[m];
-      var alt = esc(item.caption);
+      // Upstream on one side, Mullion on the other, or evidence laid out as a
+      // table; compare.js owns that markup.
+      if (item.kind === "compare") { figs += MullionCompare.html(item); continue; }
+      if (item.kind === "evidence") { figs += MullionCompare.evidence(item); continue; }
+      var alt = esc(MullionCompare.text(item.caption));
       var body;
-      if (item.kind === "compare") {
-        // Upstream on one side, Mullion on the other; compare.js owns the markup.
-        figs += MullionCompare.html(item);
-        continue;
-      }
       if (item.kind === "video") {
         var lightPoster = item.base === "resume-restore" ? ' poster="media/resume-toast-light.png"' : "";
         var darkPoster = item.base === "resume-restore" ? ' poster="media/resume-toast-dark.png"' : "";
@@ -129,13 +128,8 @@
           '<img class="shot-light" src="media/' + item.base + '-light.png" alt="' + alt + '" loading="lazy" />' +
           '<img class="shot-dark" src="media/' + item.base + '-dark.png" alt="' + alt + '" loading="lazy" />';
       }
-      var ext = item.kind === "video" ? ".mp4" : ".png";
-      var label = item.kind === "video" ? "recording" : "image";
       figs += '<figure data-base="' + esc(item.base) + '">' + body +
-        '<div class="pending"><button type="button" data-retry-media>Retry ' + label + '</button> · Open the ' + label + ': ' +
-        '<a download href="media/' + esc(item.base) + '-light' + ext + '">Light version</a> · ' +
-        '<a download href="media/' + esc(item.base) + '-dark' + ext + '">Dark version</a></div>' +
-        '<figcaption aria-hidden="true">' + alt + "</figcaption></figure>";
+        '<figcaption aria-hidden="true">' + item.caption + "</figcaption></figure>";
     }
     html += section("media", "What it looks like", figs);
   }
@@ -193,59 +187,20 @@
 
   host.innerHTML = html;
   Mullion.formatDates(host);
+
+  // A capture that does not exist renders nothing (compare.js); a section
+  // left with no figure in it goes too, heading and all, and the display
+  // settings stop offering it.
+  var media = host.querySelector('[data-section="media"]');
+  if (media) {
+    var syncMedia = function () {
+      var figures = media.querySelectorAll("figure");
+      var gone = media.querySelectorAll('figure[data-media="absent"]').length;
+      media.classList.toggle("section-empty", gone === figures.length);
+    };
+    media.addEventListener("mediastate", syncMedia);
+  }
   MullionCompare.wire(host);
-
-  // A figure offers the original files if neither theme loads. Wiring this up
-  // after insertion, rather than as an inline onerror attribute, keeps the
-  // quoting out of an HTML attribute nested inside a JS string -- which is
-  // three levels of escaping and exactly the kind of thing that breaks
-  // silently and only in the case that matters.
-  // Every capture is taken at 150% scaling. Shown at its own size divided by
-  // that, a small one (a menu, one settings card) stays the size it is on
-  // screen instead of being stretched across the column; a wide one still
-  // shrinks to fit.
-  var CAPTURE_SCALE = 1.5;
-  function fitToCapture(el) {
-    var w = el.tagName === "VIDEO" ? el.videoWidth : el.naturalWidth;
-    if (w) { el.style.maxWidth = Math.round(w / CAPTURE_SCALE) + "px"; }
-  }
-
-  var figures = host.querySelectorAll("figure[data-base]");
-  for (var i = 0; i < figures.length; i++) {
-    (function (fig) {
-      var shots = fig.querySelectorAll("img, video");
-      function refresh() {
-        var missing = 0;
-        for (var n = 0; n < shots.length; n++) {
-          if (shots[n].classList.contains("absent")) { missing++; }
-        }
-        fig.classList.toggle("no-media", missing === shots.length);
-      }
-      fig.querySelector("[data-retry-media]").addEventListener("click", function () {
-        for (var n = 0; n < shots.length; n++) {
-          shots[n].classList.remove("absent");
-          if (shots[n].tagName === "VIDEO") { shots[n].load(); }
-          else { shots[n].src = shots[n].getAttribute("src"); }
-        }
-        refresh();
-      });
-      for (var j = 0; j < shots.length; j++) {
-        shots[j].addEventListener("error", function () {
-          // A video reports failure on its own element, not by bubbling, so
-          // both node types are listened to the same way.
-          this.classList.add("absent");
-          refresh();
-        });
-        var recovered = function () {
-          this.classList.remove("absent");
-          fitToCapture(this);
-          refresh();
-        };
-        shots[j].addEventListener(shots[j].tagName === "VIDEO" ? "loadeddata" : "load", recovered);
-        if (shots[j].tagName === "IMG" && shots[j].complete && shots[j].naturalWidth) { fitToCapture(shots[j]); }
-      }
-    })(figures[i]);
-  }
 })();
 </script>
 </body>

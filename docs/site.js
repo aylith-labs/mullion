@@ -28,12 +28,13 @@
     { id: "commits", label: "Commits", hint: "Links to each commit on GitHub" }
   ];
 
-  // How a before/after comparison (compare.js) opens.
+  // How a before/after comparison (compare.js) opens, where the figure offers
+  // that view: Hover and Split only line up on pixel-aligned pairs.
   var COMPARE_MODES = [
     { v: "hover", label: "Hover" },
     { v: "split", label: "Split" },
     { v: "side", label: "Side by side" },
-    { v: "difference", label: "Difference" }
+    { v: "stack", label: "Stacked" }
   ];
 
   var DEFAULTS = {
@@ -154,7 +155,8 @@
   }
 
   // Every date on the site is <time datetime="YYYY-MM-DD" data-date>. Its text
-  // is whichever form the setting asks for; its tooltip is the other one.
+  // is whichever form the setting asks for; its tooltip ([data-tip]) is the
+  // other one.
   function formatDates(scope) {
     var els = (scope || document).querySelectorAll("time[data-date]");
     for (var i = 0; i < els.length; i++) {
@@ -164,10 +166,10 @@
       if (!d) { continue; }
       if (settings.relativeDates) {
         el.textContent = relative(iso);
-        el.title = longDate(d) + " (" + iso + ")";
+        el.setAttribute("data-tip", longDate(d) + " (" + iso + ")");
       } else {
         el.textContent = iso;
-        el.title = longDate(d) + ", " + relative(iso);
+        el.setAttribute("data-tip", longDate(d) + ", " + relative(iso));
       }
     }
   }
@@ -242,12 +244,22 @@
     }
     var compareSeg = "";
     for (var c = 0; c < COMPARE_MODES.length; c++) {
-      compareSeg += '<label class="seg-option"><input type="radio" name="compareMode" value="' + COMPARE_MODES[c].v +
+      compareSeg += '<label class="seg-option" data-compare-option="' + COMPARE_MODES[c].v + '"><input type="radio" name="compareMode" value="' + COMPARE_MODES[c].v +
         '" data-setting="compareMode" /><span>' + COMPARE_MODES[c].label + "</span></label>";
     }
+    // One row per section, each shown only when this page has that section.
+    // The before/after view hangs off Screenshots: it means nothing with the
+    // screenshots hidden, or on a page with no comparison to open.
     var rows = "";
     for (var j = 0; j < SECTIONS.length; j++) {
-      rows += switchRow("sections." + SECTIONS[j].id, SECTIONS[j].label, SECTIONS[j].hint);
+      rows += '<div class="pop-section" data-for-section="' + SECTIONS[j].id + '">' +
+        switchRow("sections." + SECTIONS[j].id, SECTIONS[j].label, SECTIONS[j].hint) +
+        (SECTIONS[j].id === "media"
+          ? '<div class="pop-sub" data-compare-choice role="radiogroup" aria-labelledby="compare-choice-label">' +
+              '<span class="pop-sub-label" id="compare-choice-label">Before and after open as</span>' +
+              '<div class="segmented segmented-text">' + compareSeg + "</div></div>"
+          : "") +
+        "</div>";
     }
 
     var html =
@@ -262,12 +274,7 @@
         '<fieldset class="pop-group"><legend>Dates</legend>' +
           switchRow("relativeDates", "Show dates as relative time", "&ldquo;3 weeks ago&rdquo; instead of 2026-09-13; hover a date for the other form") +
         "</fieldset>" +
-        '<fieldset class="pop-group"><legend>Before and after</legend>' +
-          '<div class="segmented segmented-text">' + compareSeg + "</div>" +
-          '<p class="pop-note">How comparisons with upstream open. Difference lights up only what changed when you hover.</p>' +
-        "</fieldset>" +
-        '<fieldset class="pop-group"><legend>Sections on feature pages</legend>' + rows +
-          '<p class="pop-note">Change stats and commit links also apply to the feature list.</p>' +
+        '<fieldset class="pop-group" data-sections-group><legend>Sections on this page</legend>' + rows +
         "</fieldset>" +
       "</div>" +
       '<div class="pop-foot"><button type="button" class="btn btn-quiet btn-sm" data-reset>Reset to defaults</button>' +
@@ -295,13 +302,52 @@
     });
   }
 
+  // The views the page's comparisons offer between them (compare.js puts them
+  // in data-modes), leaving out any figure that is down to a single image or
+  // to nothing.
+  function offeredCompareModes() {
+    var figs = document.querySelectorAll("figure[data-compare][data-modes]:not(.no-media):not(.compare-no-before)");
+    var out = [];
+    for (var i = 0; i < figs.length; i++) {
+      var m = figs[i].getAttribute("data-modes").split(" ");
+      for (var k = 0; k < m.length; k++) { if (out.indexOf(m[k]) < 0) { out.push(m[k]); } }
+    }
+    return out;
+  }
+
+  // Which rows the popover shows, decided from the page as it is when the
+  // popover opens: a section that is not on this page has nothing to toggle.
+  function syncAvailability() {
+    var any = false;
+    var blocks = pop.querySelectorAll("[data-for-section]");
+    for (var i = 0; i < blocks.length; i++) {
+      var id = blocks[i].getAttribute("data-for-section");
+      var here = !!document.querySelector('[data-section="' + id + '"]:not(.section-empty)');
+      blocks[i].hidden = !here;
+      any = any || here;
+    }
+    pop.querySelector("[data-sections-group]").hidden = !any;
+    var offered = offeredCompareModes();
+    pop.querySelector("[data-compare-choice]").hidden = !settings.sections.media || offered.length < 2;
+    var options = pop.querySelectorAll("[data-compare-option]");
+    for (var j = 0; j < options.length; j++) {
+      options[j].hidden = offered.indexOf(options[j].getAttribute("data-compare-option")) < 0;
+    }
+    return offered;
+  }
+
   function syncControls() {
     if (!pop) { return; }
+    var offered = syncAvailability();
+    // The view figures actually open in: the setting where they offer it,
+    // otherwise their own default (compare.js decides the same way).
+    var compare = offered.indexOf(settings.compareMode) >= 0 ? settings.compareMode
+      : offered.indexOf("hover") >= 0 ? "hover" : "stack";
     var inputs = pop.querySelectorAll("[data-setting]");
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i], name = input.getAttribute("data-setting");
       if (name === "theme") { input.checked = input.value === settings.theme; }
-      else if (name === "compareMode") { input.checked = input.value === settings.compareMode; }
+      else if (name === "compareMode") { input.checked = input.value === compare; }
       else if (name === "relativeDates") { input.checked = settings.relativeDates; }
       else if (name.indexOf("sections.") === 0) { input.checked = !!settings.sections[name.slice(9)]; }
     }
@@ -497,7 +543,7 @@
   // The "Standout" tag: hand-picked headline features, explained on hover or focus.
   var STANDOUT_TIP = "A headline feature: one of the bigger additions, picked by hand";
   function standoutTag() {
-    return '<span class="tag tag-success has-tip" tabindex="0" data-tip="' + STANDOUT_TIP + '" aria-describedby="tooltip">Standout</span>';
+    return '<span class="tag tag-success has-tip" tabindex="0" data-tip="' + STANDOUT_TIP + '">Standout</span>';
   }
 
   // One floating tooltip for every [data-tip], placed under its anchor (above
@@ -514,10 +560,17 @@
     box.style.left = Math.round(left) + "px";
     box.style.top = Math.round(top) + "px";
   }
+  // While it shows, the tooltip describes its anchor, as a title attribute
+  // did, unless the anchor already names a description of its own.
   function showTip(anchor) {
+    if (tipFor && tipFor !== anchor) { hideTip(); }
     tipFor = anchor;
     tip.textContent = anchor.getAttribute("data-tip");
     tip.classList.add("shown");
+    if (!anchor.hasAttribute("aria-describedby")) {
+      anchor.setAttribute("aria-describedby", "tooltip");
+      anchor._tipDescribed = true;
+    }
     place(tip, anchor, "center");
   }
 
@@ -525,7 +578,7 @@
   // table already shows descriptions inline (.show-desc). Unlike a tooltip it
   // can hold links, so it stays open while the pointer is over it. Touch
   // screens show descriptions inline instead (site.css).
-  var pop = null, popFor = null, popShow = 0, popHide = 0;
+  var descPop = null, popFor = null, popShow = 0, popHide = 0;
   function showPop(anchor) {
     clearTimeout(popHide);
     if (popFor === anchor || anchor.closest(".show-desc")) { return; }
@@ -533,21 +586,21 @@
     if (!desc) { return; }
     hidePop();
     popFor = anchor;
-    pop.innerHTML = desc.innerHTML;
-    pop.hidden = false;
+    descPop.innerHTML = desc.innerHTML;
+    descPop.hidden = false;
     anchor.setAttribute("aria-describedby", "desc-pop");
-    place(pop, anchor, "start");
+    place(descPop, anchor, "start");
   }
   function hidePop() {
     clearTimeout(popShow);
     if (popFor) { popFor.removeAttribute("aria-describedby"); }
     popFor = null;
-    if (pop) { pop.hidden = true; }
+    if (descPop) { descPop.hidden = true; }
   }
   function wireDescPopover() {
-    pop = el("div", { "class": "desc-pop", role: "tooltip", id: "desc-pop" });
-    pop.hidden = true;
-    document.body.appendChild(pop);
+    descPop = el("div", { "class": "desc-pop", role: "tooltip", id: "desc-pop" });
+    descPop.hidden = true;
+    document.body.appendChild(descPop);
     document.addEventListener("pointerover", function (e) {
       if (e.pointerType !== "mouse" || !e.target.closest) { return; }
       var a = e.target.closest(".has-desc");
@@ -564,12 +617,16 @@
     });
     document.addEventListener("focusin", function (e) {
       var a = e.target.closest && e.target.closest(".has-desc");
-      if (a) { showPop(a); } else if (!pop.contains(e.target)) { hidePop(); }
+      if (a) { showPop(a); } else if (!descPop.contains(e.target)) { hidePop(); }
     });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") { hidePop(); } });
     window.addEventListener("scroll", hidePop, { passive: true, capture: true });
   }
-  function hideTip() { if (tip) { tip.classList.remove("shown"); } tipFor = null; }
+  function hideTip() {
+    if (tip) { tip.classList.remove("shown"); }
+    if (tipFor && tipFor._tipDescribed) { tipFor.removeAttribute("aria-describedby"); tipFor._tipDescribed = false; }
+    tipFor = null;
+  }
   function wireTips() {
     // Created up front so aria-describedby="tooltip" always resolves.
     tip = el("div", { "class": "tooltip", role: "tooltip", id: "tooltip" });

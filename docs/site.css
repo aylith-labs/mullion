@@ -197,6 +197,12 @@ button, input, select { font: inherit; color: inherit; }
 }
 .pop-group > :not(legend) { clear: both; }
 .pop-note { margin: 6px 0 0; font-size: 0.8rem; color: var(--text-tertiary); }
+/* A choice that belongs to the switch above it (the before/after view, under
+ * Screenshots), indented on a guide line. */
+.pop-sub { margin: 2px 0 8px 2px; padding: 2px 0 4px 12px; border-left: 2px solid var(--stroke-subtle); }
+.pop-sub-label { display: block; font-size: 0.78rem; color: var(--text-tertiary); margin-bottom: 6px; }
+.pop-sub .segmented { grid-template-columns: 1fr 1fr; }
+.pop-section[hidden], .pop-sub[hidden], .pop-group[hidden], .seg-option[hidden] { display: none; }
 .pop-foot {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 18px 14px; border-top: 1px solid var(--stroke-subtle);
@@ -844,13 +850,9 @@ figure:not(.compare):has(.shot-dark.absent) .shot-light { display: block !import
  * must not switch on the other theme's "after" (it did, and both showed). */
 .compare-layer:has(.shot-light.absent) .shot-dark { display: block !important; }
 .compare-layer:has(.shot-dark.absent) .shot-light { display: block !important; }
-.pending {
-  padding: 28px; text-align: center; color: var(--text-tertiary); font-size: 0.86rem;
-  background: var(--card); border: 1px dashed var(--border); border-radius: 10px;
-}
-figure[data-base] .pending { display: none; }
-figure.no-media .pending { display: block; }
-figure.no-media img, figure.no-media video { display: none !important; }
+/* A capture that does not exist renders nothing (compare.js), and a section
+ * left with no figure in it goes too. */
+figure.no-media, .section-empty { display: none !important; }
 
 /* ---- Documentation (docs/index.html) ---------------------------------
  * Drawn to match the Settings UI's Documentation page: a card per topic,
@@ -967,10 +969,6 @@ figure.no-media img, figure.no-media video { display: none !important; }
 .compare[data-mode="hover"] .compare-after { opacity: 0; transition: opacity 0.18s ease; }
 .compare[data-mode="hover"].peek .compare-after { opacity: 1; }
 
-/* difference: after, with before blended over it on peek */
-.compare[data-mode="difference"] .compare-before { z-index: 1; opacity: 0; mix-blend-mode: difference; transition: opacity 0.18s ease; }
-.compare[data-mode="difference"].peek .compare-before { opacity: 1; }
-
 /* split: before on the left of the divider, after on the right */
 .compare[data-mode="split"] .compare-stage { cursor: ew-resize; user-select: none; touch-action: none; }
 .compare[data-mode="split"] .compare-after { clip-path: inset(0 0 0 var(--split)); }
@@ -988,29 +986,51 @@ figure.no-media img, figure.no-media video { display: none !important; }
 }
 .compare-handle:focus-visible span { outline: 2px solid var(--focus); outline-offset: 1px; }
 
-/* stacked: a fixed layout for evidence panels, before above after */
-.compare[data-mode="stack"] .compare-stage { grid-template-columns: 1fr; gap: 8px; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; }
-.compare[data-mode="stack"] .compare-before { grid-area: 1 / 1; }
-.compare[data-mode="stack"] .compare-after { grid-area: 2 / 1; }
-.compare[data-mode="stack"] .compare-layer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-card); }
-
-/* side by side, stacked on a phone */
-.compare[data-mode="side"] .compare-stage { grid-template-columns: 1fr 1fr; gap: 8px; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; }
-.compare[data-mode="side"] .compare-before { grid-area: 1 / 1; }
+/* side by side and stacked: two framed shots, each headed by its label.
+ * Stacked gives each the full width of the column; side by side becomes
+ * stacked on a phone. */
+.compare[data-mode="side"] .compare-stage,
+.compare[data-mode="stack"] .compare-stage { gap: 8px; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; }
+.compare[data-mode="side"] .compare-stage { grid-template-columns: 1fr 1fr; }
+.compare[data-mode="side"] .compare-before, .compare[data-mode="stack"] .compare-before { grid-area: 1 / 1; }
 .compare[data-mode="side"] .compare-after { grid-area: 1 / 2; }
-.compare[data-mode="side"] .compare-layer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-card); align-self: start; }
-.compare[data-mode="side"] .compare-label { display: block; }
+.compare[data-mode="stack"] .compare-after { grid-area: 2 / 1; }
+.compare[data-mode="side"] .compare-layer,
+.compare[data-mode="stack"] .compare-layer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-card); align-self: start; background: var(--card); }
+.compare[data-mode="side"] .compare-label,
+.compare[data-mode="stack"] .compare-label {
+  display: block; position: static; border-radius: 0; padding: 4px 10px;
+  background: var(--bg-alt); color: var(--muted); border-bottom: 1px solid var(--border);
+}
 @media (max-width: 640px) {
   .compare[data-mode="side"] .compare-stage { grid-template-columns: 1fr; }
   .compare[data-mode="side"] .compare-after { grid-area: 2 / 1; }
 }
 
-/* only the after shot exists yet */
-.compare[data-mode="after-only"] .compare-modes, .compare[data-mode="after-only"] .compare-chip { display: none; }
+/* only the after shot exists: a single image, no buttons */
+.compare[data-mode="after-only"] .compare-bar { display: none; }
 .compare[data-mode="after-only"] .compare-before { display: none; }
-.compare .pending { display: none; }
-.compare.no-media .pending { display: block; }
-.compare.no-media .compare-stage, .compare.no-media .compare-bar { display: none; }
+
+/* frame: "square", for a shot whose own corners are what it shows */
+.compare.frame-square .compare-stage, .compare.frame-square .compare-layer { border-radius: 0; }
+
+/* ---- Evidence, rendered (compare.js) ---------------------------------
+ * Text evidence as a table: the probe or command that produced it, then
+ * upstream's result above Mullion's, the rows the caption names marked.
+ * Each table is its own card (.table-scroll); the figure adds no frame. */
+.evidence-source { margin: 0 0 14px; padding: 8px 12px; border-radius: 6px; background: var(--bg-alt); border: 1px solid var(--stroke-subtle); overflow-x: auto; }
+.evidence-source code { font-size: 0.82rem; white-space: pre; background: none; border: 0; padding: 0; }
+.evidence-side + .evidence-side { margin-top: 16px; }
+.evidence-label { margin: 0 0 6px; font-size: 0.86rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.evidence-which {
+  font-size: 0.7rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 1px 7px; border-radius: 4px; background: var(--bg-alt); border: 1px solid var(--border); color: var(--muted);
+}
+.doc .evidence .table-scroll table { min-width: 28rem; }
+.doc .evidence td { font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 0.84rem; }
+.doc .evidence tr.marked td { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+.evidence .none { color: var(--text-tertiary); font-style: italic; font-family: inherit; }
+.evidence-note { margin: 10px 0 0; font-size: 0.82rem; color: var(--text-tertiary); }
 @media (prefers-reduced-motion: reduce) {
   .compare-after, .compare-before { transition: none !important; }
 }
