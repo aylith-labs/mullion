@@ -26,6 +26,8 @@
   --accent-border: rgba(0, 95, 184, 0.35);
   --success: #0f7b0f;
   --success-bg: #dff6dd;
+  --bug: #a4262c;
+  --bug-bg: #fde7e9;
   --focus: #005fb8;
   --header-bg: rgba(244, 244, 243, 0.86);
   --shadow-card: 0 0 2px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.08);
@@ -42,6 +44,7 @@
     --accent: #60cdff; --accent-hover: #7bd6ff; --on-accent: #000000; --accent-text: #99ebff;
     --accent-soft: rgba(96, 205, 255, 0.10); --accent-border: rgba(96, 205, 255, 0.40);
     --success: #6ccb5f; --success-bg: #22351f; --focus: #99ebff;
+    --bug: #ff99a4; --bug-bg: #3b2224;
     --header-bg: rgba(27, 27, 28, 0.86);
     --shadow-card: 0 0 2px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.35);
     --shadow-raised: 0 0 2px rgba(0, 0, 0, 0.35), 0 8px 22px rgba(0, 0, 0, 0.4);
@@ -57,6 +60,7 @@
   --accent: #60cdff; --accent-hover: #7bd6ff; --on-accent: #000000; --accent-text: #99ebff;
   --accent-soft: rgba(96, 205, 255, 0.10); --accent-border: rgba(96, 205, 255, 0.40);
   --success: #6ccb5f; --success-bg: #22351f; --focus: #99ebff;
+    --bug: #ff99a4; --bug-bg: #3b2224;
   --header-bg: rgba(27, 27, 28, 0.86);
   --shadow-card: 0 0 2px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-raised: 0 0 2px rgba(0, 0, 0, 0.35), 0 8px 22px rgba(0, 0, 0, 0.4);
@@ -289,6 +293,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 .tag-accent { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent-text); }
 .tag-success { background: var(--success-bg); border-color: transparent; color: var(--success); }
+.tag-bug { background: var(--bug-bg); border-color: transparent; color: var(--bug); }
 /* A tag that explains itself on hover. It sits above a card's stretched
    title link, which would otherwise swallow the hover. */
 .has-tip { position: relative; z-index: 1; cursor: help; }
@@ -625,9 +630,10 @@ table.feature-table td.nowrap { white-space: nowrap; color: var(--muted); }
 table.upstream-table { min-width: 0; width: 100%; }
 table.upstream-table { table-layout: fixed; }
 table.upstream-table th:nth-child(1) { width: 5.5rem; }
-table.upstream-table th:nth-child(2) { width: 46%; }
-table.upstream-table th:nth-child(3) { width: 8.5rem; }
-table.upstream-table th:nth-child(5) { width: 8rem; }
+table.upstream-table th:nth-child(2) { width: 40%; }
+table.upstream-table th:nth-child(3) { width: 7rem; }
+table.upstream-table th:nth-child(4) { width: 8.5rem; }
+table.upstream-table th:nth-child(6) { width: 8rem; }
 table.upstream-table th button::after { content: ""; width: 0.9em; opacity: 0.55; }
 table.upstream-table th button:hover::after { content: "\2195"; }
 table.upstream-table th[aria-sort="ascending"] button::after { content: "\2191"; opacity: 1; }
