@@ -85,9 +85,21 @@ for (const f of FEATURES) {
   for (const m of d.media ?? []) {
     if (m.kind === "compare") {
       compares++;
+      if ("mode" in m) err(id, `compare ${m.after}: "mode" is gone; mark a pixel-aligned pair aligned: true, or leave it out`);
       for (const side of ["before", "after"])
         for (const theme of ["light", "dark"])
           if (!m[side] || !media(`${m[side]}-${theme}.png`)) backfill.push(`${id}: compare ${side} ${theme} capture media/${m[side]}-${theme}.png not taken yet`);
+    } else if (m.kind === "evidence") {
+      // Text evidence is a table in the page, not a file: check its shape.
+      if (m.before) compares++;
+      const cols = m.columns?.length ?? 0;
+      if (!cols) err(id, "evidence has no columns");
+      for (const side of ["before", "after"]) {
+        const t = m[side];
+        if (!t) { if (side === "after") err(id, "evidence has no after table"); continue; }
+        if (!t.label || !t.rows?.length) err(id, `evidence ${side} table needs a label and rows`);
+        for (const r of t.rows ?? []) if (r.length !== cols) err(id, `evidence ${side} row has ${r.length} cells, not ${cols}: ${JSON.stringify(r)}`);
+      }
     } else {
       const ext = m.kind === "video" ? "mp4" : "png";
       for (const theme of ["light", "dark"])
