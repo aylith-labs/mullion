@@ -94,6 +94,32 @@
 <!-- The posted text of each entry, rendered by GitHub's own Markdown renderer
      and then pointed at this site's copies of the images (GitHub's signed image
      URLs expire within minutes). One template per entry, keyed by its id. -->
+<template id="post-awesome-windows-115">
+<p>Adds Mullion to Terminal, between MTPuTTY and Putty.</p>
+<p>Mullion is my fork of Windows Terminal (MIT, free), under active development. What it adds:</p>
+<ul>
+<li><strong>Hover previews</strong>: a GitHub issue or PR, a Jira key, a Slack permalink or a local file (Markdown rendered, highlighted source, images, PDFs) previews in a card, without leaving the terminal.</li>
+<li><strong>Tabs on any edge</strong>: top, bottom, or a vertical sidebar on the left or right.</li>
+<li><strong>Sessions come back</strong>: reopening the terminal reattaches the tmux or zellij session a pane was running, instead of opening a fresh shell.</li>
+<li><strong>WSL paths are links</strong>, resolved in the right distribution.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Hovering a GitHub issue link</th>
+<th>Tabs in a sidebar on the left</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img class="shot-light" alt="Hovering a GitHub issue link" src="media/integration-previews-github-light.png"><img class="shot-dark" alt="Hovering a GitHub issue link" src="media/integration-previews-github-dark.png"></td>
+<td><img class="shot-light" alt="Tabs in a sidebar on the left" src="media/tab-edges-left-light.png"><img class="shot-dark" alt="Tabs in a sidebar on the left" src="media/tab-edges-left-dark.png"></td>
+</tr>
+</tbody>
+</table>
+<p>The primary link is the website and the OSS icon links to the source, as the contributing guide asks. A portable ZIP (no MSIX, no Developer Mode) is on the releases page: <a href="https://github.com/aylith-labs/mullion/releases/latest">https://github.com/aylith-labs/mullion/releases/latest</a></p>
+<p>Mullion is an independent fork, not affiliated with or endorsed by Microsoft.</p>
+</template>
 <template id="post-awesome-wsl-124">
 <p>Adds Mullion to Terminals, at the end of the list.</p>
 <p>Mullion is my fork of Windows Terminal (MIT), under active development. The WSL parts are why I think it fits here:</p>
@@ -167,6 +193,9 @@
   // Microsoft, and no email: this is where Mullion was announced or listed.
   // p: the platform, which picks the logo. status: open, merged, live, closed.
   var ENTRIES = [
+    { id: "awesome-windows-115", d: "2026-10-24T15:35:23Z", p: "github", venue: "thechampagne/awesome-windows",
+      kind: "Awesome list", status: "open", title: "Add Mullion to Terminal",
+      url: "https://github.com/thechampagne/awesome-windows/pull/115" },
     { id: "awesome-wsl-124", d: "2026-10-23T11:36:28Z", p: "github", venue: "sirredbeard/awesome-wsl",
       kind: "Awesome list", status: "open", title: "Add Mullion to Terminals",
       url: "https://github.com/sirredbeard/awesome-wsl/pull/124" },

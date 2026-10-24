@@ -17,13 +17,13 @@ Newest last. One line per step taken, plus the lesson when there is one.
 | 2026-10-23 | Fresh portable release from a green build (the previous one predated the close-pane crash fix by 88 commits); README gained a "Try it" section | https://github.com/aylith-labs/mullion/releases/tag/portable-52713ba | Done | Check what a newcomer downloads before every step, not only before Show HN. |
 | 2026-10-23 | awesome-wsl PR, Terminals section, WSL features first, trademark note | https://github.com/sirredbeard/awesome-wsl/pull/124 | Open | |
 | 2026-10-23 | Daily read-only digest routine for every listed venue | https://claude.ai/code/routines/trig_015tWF1J55Gv6EjG4B9RotTu | Running, 07:30 UTC | A cloud routine reaches only the repos attached as its sources. |
+| 2026-10-24 | awesome-windows PR, Terminal section, between MTPuTTY and Putty | https://github.com/thechampagne/awesome-windows/pull/115 | Open | |
 
 ## Next
 
 | Order | Step | Who | Gate |
 |---|---|---|---|
-| 1 | thechampagne/awesome-windows PR (Terminal section; OSS icon; description ends with a full stop). **Prepared**: branch `steven-pribilinskiy:add-mullion` (52728dc, the entry between MTPuTTY and Putty) and body `drafts/awesome-windows.md`. To open it: `gh pr create --repo thechampagne/awesome-windows --base main --head steven-pribilinskiy:add-mullion --title "Add Mullion to Terminal" --body-file .claude/skills/mullion-outreach/drafts/awesome-windows.md`, then add it to `docs/mentions.html` and to the digest routine's sources (already attached). | PR from Steven's account | 2026-10-24 or later; awesome-wsl#124 has no "no"; re-read Contributing.md first |
-| 2 | AlternativeTo listing, as an alternative to Windows Terminal, leading with what differs | Steven, web form | one day after step 1 |
-| 3 | Show HN, Steven's own words | Steven | close-pane crash fix verified and promoted (now in the 2026-10-23 portable ZIP); afterTabs vertical-strip bug fixed; Steven free to stay in the thread |
-| 4 | One subreddit (r/commandline) | Steven | a week after HN; rules read logged in |
-| 5 | The four Stack Exchange answers | Steven | each capability re-checked first |
+| 1 | AlternativeTo listing, as an alternative to Windows Terminal, leading with what differs | Steven, web form | 2026-10-25 or later |
+| 2 | Show HN, Steven's own words | Steven | close-pane crash fix verified and promoted (now in the 2026-10-23 portable ZIP); afterTabs vertical-strip bug fixed; Steven free to stay in the thread |
+| 3 | One subreddit (r/commandline) | Steven | a week after HN; rules read logged in |
+| 4 | The four Stack Exchange answers | Steven | each capability re-checked first |
