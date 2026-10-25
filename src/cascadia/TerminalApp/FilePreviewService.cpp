@@ -65,8 +65,12 @@ namespace winrt::TerminalApp::implementation
             }
             if (actionId == L"copyLink" || actionId == L"copyPath")
             {
+                // Copy link copies a path the way it is written, never as the file:// URI
+                // Open is handed -- the same rule as TermControl::_hyperlinkCopyLinkText.
+                const auto writtenAsPath = Lintel::ClassifyPath(std::wstring_view{ text }) != Lintel::PathKind::None;
+                const auto linkText = !isFile ? target : (writtenAsPath ? text : path);
                 Windows::ApplicationModel::DataTransfer::DataPackage data;
-                data.SetText(actionId == L"copyPath" ? path : target);
+                data.SetText(actionId == L"copyPath" ? path : linkText);
                 Windows::ApplicationModel::DataTransfer::Clipboard::SetContent(data);
             }
             else if (actionId == L"reveal" && !path.empty())
@@ -98,12 +102,46 @@ namespace winrt::TerminalApp::implementation
             button.Click([provider, text, settings, id](auto&&, auto&&) { provider.InvokeLinkAction(text, settings, id); });
             buttons.Children().Append(button);
         };
-        if (effective.showOpen) addButton(L"Open", L"open");
-        if (effective.showCopyLink) addButton(L"Copy link", L"copyLink");
-        if (isFile && effective.showCopyPath) addButton(L"Copy path", L"copyPath");
-        if (isFile && effective.showReveal) addButton(L"Show in Explorer", L"reveal");
-        if (effective.showInPane) addButton(L"Show in pane", L"showInPane");
+        // The same split the link tooltip makes (TermControl::_applyHyperlinkBuiltInButtons):
+        // a button the rule switched off still works, so it goes in a menu at the end of
+        // the row, and Copy link and Copy path are one action when they would copy the
+        // same text -- a path written the Windows way, or a file:// link.
+        C::MenuFlyout more;
+        const auto offer = [&](bool available, bool shown, std::wstring_view label, const hstring& id) {
+            if (!available) return;
+            if (shown)
+            {
+                addButton(label, id);
+                return;
+            }
+            if (!effective.actionsEnabled) return;
+            C::MenuFlyoutItem item;
+            item.Text(hstring{ label });
+            item.Click([provider, text, settings, id](auto&&, auto&&) { provider.InvokeLinkAction(text, settings, id); });
+            more.Items().Append(item);
+        };
+        const auto kind = Lintel::ClassifyPath(std::wstring_view{ text });
+        const auto copiesAgree = isFile && (kind == Lintel::PathKind::Windows || kind == Lintel::PathKind::Unc || std::wstring_view{ text }.starts_with(L"file://"));
+        const auto keepCopyLink = !copiesAgree || (effective.showCopyLink && !effective.showCopyPath);
+        offer(true, effective.showOpen, L"Open", L"open");
+        offer(keepCopyLink, effective.showCopyLink, L"Copy link", L"copyLink");
+        offer(isFile && !(copiesAgree && keepCopyLink), effective.showCopyPath, L"Copy path", L"copyPath");
+        offer(isFile, effective.showReveal, L"Show in Explorer", L"reveal");
+        offer(true, effective.showInPane, L"Show in pane", L"showInPane");
         for (const auto& action : effective.customActions) addButton(std::wstring_view{ action.Name() }, action.ActionId());
+        if (more.Items().Size() > 0)
+        {
+            C::FontIcon glyph;
+            glyph.Glyph(L"\uE712");
+            glyph.FontSize(14);
+            C::Button button;
+            button.Content(glyph);
+            button.VerticalAlignment(Windows::UI::Xaml::VerticalAlignment::Stretch);
+            button.Flyout(more);
+            C::ToolTipService::SetToolTip(button, box_value(L"More actions"));
+            Windows::UI::Xaml::Automation::AutomationProperties::SetName(button, L"More actions");
+            buttons.Children().Append(button);
+        }
         if (effective.showPreview && effective.integration != L"none" && effective.integrationDisplayMode != Control::HyperlinkIntegrationDisplayMode::None)
         {
             const auto pane = winrt::make_self<LinkPreviewPaneContent>();
@@ -138,6 +176,90 @@ namespace winrt::TerminalApp::implementation
         viewport.HorizontalScrollMode(C::ScrollMode::Disabled);
         viewport.Content(host);
         return viewport;
+    }
+
+    // A folder is as reachable as a file, and what someone hovering one wants to know is
+    // what is in it: folders first, then files, each alphabetically, the way Explorer
+    // lists them. Capped, because this runs on hover and a hover must not walk
+    // node_modules; a folder past the cap says so instead of pretending to be complete.
+    template<typename Cancelled>
+    static void FillFolderPreview(const Control::HyperlinkPreview& preview, const std::filesystem::path& path, const Cancelled& cancelled)
+    {
+        static constexpr size_t MaxEntries = 500;
+        static constexpr auto FolderGlyph = L"\uE8B7";
+
+        std::vector<std::wstring> folders;
+        std::vector<std::wstring> files;
+        auto truncated = false;
+        std::error_code error;
+        for (std::filesystem::directory_iterator it{ path, std::filesystem::directory_options::skip_permission_denied, error }, end; !error && it != end; it.increment(error))
+        {
+            if (cancelled()) throw hresult_canceled();
+            if (folders.size() + files.size() >= MaxEntries)
+            {
+                truncated = true;
+                break;
+            }
+            std::error_code typeError;
+            auto name = it->path().filename().wstring();
+            if (it->is_directory(typeError))
+            {
+                folders.push_back(std::move(name) + L"\\");
+            }
+            else
+            {
+                files.push_back(std::move(name));
+            }
+        }
+        if (error && folders.empty() && files.empty()) throw hresult_error(E_ACCESSDENIED, L"This folder could not be read.");
+
+        const auto byName = [](const std::wstring& a, const std::wstring& b) { return _wcsicmp(a.c_str(), b.c_str()) < 0; };
+        std::sort(folders.begin(), folders.end(), byName);
+        std::sort(files.begin(), files.end(), byName);
+
+        // "C:\" has no file name of its own, and neither has a path with a trailing slash.
+        auto name = path.filename().wstring();
+        if (name.empty()) name = path.parent_path().filename().wstring();
+        if (name.empty()) name = path.wstring();
+
+        const auto count = [](size_t n, std::wstring_view one, std::wstring_view many) {
+            return std::to_wstring(n) + L" " + std::wstring{ n == 1 ? one : many };
+        };
+        std::wstring summary;
+        if (truncated) summary = L"More than " + std::to_wstring(MaxEntries) + L" items";
+        else if (folders.empty() && files.empty()) summary = L"Empty";
+        else if (folders.empty()) summary = count(files.size(), L"file", L"files");
+        else if (files.empty()) summary = count(folders.size(), L"folder", L"folders");
+        else summary = count(folders.size(), L"folder", L"folders") + L", " + count(files.size(), L"file", L"files");
+
+        preview.IntegrationName(L"Folder");
+        preview.IntegrationIcon(FolderGlyph);
+        auto fields = single_threaded_vector<Control::HyperlinkPreviewField>();
+        Control::HyperlinkPreviewField title;
+        title.Kind(Control::HyperlinkPreviewFieldKind::Title);
+        title.Value(name);
+        fields.Append(title);
+        Control::HyperlinkPreviewField metadata;
+        metadata.Value(L"Folder \u00B7 " + summary);
+        metadata.IconUri(FolderGlyph);
+        fields.Append(metadata);
+        preview.Fields(fields);
+
+        if (folders.empty() && files.empty()) return;
+        std::wstring listing;
+        for (const auto* group : { &folders, &files })
+        {
+            for (const auto& entry : *group)
+            {
+                if (!listing.empty()) listing += L'\n';
+                listing += entry;
+            }
+        }
+        Control::HyperlinkPreviewTab section;
+        section.Label(L"Contents");
+        section.Body(listing);
+        preview.FileSections(single_threaded_vector<Control::HyperlinkPreviewTab>({ section }));
+        preview.FileKind(L"folder");
     }
 
     Windows::Foundation::IAsyncOperation<Control::HyperlinkPreview> HyperlinkPreviewService::GetFilePreviewAsync(hstring resolvedFilePath)
@@ -181,7 +303,13 @@ namespace winrt::TerminalApp::implementation
                 preview.FilePath(resolvedFilePath);
             }
             const std::filesystem::path path{ resolvedFilePath.c_str() };
-            if (!std::filesystem::is_regular_file(path)) throw hresult_error(E_FAIL, L"This path is not an accessible regular file.");
+            if (std::error_code kindError; std::filesystem::is_directory(path, kindError))
+            {
+                FillFolderPreview(preview, path, [&] { return cancellation(); });
+                if (cancellation()) throw hresult_canceled();
+                co_return preview;
+            }
+            if (!std::filesystem::is_regular_file(path)) throw hresult_error(E_FAIL, L"This path is not a file or a folder that can be read.");
             const auto size = std::filesystem::file_size(path);
             auto fields = single_threaded_vector<Control::HyperlinkPreviewField>();
             Control::HyperlinkPreviewField title;

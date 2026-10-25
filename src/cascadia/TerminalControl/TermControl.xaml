@@ -1822,6 +1822,31 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+
+                                        <!--
+                                            The built-in buttons the matched rule turned off, so switching
+                                            one off tidies the card without taking the action away. Filled
+                                            per hover by _applyHyperlinkBuiltInButtons, and collapsed when
+                                            there is nothing to put in it. Stretch, so a glyph button is as
+                                            tall as its labelled neighbours. The menu is a popup outside the
+                                            card, so it holds the card open the way the action dropdown does.
+                                        -->
+                                        <Button x:Name="HyperlinkMoreButton"
+                                                x:Uid="HyperlinkMoreButton"
+                                                Margin="0,0,4,0"
+                                                VerticalAlignment="Stretch"
+                                                AllowFocusOnInteraction="False"
+                                                Visibility="Collapsed">
+                                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                      FontSize="14"
+                                                      Glyph="&#xE712;" />
+                                            <Button.Flyout>
+                                                <MenuFlyout x:Name="HyperlinkMoreFlyout"
+                                                            Closed="_HyperlinkActionDropDownClosed"
+                                                            Opened="_HyperlinkActionDropDownOpened"
+                                                            Placement="BottomEdgeAlignedLeft" />
+                                            </Button.Flyout>
+                                        </Button>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>

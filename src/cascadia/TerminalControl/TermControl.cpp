@@ -3858,20 +3858,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         }
         HyperlinkCardTarget().Visibility(showTarget ? Visibility::Visible : Visibility::Collapsed);
 
-        // Open and Copy link need a link to act on, which for a text match only exists once
-        // something has resolved it. Copying a path and revealing one only mean anything for
-        // a file -- all four on top of whatever the effective settings already suppressed.
-        const auto hasLink = !linkTarget.empty();
-        HyperlinkOpenButton().Visibility(hasLink && _currentHyperlinkTooltipSettings.showOpen ? Visibility::Visible : Visibility::Collapsed);
-        HyperlinkCopyLinkButton().Visibility(hasLink && _currentHyperlinkTooltipSettings.showCopyLink ? Visibility::Visible : Visibility::Collapsed);
-        const auto fileActions = !target.empty() && _currentHyperlinkTooltipSettings.showCopyPath;
-        // Explorer has nothing to show for a file on another machine.
-        const auto fileReveal = !target.empty() && !remote && _currentHyperlinkTooltipSettings.showReveal;
-        HyperlinkCopyPathButton().Visibility(fileActions ? Visibility::Visible : Visibility::Collapsed);
-        HyperlinkRevealButton().Visibility(fileReveal ? Visibility::Visible : Visibility::Collapsed);
-        // Show in pane needs somewhere to send the request and something worth
-        // sending: a link nobody can preview would open an empty pane.
-        HyperlinkShowInPaneButton().Visibility(_currentHyperlinkTooltipSettings.showInPane ? Visibility::Visible : Visibility::Collapsed);
+        _applyHyperlinkBuiltInButtons();
         // Details waits for the preview: only an integration knows its embed URL.
         HyperlinkEmbedButton().Visibility(Visibility::Collapsed);
 
@@ -4085,6 +4072,118 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         return _currentHyperlinkTooltipSettings.isTextMatch ? winrt::hstring{} : _hoveredUri;
     }
 
+    // What Copy link puts on the clipboard: the link the way you would paste it anywhere
+    // else. A URL is its address. A path is the path as it is written on screen --
+    // /home/me/notes.md stays a POSIX path, C:\src stays C:\src -- and never the
+    // file:// URI that Open is handed, which nothing a person pastes a path into wants.
+    // A file:// link has no on-screen path to keep, so it gives up the path it names.
+    winrt::hstring TermControl::_hyperlinkCopyLinkText() const
+    {
+        if (_hoveredUri.empty())
+        {
+            return {};
+        }
+        if (Lintel::ClassifyPath(std::wstring_view{ _hoveredUri }) != Lintel::PathKind::None)
+        {
+            return _hoveredUri;
+        }
+        if (til::starts_with_insensitive_ascii(std::wstring_view{ _hoveredUri }, L"file:"))
+        {
+            return _hyperlinkCopyPathText();
+        }
+        return _hoveredLinkTarget();
+    }
+
+    // What Copy path puts on the clipboard: the path the link resolves to, the one Windows
+    // opens -- a WSL path becomes \\wsl.localhost\<distro>\... -- or, for a file on another
+    // machine, the path as that machine knows it. Empty for anything that is not a file.
+    winrt::hstring TermControl::_hyperlinkCopyPathText() const
+    {
+        const auto target = _resolvedHyperlinkTarget();
+        if (const auto remote = ::Microsoft::Console::Utils::SplitRemoteFileUri(target))
+        {
+            return winrt::hstring{ remote->second };
+        }
+        return winrt::hstring{ target };
+    }
+
+    // Which of the five built-in buttons this link gets, and where the rest go.
+    //
+    // A button is missing for one of two reasons, and the two end up in different
+    // places. One that can do nothing here -- Copy path on a URL, Show in Explorer for a
+    // file on another machine, Open before a text match has resolved to a link -- is
+    // simply absent. One the matched rule (or the global list) switched off still works,
+    // so it goes in the ⋯ menu at the end of the row: switching a button off tidies the
+    // card, it does not take the action away. hyperlink.tooltipActions off is the
+    // exception, because that asks for no actions at all.
+    //
+    // Copy link and Copy path become one action when they would copy the same text, which
+    // is every ordinary Windows path: two buttons that do the same thing only make you
+    // wonder what the difference is. It is shown as Copy path, unless only Copy link was
+    // asked for, in which case it keeps the name the rule gave it.
+    void TermControl::_applyHyperlinkBuiltInButtons()
+    {
+        const auto& settings = _currentHyperlinkTooltipSettings;
+        const auto target = _resolvedHyperlinkTarget();
+        const auto remote = ::Microsoft::Console::Utils::SplitRemoteFileUri(target).has_value();
+        const auto linkText = _hyperlinkCopyLinkText();
+        const auto pathText = _hyperlinkCopyPathText();
+
+        auto canCopyLink = !linkText.empty();
+        auto canCopyPath = !pathText.empty();
+        if (canCopyLink && canCopyPath && linkText == pathText)
+        {
+            if (settings.showCopyLink && !settings.showCopyPath)
+            {
+                canCopyPath = false;
+            }
+            else
+            {
+                canCopyLink = false;
+            }
+        }
+
+        struct BuiltIn
+        {
+            Controls::Button button;
+            const wchar_t* id;
+            bool available;
+            bool shown;
+        };
+        const BuiltIn builtIns[]{
+            { HyperlinkOpenButton(), L"open", !_hoveredLinkTarget().empty(), settings.showOpen },
+            { HyperlinkCopyLinkButton(), L"copyLink", canCopyLink, settings.showCopyLink },
+            { HyperlinkCopyPathButton(), L"copyPath", canCopyPath, settings.showCopyPath },
+            // Explorer has nothing to show for a file on another machine.
+            { HyperlinkRevealButton(), L"reveal", !target.empty() && !remote, settings.showReveal },
+            { HyperlinkShowInPaneButton(), L"showInPane", true, settings.showInPane },
+        };
+
+        const auto menu = HyperlinkMoreFlyout();
+        menu.Items().Clear();
+        for (const auto& builtIn : builtIns)
+        {
+            builtIn.button.Visibility(builtIn.available && builtIn.shown ? Visibility::Visible : Visibility::Collapsed);
+            if (!builtIn.available || builtIn.shown || !settings.actionsEnabled)
+            {
+                continue;
+            }
+
+            // Labelled from the button it stands in for, so the two can never disagree.
+            Controls::MenuFlyoutItem item;
+            item.Text(winrt::unbox_value_or<winrt::hstring>(builtIn.button.Content(), winrt::hstring{ builtIn.id }));
+            item.Click([weakThis = get_weak(), id = winrt::hstring{ builtIn.id }](auto&&, auto&&) {
+                if (const auto self = weakThis.get(); self && !self->_IsClosing())
+                {
+                    self->_invokeHyperlinkActionById(id);
+                    self->_hideHyperlinkCard();
+                }
+            });
+            menu.Items().Append(item);
+        }
+        HyperlinkMoreButton().Visibility(menu.Items().Size() > 0 ? Visibility::Visible : Visibility::Collapsed);
+    }
+
     // The preview section exists only while it has something to say: a fetch in flight (the
     // ring), or the result of one. Everything is cleared on the way in either way, because
     // the next thing to arrive belongs to a different link than whatever is on screen.
@@ -4187,8 +4286,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             {
                 self->HyperlinkCardTarget().Text(winrt::hstring{ L"→ " + std::wstring{ preview.FilePath() } });
                 self->HyperlinkCardTarget().Visibility(Visibility::Visible);
-                self->HyperlinkOpenButton().Visibility(self->_currentHyperlinkTooltipSettings.showOpen ? Visibility::Visible : Visibility::Collapsed);
-                self->HyperlinkCopyLinkButton().Visibility(self->_currentHyperlinkTooltipSettings.showCopyLink ? Visibility::Visible : Visibility::Collapsed);
+                // The path is known now, so Open has a link to act on, and Copy link
+                // and Copy path can be compared.
+                self->_applyHyperlinkBuiltInButtons();
             }
         }
     }
@@ -4324,8 +4424,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 HyperlinkCardTarget().Text(winrt::hstring{ L"\x2192 " + std::wstring{ linkTarget } });
             }
             HyperlinkCardTarget().Visibility(hasLink ? Visibility::Visible : Visibility::Collapsed);
-            HyperlinkOpenButton().Visibility(hasLink && _currentHyperlinkTooltipSettings.showOpen ? Visibility::Visible : Visibility::Collapsed);
-            HyperlinkCopyLinkButton().Visibility(hasLink && _currentHyperlinkTooltipSettings.showCopyLink ? Visibility::Visible : Visibility::Collapsed);
+            _applyHyperlinkBuiltInButtons();
         }
 
         // The card just grew by a whole section. Show it again so it is measured and placed
@@ -4952,17 +5051,17 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         }
         if (actionId == L"copyLink")
         {
-            if (const auto target = _hoveredLinkTarget(); !target.empty())
+            if (const auto text = _hyperlinkCopyLinkText(); !text.empty())
             {
-                _core->CopyTextToClipboard(target);
+                _core->CopyTextToClipboard(text);
             }
             return;
         }
         if (actionId == L"copyPath")
         {
-            if (const auto target = _resolvedHyperlinkTarget(); !target.empty())
+            if (const auto text = _hyperlinkCopyPathText(); !text.empty())
             {
-                _core->CopyTextToClipboard(winrt::hstring{ target });
+                _core->CopyTextToClipboard(text);
             }
             return;
         }

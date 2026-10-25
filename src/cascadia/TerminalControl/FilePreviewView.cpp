@@ -302,7 +302,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             Controls::TextBlock text;
             text.FontFamily(Media::FontFamily{ L"Consolas" });
             text.IsTextSelectionEnabled(true);
-            auto show = [weak = make_weak(text), view = make_weak(scroll), sections, compact, sheet = preview.FileKind() == L"sheet", numbered = preview.FileKind() == L"text", language = std::wstring{ Lintel::FindFileType(preview.FilePath()).language }](uint32_t index) {
+            auto show = [weak = make_weak(text), view = make_weak(scroll), sections, compact, sheet = preview.FileKind() == L"sheet", numbered = preview.FileKind() == L"text", language = preview.FileKind() == L"folder" ? std::wstring{} : std::wstring{ Lintel::FindFileType(preview.FilePath()).language }](uint32_t index) {
                 std::wstring body{ sections.GetAt(index).Body() };
                 std::wstring result;
                 size_t start = 0;

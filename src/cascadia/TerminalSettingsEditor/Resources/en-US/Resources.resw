@@ -425,7 +425,7 @@
     <comment>Header for a group of check boxes choosing which built-in buttons the link tooltip carries.</comment>
   </data>
   <data name="Globals_HyperlinkTooltipButtons.Description" xml:space="preserve">
-    <value>Which of the built-in buttons the tooltip carries. A rule can override this for the links it matches.</value>
+    <value>Which built-in buttons the tooltip shows. Buttons left off are still in its ⋯ menu. For a path, Copy link copies it as written and Copy path copies the Windows path it opens. A rule can override this for the links it matches.</value>
     <comment>Additional text presented near "Globals_HyperlinkTooltipButtons.Header".</comment>
   </data>
   <data name="Globals_HyperlinkTooltipHint.Header" xml:space="preserve">
@@ -4083,7 +4083,7 @@ This action is applied immediately and cannot be undone.</value>
     <comment>Header for the group of check boxes choosing which built-in buttons the link tooltip carries for links matching this rule.</comment>
   </data>
   <data name="LinkTooltip_RuleButtons.Description" xml:space="preserve">
-    <value>Which of the built-in buttons the tooltip carries for links this rule matches. Leave the override unchecked to use the default list.</value>
+    <value>Which built-in buttons the tooltip shows for links this rule matches. Buttons left off are still in its ⋯ menu. Leave the override unchecked to use the default list.</value>
     <comment>Additional text presented near "LinkTooltip_RuleButtons.Header".</comment>
   </data>
   <data name="LinkTooltip_RuleOverrideButtons.Content" xml:space="preserve">
@@ -4104,11 +4104,11 @@ This action is applied immediately and cannot be undone.</value>
   </data>
   <data name="LinkTooltip_ButtonCopyLink" xml:space="preserve">
     <value>Copy link</value>
-    <comment>Label for the link tooltip button that copies the link's address.</comment>
+    <comment>Label for the link tooltip button that copies the link: a URL as its address, a file path as it is written in the terminal.</comment>
   </data>
   <data name="LinkTooltip_ButtonCopyPath" xml:space="preserve">
     <value>Copy path</value>
-    <comment>Label for the link tooltip button that copies a file link's path.</comment>
+    <comment>Label for the link tooltip button that copies the Windows path a file link resolves to.</comment>
   </data>
   <data name="LinkTooltip_ButtonReveal" xml:space="preserve">
     <value>Show in Explorer</value>

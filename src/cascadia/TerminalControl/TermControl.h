@@ -366,6 +366,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         Control::HyperlinkPreview _currentHyperlinkPreview{ nullptr };
         Windows::Foundation::IAsyncOperation<Control::HyperlinkPreview> _filePreviewOperation{ nullptr };
         winrt::hstring _hoveredLinkTarget() const;
+        winrt::hstring _hyperlinkCopyLinkText() const;
+        winrt::hstring _hyperlinkCopyPathText() const;
+        void _applyHyperlinkBuiltInButtons();
         void _setHyperlinkPreviewLoading(bool loading);
         safe_void_coroutine _requestHyperlinkPreview(uint32_t generation, winrt::hstring text, winrt::hstring integration);
         void _applyHyperlinkPreview(const Control::HyperlinkPreview& preview);

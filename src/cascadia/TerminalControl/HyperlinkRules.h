@@ -24,6 +24,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             bool showCopyPath{ false };
             bool showReveal{ false };
             bool showInPane{ false };
+            // hyperlink.tooltipActions. Off means no buttons at all, so the ones
+            // turned off above do not resurface in the card's overflow menu either.
+            bool actionsEnabled{ true };
             // The pane, not the card, is where this link's preview belongs.
             bool preferPane{ false };
             // The "Ctrl+Click to follow link" line.
@@ -142,6 +145,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             .showDelay = std::max(0, settings.HyperlinkTooltipShowDelay()),
             .hideDelay = std::max(0, settings.HyperlinkTooltipHideDelay()),
             .maxWidth = settings.HyperlinkTooltipMaxWidth(),
+            .actionsEnabled = actionsEnabled,
             .preferPane = settings.HyperlinkPreviewInPane(),
             // A "click to follow link" line would be a lie when clicking is off,
             // so the master switch suppresses it regardless of the hint setting.

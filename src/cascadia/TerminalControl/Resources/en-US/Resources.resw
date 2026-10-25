@@ -204,11 +204,19 @@
   </data>
   <data name="HyperlinkCopyLinkButton.Content" xml:space="preserve">
     <value>Copy link</value>
-    <comment>Label of a button on the link tooltip that copies the hovered link's address.</comment>
+    <comment>Label of a button on the link tooltip that copies the hovered link: a URL as its address, a file path as it is written in the terminal.</comment>
   </data>
   <data name="HyperlinkCopyPathButton.Content" xml:space="preserve">
     <value>Copy path</value>
-    <comment>Label of a button on the link tooltip that copies the file path a file:// link resolves to. {Locked="file://"}</comment>
+    <comment>Label of a button on the link tooltip that copies the Windows path a file link resolves to.</comment>
+  </data>
+  <data name="HyperlinkMoreButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>More actions</value>
+    <comment>Tooltip for the button at the end of the link tooltip's button row that opens a menu of the actions whose buttons are turned off.</comment>
+  </data>
+  <data name="HyperlinkMoreButton.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>More actions</value>
+    <comment>Screen reader name for the button at the end of the link tooltip's button row that opens a menu of the actions whose buttons are turned off.</comment>
   </data>
   <data name="HyperlinkRevealButton.Content" xml:space="preserve">
     <value>Show in Explorer</value>

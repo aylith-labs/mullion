@@ -550,6 +550,23 @@ namespace winrt::TerminalApp::implementation
     void TerminalPage::_ApplyTabPosition()
     {
         const auto windowSettings = _currentWindowSettings();
+
+        // Every settings reload comes through here, and a rebuild detaches
+        // _tabContent from the root and puts it back. That unloads and reloads
+        // everything in every tab: a Settings tab came back scrolled to the top
+        // with its focused control gone, so with auto-save on - a write, and so a
+        // reload, per click - ticking one box on a long page threw the page back
+        // to its first row. Only rebuild when the layout would actually change;
+        // otherwise just redo the cheap parts that read settings of their own.
+        const std::pair layout{ windowSettings.TabPosition(), windowSettings.ShowTabsInTitlebar() };
+        if (_appliedTabLayout == layout)
+        {
+            _ApplyNewTabButtonPosition(windowSettings);
+            _UpdateTabWidthMode();
+            return;
+        }
+        _appliedTabLayout = layout;
+
         _tabPosition = windowSettings.TabPosition();
 
         // Anything but Top rebuilds the root grid, and a throw in here is not

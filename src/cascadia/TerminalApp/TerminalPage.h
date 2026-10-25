@@ -333,6 +333,10 @@ namespace winrt::TerminalApp::implementation
         // between the strip and the content when that edge is Left or Right.
         Microsoft::Terminal::Settings::Model::TabPosition _tabPosition{ Microsoft::Terminal::Settings::Model::TabPosition::Top };
         Windows::UI::Xaml::Controls::Border _tabStripSplitter{ nullptr };
+        // What the root grid was last laid out for: the position asked for (not the
+        // one a failure fell back to) and showTabsInTitlebar. _ApplyTabPosition only
+        // rebuilds when this moves - see the note there for why that matters.
+        std::optional<std::pair<Microsoft::Terminal::Settings::Model::TabPosition, bool>> _appliedTabLayout;
 
         // Whether the strip is currently laid out as a column. Records state
         // only - there is no longer a template to guard, since the TabView keeps
