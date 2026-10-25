@@ -79,7 +79,12 @@
     };
   }
 
-  // fields: [{ key, label, on }]. Builds the trigger and the menu inside root.
+  // fields: [{ key, label, on, applies? }]. Builds the trigger and the menu inside root.
+  //   applies  () -> bool: whether the field means anything in the page's current
+  //            context (upstream.html's Closed date, only on the Closed tab).
+  //            A field that does not apply is not listed; its on/off state is
+  //            kept, and shown(key) still reports it. The menu re-checks on
+  //            opening, after each change, and when the page calls refresh().
   function fieldPicker(root, opts) {
     var shown = {};
     opts.fields.forEach(function (f) { shown[f.key] = f.on; });
@@ -101,7 +106,17 @@
     var trigger = root.querySelector(".dropdown-trigger");
     var pop = root.querySelector(".fields-pop");
 
-    function setOpen(open) { pop.hidden = !open; trigger.setAttribute("aria-expanded", String(open)); }
+    function refresh() {
+      opts.fields.forEach(function (f) {
+        var box = pop.querySelector('input[data-field="' + f.key + '"]');
+        box.parentNode.hidden = !!f.applies && !f.applies();
+      });
+    }
+    function setOpen(open) {
+      if (open) { refresh(); }
+      pop.hidden = !open;
+      trigger.setAttribute("aria-expanded", String(open));
+    }
     function save() { try { localStorage.setItem(opts.storageKey, JSON.stringify(shown)); } catch (e) { /* not kept */ } }
     trigger.addEventListener("click", function () { setOpen(pop.hidden); });
     document.addEventListener("pointerdown", function (e) { if (!pop.hidden && !root.contains(e.target)) { setOpen(false); } });
@@ -112,15 +127,17 @@
       shown[key] = e.target.checked;
       save();
       opts.onChange();
+      refresh();
     });
     pop.querySelector(".fields-reset").addEventListener("click", function () {
       opts.fields.forEach(function (f) { shown[f.key] = f.on; });
       Array.prototype.forEach.call(pop.querySelectorAll("input[data-field]"), function (cb) { cb.checked = shown[cb.getAttribute("data-field")]; });
       save();
       opts.onChange();
+      refresh();
     });
 
-    return { shown: function (key) { return shown[key] !== false; } };
+    return { shown: function (key) { return shown[key] !== false; }, refresh: refresh };
   }
 
   // options: [{ id, label }]; count(id) -> number, or null for no count.

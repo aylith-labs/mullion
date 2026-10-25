@@ -7,8 +7,8 @@
 <meta name="description" content="Windows Terminal issues and pull requests that Mullion answers, fully or in part, with a link to each feature page." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-25a" />
-<script src="site.js?v=2026-10-25a"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-25b" />
+<script src="site.js?v=2026-10-25b"></script>
 </head>
 <body>
 
@@ -108,8 +108,8 @@
   </div>
 </footer>
 
-<script src="table.js?v=2026-10-25a"></script>
-<script src="features.js?v=2026-10-25a"></script>
+<script src="table.js?v=2026-10-25b"></script>
+<script src="features.js?v=2026-10-25b"></script>
 <script>
 (function () {
   var GH = "https://github.com/microsoft/terminal/";
@@ -341,6 +341,11 @@
   function shipped(r) { var f = byId[r.f]; return r.s || (f && f.dateAdded) || ""; }
   function byDate(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
 
+  function activeTab() {
+    var t = document.querySelector('[role="tab"][aria-selected="true"]');
+    return t ? t.id.replace("tab-", "") : "open";
+  }
+
   // Compact by default: with Descriptions off, hovering a title shows its
   // description (site.js).
   var picker = Mullion.fieldPicker(document.getElementById("fields"), {
@@ -348,7 +353,8 @@
     fields: [
       { key: "k", label: "Type", on: true },
       { key: "d", label: "Opened", on: true },
-      { key: "c", label: "Closed date", on: true },
+      // Only closed items have one, and it is shown in the Opened column.
+      { key: "c", label: "Closed date", on: true, applies: function () { return activeTab() === "closed" && picker.shown("d"); } },
       { key: "f", label: "In Mullion", on: true },
       { key: "s", label: "Fixed / added", on: true },
       { key: "cov", label: "Coverage", on: true },
@@ -463,6 +469,7 @@
       document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
     });
     if (focus) { tab.focus(); }
+    picker.refresh();
     var key = tab.id.replace("tab-", "");
     if (!keepHash && window.location.hash.slice(1) !== key) {
       try { history.replaceState(null, "", key === "open" ? window.location.pathname + window.location.search : "#" + key); } catch (e) {}
