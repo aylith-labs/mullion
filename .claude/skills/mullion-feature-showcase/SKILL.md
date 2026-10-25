@@ -27,7 +27,13 @@ headline feature.
   `ins`/`del` fields (files = unique files touched).
 - A fix or follow-up to an existing feature joins that feature's `commits` and
   its stats are recomputed; it does not get a card of its own.
-- An upstream PR taken before it merges joins `early-upstream-fixes`.
+- An upstream bug fixed here, or an upstream PR taken before it merges, gets an
+  entry and a page of its own (`kind: "fix"`, or `"improvement"` for a PR that adds
+  something), with its own commits, media and upstream rows, and its id is added to
+  the `hub` list of `early-upstream-fixes`. That entry is a **hub**: its page lists
+  and links its entries and carries no commits, stats or media of its own; the
+  catalogue lists the entries, not the hub (`Mullion.catalogue()`), and an
+  upstream row never points at a hub.
 
 ## 2. Long-form page — `docs/feature-details.js`
 
@@ -108,6 +114,15 @@ sentence.
   Canary's (`…\Microsoft.WindowsTerminalCanary_8wekyb3d8bbwe\LocalState\`) to
   `"light"` then `"dark"`; settings hot-reload, no restart. Back Canary's file up
   first and restore it after.
+- **The pane's colour scheme does not follow `"theme"`.** Canary's profile defaults
+  pin `"colorScheme": "One Half Light"`, and a light/dark scheme pair follows the
+  OS, not the Terminal's theme, so a dark shot needs the scheme set to a dark one
+  (`"One Half Dark"`) as well. Three "before" shots once shipped dark chrome around
+  a light pane. `check-site.mjs` now measures every capture's mean luminance and
+  fails a `-dark` file that is mostly light, or a `-light` file not clearly lighter
+  than its dark twin. A wrong-theme shot that cannot be retaken is removed, both
+  themes of that side, so the figure falls back to what is left; never leave one
+  theme of a side, since compare.js then shows the other theme in its place.
 - **Same size, same content** on both sides, so Hover and Split line up:
   fixed window size (`--size`/`--pos` on launch), same profile, same font, same
   text in the pane.
@@ -159,6 +174,14 @@ One row per upstream issue (`OPEN` or `CLOSED`) or PR (`PRS`) the feature
 answers: `n`, `d` (opened), `t`, `f` (feature id), `full: true` when the ask as
 written is met, and a `note` that says what is covered and what is not. Rows are
 in number order. A feature that answers an issue only in part says which part.
+
+`rel: [n, ...]` lists upstream issues filed for the same ask: ones closed as its
+duplicates, or that a maintainer pointed at it as the same request (not mere
+mentions or related-but-different asks). Each needs a `RELATED` entry (`t`, `s`
+open/closed, `d` opened), read once from GitHub, read-only
+(`gh api repos/microsoft/terminal/issues/<n>/timeline` for `marked_as_duplicate`
+events and "Duplicate of #" comments). The page shows the oldest number of the
+group with a +N badge listing the rest, and `#issue-<n>` resolves for every one.
 
 ## 5. Home page
 

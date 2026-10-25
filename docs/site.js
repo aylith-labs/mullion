@@ -540,6 +540,12 @@
     return { refresh: refresh, trigger: trigger };
   }
 
+  // The catalogue as a list shows it. A hub (an entry whose page links other
+  // entries, features.js) is left out, since its entries are listed themselves.
+  function catalogue() {
+    return (window.FEATURES || []).filter(function (f) { return !f.hub; });
+  }
+
   // The "Standout" tag: hand-picked headline features, explained on hover or focus.
   var STANDOUT_TIP = "A headline feature: one of the bigger additions, picked by hand";
   function standoutTag() {
@@ -574,16 +580,16 @@
     place(tip, anchor, "center");
   }
 
-  // A title marked .has-desc shows the .desc beside it in a popover, unless its
-  // table already shows descriptions inline (.show-desc). Unlike a tooltip it
-  // can hold links, so it stays open while the pointer is over it. Touch
-  // screens show descriptions inline instead (site.css).
+  // An element marked .has-desc shows the .desc beside it in a popover, unless
+  // that .desc is already on screen (a table showing descriptions inline, or a
+  // touch screen; site.css). Unlike a tooltip it can hold links, so it stays
+  // open while the pointer is over it, and Tab from its anchor moves into it.
   var descPop = null, popFor = null, popShow = 0, popHide = 0;
   function showPop(anchor) {
     clearTimeout(popHide);
-    if (popFor === anchor || anchor.closest(".show-desc")) { return; }
+    if (popFor === anchor) { return; }
     var desc = anchor.parentNode.querySelector(".desc");
-    if (!desc) { return; }
+    if (!desc || getComputedStyle(desc).display !== "none") { return; }
     hidePop();
     popFor = anchor;
     descPop.innerHTML = desc.innerHTML;
@@ -615,12 +621,56 @@
         popHide = setTimeout(hidePop, 180);
       }
     });
+    var popQuiet = false;
     document.addEventListener("focusin", function (e) {
       var a = e.target.closest && e.target.closest(".has-desc");
-      if (a) { showPop(a); } else if (!descPop.contains(e.target)) { hidePop(); }
+      if (a) { if (!popQuiet) { showPop(a); } } else if (!descPop.contains(e.target)) { hidePop(); }
     });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { hidePop(); } });
-    window.addEventListener("scroll", hidePop, { passive: true, capture: true });
+    // A tap focuses nothing in some browsers, so a click on a button that
+    // owns a popover opens it too.
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest("button.has-desc");
+      if (a) { showPop(a); }
+    });
+    // The popover sits at the end of <body>, so Tab is steered: from its
+    // anchor into its links, and out of its last link to whatever follows the
+    // anchor. Shift+Tab from the first link returns to the anchor.
+    function tabbables(scope) {
+      return Array.prototype.filter.call(scope.querySelectorAll('a[href], button, input, select, textarea, [tabindex]'), function (x) {
+        return x.tabIndex >= 0 && !x.disabled && x.getClientRects().length > 0;
+      });
+    }
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        var back = descPop && descPop.contains(document.activeElement) ? popFor : null;
+        hidePop();
+        // Back on the anchor, closed: the focus must not reopen it.
+        if (back) { popQuiet = true; back.focus(); popQuiet = false; }
+        return;
+      }
+      if (e.key !== "Tab" || !popFor || descPop.hidden) { return; }
+      var inside = tabbables(descPop);
+      if (!inside.length) { return; }
+      var at = inside.indexOf(document.activeElement);
+      if (document.activeElement === popFor && !e.shiftKey) {
+        e.preventDefault();
+        inside[0].focus();
+      } else if (at === 0 && e.shiftKey) {
+        e.preventDefault();
+        popFor.focus();
+      } else if (at === inside.length - 1 && !e.shiftKey) {
+        e.preventDefault();
+        var page = tabbables(document.body).filter(function (x) { return !descPop.contains(x); });
+        var next = page[page.indexOf(popFor) + 1], from = popFor;
+        hidePop();
+        (next || from).focus();
+      }
+    });
+    // Scrolling the page moves the anchor away; scrolling a list inside the
+    // popover does not.
+    window.addEventListener("scroll", function (e) {
+      if (!(e.target.nodeType === 1 && descPop.contains(e.target))) { hidePop(); }
+    }, { passive: true, capture: true });
   }
   function hideTip() {
     if (tip) { tip.classList.remove("shown"); }
@@ -664,6 +714,7 @@
     timeTag: timeTag,
     dropdown: dropdown,
     standoutTag: standoutTag,
+    catalogue: catalogue,
     relative: relative,
     effectiveTheme: effectiveTheme
   };

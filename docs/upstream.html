@@ -7,8 +7,8 @@
 <meta name="description" content="Windows Terminal issues and pull requests that Mullion answers, fully or in part, with a link to each feature page." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-24e" />
-<script src="site.js?v=2026-10-24e"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-25a" />
+<script src="site.js?v=2026-10-25a"></script>
 </head>
 <body>
 
@@ -108,8 +108,8 @@
   </div>
 </footer>
 
-<script src="table.js?v=2026-10-24e"></script>
-<script src="features.js?v=2026-10-24e"></script>
+<script src="table.js?v=2026-10-25a"></script>
+<script src="features.js?v=2026-10-25a"></script>
 <script>
 (function () {
   var GH = "https://github.com/microsoft/terminal/";
@@ -118,29 +118,29 @@
   // Every claim here was checked against the code, not against the feature
   // pages; keep it that way when adding a row.
   var OPEN = [
-    { n: 835, k: "feature", d: "2019-05-15", t: "Enable customization for tabs on bottom/right/left", f: "tab-edges", full: true,
+    { n: 835, rel: [5596, 8412, 9082, 9100, 9361, 10939, 11265, 11316, 12756, 17456, 18837, 20178, 20364, 20547, 20708], k: "feature", d: "2019-05-15", t: "Enable customization for tabs on bottom/right/left", f: "tab-edges", full: true,
       note: "Top, bottom, left or right, as a window setting. <a href='https://github.com/microsoft/terminal/pull/20240'>#20240</a> is an open spec for the same thing." },
-    { n: 1553, k: "scenario", d: "2019-06-24", t: "Mouse/Touch/Pointer Bindings", f: "click-chords",
+    { n: 1553, rel: [3424, 3866, 5708, 6323, 6333, 6761, 7059, 7624, 7646, 7922, 8674, 10962, 11533, 14627], k: "scenario", d: "2019-06-24", t: "Mouse/Touch/Pointer Bindings", f: "click-chords",
       note: "Only clicks on links are configurable. There are no general mouse bindings." },
-    { n: 2671, k: "feature", d: "2019-09-05", t: "Link generation for files and other data types", f: "path-smarts",
+    { n: 2671, rel: [9669, 9793, 17612, 17662], k: "feature", d: "2019-09-05", t: "Link generation for files and other data types", f: "path-smarts",
       note: "Absolute Windows, UNC, POSIX and <code>~/</code> paths are links, open through the shell, and preview on hover. Relative paths, opening at a line and click-to-<code>cd</code> are not done." },
-    { n: 6276, k: "feature", d: "2020-05-30", t: "Avoid closing window when close last tab", f: "small-knobs",
+    { n: 6276, rel: [4579, 14326, 17746], k: "feature", d: "2020-05-30", t: "Avoid closing window when close last tab", f: "small-knobs",
       note: "<code>\"closeWindowOnLastTab\": false</code> replaces the last tab with a fresh default-profile tab, so the window stays. There is no empty window or start page." },
     { n: 8405, k: "bug", d: "2020-11-26", t: "disableAnimations not disabling all animations", f: "motion", full: true,
       note: "<code>motion</code> follows the Windows animation switch or overrides it, and also stops the tab-list and Settings page transitions." },
-    { n: 8849, k: "feature", d: "2021-01-22", t: "Allow hyperlink matching for arbitrary patterns and custom handlers", f: "link-rules",
+    { n: 8849, rel: [8902, 9040, 9491, 10428, 17662, 18391], k: "feature", d: "2021-01-22", t: "Allow hyperlink matching for arbitrary patterns and custom handlers", f: "link-rules",
       note: "Regex rules with named groups turn any text into a link, and an integration file can map a match to a URL template. Launching an arbitrary program with the captures, and parsing <code>file:line:col</code>, are not done." },
-    { n: 8914, k: "feature", d: "2021-01-27", t: "Profile reordering for Settings UI", f: "profile-order", full: true,
+    { n: 8914, rel: [13281, 16242, 16416, 16464, 18939, 19168, 20482], k: "feature", d: "2021-01-27", t: "Profile reordering for Settings UI", f: "profile-order", full: true,
       note: "Profiles reorder in the Settings UI, and Ctrl+Shift+N follows the new menu order." },
-    { n: 10109, k: "bug", s: "2026-10-24", d: "2021-05-17", t: "Tabs display the close tab shortcut as Ctrl+F4, even though that's not bound by default", f: "early-upstream-fixes", full: true,
+    { n: 10109, rel: [11347, 14532, 14709, 19447], k: "bug", s: "2026-10-24", d: "2021-05-17", t: "Tabs display the close tab shortcut as Ctrl+F4, even though that's not bound by default", f: "close-tab-tooltip", full: true,
       note: "The close button says <em>Close tab</em>, followed by the key bound to <code>closeTab</code> when there is one. Upstream waits on a WinUI change (microsoft-ui-xaml#4930); this replaces the tooltip from the Terminal side." },
     { n: 10534, k: "task", d: "2021-06-29", t: "Quake mode has rounded corners in Windows 11", f: "dock-fit", full: true,
       note: "A quake or docked window asks DWM for square corners and hands them back when it stops being docked." },
-    { n: 10552, k: "task", d: "2021-07-03", t: "Profile icons with web sources are not shown on the taskbar", f: "icons", full: true,
+    { n: 10552, rel: [14886, 16890], k: "task", d: "2021-07-03", t: "Profile icons with web sources are not shown on the taskbar", f: "icons", full: true,
       note: "http(s) icons are kept as a local copy and the jump list points at it. Glyph and emoji icons are drawn into real <code>.ico</code> files." },
-    { n: 10627, k: "feature", d: "2021-07-12", t: "Settings UI feedback of configuration changes", f: "settings-save",
+    { n: 10627, rel: [12508, 12750], k: "feature", d: "2021-07-12", t: "Settings UI feedback of configuration changes", f: "settings-save",
       note: "An Auto-save switch applies each change as it is made, and hovering Save lists what would change. The button's label is unchanged." },
-    { n: 11607, k: "bug", s: "2026-10-24", d: "2021-10-25", t: "Closing a pane that summoned the termination behavior infobar should just dismiss it", f: "early-upstream-fixes", full: true,
+    { n: 11607, k: "bug", s: "2026-10-24", d: "2021-10-25", t: "Closing a pane that summoned the termination behavior infobar should just dismiss it", f: "infobar-follows-pane", full: true,
       note: "The bar closes once every pane it was shown for has been closed. Switching tabs, zooming and splitting leave it alone." },
     { n: 11630, k: "task", d: "2021-10-27", t: "Allow search by name in the Actions dialog", f: "shortcut-search", full: true,
       note: "The Shortcuts page filters by command name; a leading <code>@</code> searches by key chord." },
@@ -148,25 +148,25 @@
       note: "The settings page content is marked as the main landmark, beside the navigation pane's." },
     { n: 12424, k: "feature", d: "2022-02-08", t: "Save and Discard should stay disabled until something changes", f: "settings-save", full: true,
       note: "Both stay disabled until a save would write something different." },
-    { n: 12633, k: "task", d: "2022-03-06", t: "A new window does not restore the previous window's size and position", f: "window-persist", full: true,
+    { n: 12633, rel: [12647, 14488, 16452, 18153, 20280], k: "task", d: "2022-03-06", t: "A new window does not restore the previous window's size and position", f: "window-persist", full: true,
       note: "A new window opens where the last one closed, at its size. Quake mode, tear-out and an explicit position on the command line take precedence." },
-    { n: 13598, k: "task", d: "2022-07-25", t: "Add option to configure URL clicking behavior", f: "click-chords", full: true,
+    { n: 13598, rel: [18512], k: "task", d: "2022-07-25", t: "Add option to configure URL clicking behavior", f: "click-chords", full: true,
       note: "A modifier plus left, middle or double click, mapped to open, copy link and other actions, with a second chord alongside." },
     { n: 14116, k: "feature", d: "2022-10-02", t: "Improve file:// hyperlink support: local and remote hostname", f: "wsl-links",
       note: "URIs naming this machine are accepted, a <code>#fragment</code> is dropped, and WSL panes resolve to <code>\\\\wsl.localhost\\&lt;distro&gt;</code>. Remote hosts are still rejected." },
-    { n: 14940, k: "bug", d: "2023-03-02", t: "Refine customization around text color adjustment", f: "scheme-contrast",
+    { n: 14940, rel: [15415, 18617], k: "bug", d: "2023-03-02", t: "Refine customization around text color adjustment", f: "scheme-contrast",
       note: "Each color scheme can set its own adjustment mode. The adjustment itself is unchanged." },
-    { n: 15452, k: "bug", d: "2023-05-26", t: "Something is, well, probably fine with One Half Light", f: "scheme-contrast",
+    { n: 15452, rel: [18758, 19433], k: "bug", d: "2023-05-26", t: "Something is, well, probably fine with One Half Light", f: "scheme-contrast",
       note: "A light scheme can turn the adjustment off for itself. The adjustment itself is unchanged." },
     { n: 16067, k: "bug", d: "2023-09-29", t: "Quake mode drop-down doesn't handle SPI_SETWORKAREA", f: "dock-fit", full: true,
       note: "A quake or docked window re-fits when the work area changes, without being shown or raised; a minimized one catches up on its next restore." },
-    { n: 16984, k: "task", d: "2024-04-01", t: "Set different color schemes for light mode and dark mode via UI settings", f: "color-schemes", full: true,
+    { n: 16984, rel: [18236, 20414], k: "task", d: "2024-04-01", t: "Set different color schemes for light mode and dark mode via UI settings", f: "color-schemes", full: true,
       note: "Profiles → Appearance offers a light and a dark scheme side by side and saves them as a pair." },
-    { n: 17481, k: "bug", s: "2026-10-24", d: "2024-06-28", t: "wt split-pane -D overwrites command line command with profile command", f: "early-upstream-fixes", full: true,
+    { n: 17481, k: "bug", s: "2026-10-24", d: "2024-06-28", t: "wt split-pane -D overwrites command line command with profile command", f: "split-pane-duplicate-command", full: true,
       note: "<code>split-pane -D</code> still copies the focused pane's profile and directory, and a command or <code>-d</code> given with it now wins." },
     { n: 17843, k: "feature", d: "2024-09-01", t: "Rows or columns to resize a pane by from the keyboard", f: "small-knobs",
       note: "<code>paneResizeStep</code> sets the step, and <code>resizePane</code> takes an <code>amount</code>, but both are percentages, not rows or columns." },
-    { n: 20086, k: "bug", s: "2026-10-22", d: "2026-04-07", t: "Clear buffer doesn't clear scroll marks", f: "early-upstream-fixes", full: true,
+    { n: 20086, k: "bug", s: "2026-10-22", d: "2026-04-07", t: "Clear buffer doesn't clear scroll marks", f: "scroll-marks-after-clear", full: true,
       note: "Upstream's own fix, <a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>, taken before it merges. Covers Clear Buffer and <code>clear</code>/<code>cls</code>." },
     { n: 20698, k: "feature", d: "2026-09-19", t: "Copy link URL from OSC 8 hyperlinks", f: "link-card",
       note: "The link card has a Copy link button, and a click chord can copy instead of open. There is no context-menu entry." }
@@ -176,13 +176,107 @@
       note: "<code>persistBufferPeriodically</code> saves pane contents every <code>bufferPersistIntervalSeconds</code> (300, five minutes, by default)." }
   ];
   var CLOSED = [
-    { n: 961, k: "feature", d: "2019-05-23", c: "2024-03-29", t: "Restore previously closed session's state", f: "session-resume", full: true,
+    { n: 961, rel: [1924, 3092, 5242, 6032, 6270, 6872, 7029, 7574, 8161, 8329, 9565, 10331, 10598, 10739, 11476, 16527, 16569], k: "feature", d: "2019-05-23", c: "2024-03-29", t: "Restore previously closed session's state", f: "session-resume", full: true,
       note: "Upstream restores the text and stopped there. Mullion also brings back what was running: coding agents resume and multiplexers reattach." },
-    { n: 9368, k: "task", d: "2021-03-03", c: "2026-04-13", t: "Add support for a send-input subcommand", f: "control-pipe",
+    { n: 9368, rel: [10416, 12487, 12925], k: "task", d: "2021-03-03", c: "2026-04-13", t: "Add support for a send-input subcommand", f: "control-pipe",
       note: "Declined upstream, as was <a href='https://github.com/microsoft/terminal/pull/20106'>PR #20106</a>. A per-process control pipe sends input to a chosen pane; it is not a <code>wt</code> subcommand." },
     { n: 9863, k: "question", d: "2021-04-16", c: "2021-04-20", t: "Terminal settings UI should open in a new window", f: "settings-window", full: true,
       note: "Upstream pointed to tab tear-off. <code>settingsUIHost</code> also opens Settings as a dialog or in a window of its own." }
   ];
+
+  // Upstream issues filed for the same ask as a row (rel): duplicates, and
+  // ones a maintainer pointed at the row's issue as the same request. Read
+  // from GitHub when the row was written; the page makes no GitHub calls.
+  var RELATED = {
+    1924: { t: "Feature Request: Remember history", s: "closed", d: "2019-07-11" },
+    3092: { t: "Save opened tabs and locations of the tabs", s: "closed", d: "2019-10-06" },
+    3424: { t: "Add an option to disable copy/paste with right click", s: "closed", d: "2019-11-03" },
+    3866: { t: "Support mouse wheel in keybindings", s: "closed", d: "2019-12-06" },
+    4579: { t: "Confirm or Prevent Last Tab Close", s: "closed", d: "2020-02-14" },
+    5242: { t: "Remember my last open tabs (like a browser) + remember my command history", s: "closed", d: "2020-04-04" },
+    5596: { t: "Could you make terminal console tab to under?", s: "closed", d: "2020-04-27" },
+    5708: { t: "Option to disable ctrl + scroll => change font size", s: "closed", d: "2020-05-02" },
+    6032: { t: "Reopen all tabs when opened, in their respective last folder, and maybe with their own history", s: "closed", d: "2020-05-20" },
+    6270: { t: "Ctrl + Z reopens closed tab", s: "closed", d: "2020-05-30" },
+    6323: { t: "Copy/Paste - Select with the left mouse button and paste with middle mouse button - which is supported in UNIX terminals.", s: "closed", d: "2020-06-03" },
+    6333: { t: "Key bindings for mouse click", s: "closed", d: "2020-06-03" },
+    6761: { t: "Disable Ctrl + MouseWheel zooming", s: "closed", d: "2020-07-02" },
+    6872: { t: "Reopen/save terminal tabs state", s: "closed", d: "2020-07-11" },
+    7029: { t: "Save Windows terminal window split status", s: "closed", d: "2020-07-23" },
+    7059: { t: "Mouse input bindings/configuration", s: "closed", d: "2020-07-24" },
+    7574: { t: "Ability To Save The Current Session", s: "closed", d: "2020-09-08" },
+    7624: { t: "Settings option to make mouse operations behave like Xterm (middle button pastes)", s: "closed", d: "2020-09-14" },
+    7646: { t: "Feature request: add xterm-style select/copy/paste options", s: "closed", d: "2020-09-16" },
+    7922: { t: "Option to entirely disable right-click-to-paste", s: "closed", d: "2020-10-14" },
+    8161: { t: "Save the terminal's current configuration (tabs, directories, and panes)", s: "closed", d: "2020-11-04" },
+    8329: { t: "\"Continue where you left off\" behavior", s: "closed", d: "2020-11-19" },
+    8412: { t: "Allow tabs on the left/right side", s: "closed", d: "2020-11-26" },
+    8674: { t: "disable right mouse click to paste", s: "closed", d: "2020-12-29" },
+    8902: { t: "Turn arbitrary text into a hyperlink", s: "closed", d: "2021-01-26" },
+    9040: { t: "Pattern highlight", s: "closed", d: "2021-02-04" },
+    9082: { t: "Vertical tabs!", s: "closed", d: "2021-02-09" },
+    9100: { t: "Vertical Tabs Option", s: "closed", d: "2021-02-10" },
+    9361: { t: "Tabs on left", s: "closed", d: "2021-03-03" },
+    9491: { t: "URL Click Browser Setting", s: "closed", d: "2021-03-14" },
+    9565: { t: "Auto save tabs or save option", s: "closed", d: "2021-03-21" },
+    9669: { t: "[Feature] Auto-detecting file URLs and make them clickable ", s: "closed", d: "2021-03-30" },
+    9793: { t: "Please make disk paths clickable (folders - opened in Windows Explorer, files - opened in a default app) like the URLs are made", s: "closed", d: "2021-04-13" },
+    10331: { t: "Add session concept to terminal like tmux", s: "closed", d: "2021-06-04" },
+    10416: { t: "[Question] Pass command text in but do not execute", s: "closed", d: "2021-06-12" },
+    10428: { t: "Ctrl-click: consider supporting `:<row>:<col>` in FS URLs and paths", s: "closed", d: "2021-06-15" },
+    10598: { t: "restore previous session", s: "closed", d: "2021-07-09" },
+    10739: { t: "Increase user efficiency on return from reboot/closing terminal", s: "closed", d: "2021-07-21" },
+    10939: { t: "vertical tabs (like edge chromium browser)", s: "closed", d: "2021-08-13" },
+    10962: { t: "How to disable QuickEdit in Windows Terminal?", s: "closed", d: "2021-08-17" },
+    11265: { t: "Add option to show tabs on side instead of top", s: "closed", d: "2021-09-17" },
+    11316: { t: "tab support", s: "closed", d: "2021-09-23" },
+    11347: { t: "\"Close Tab\" tooltips shows wrong keybind", s: "closed", d: "2021-09-28" },
+    11476: { t: "Save and Resume", s: "closed", d: "2021-10-11" },
+    11533: { t: "Hyperscrolling changes terminal font size", s: "closed", d: "2021-10-19" },
+    12487: { t: "Add send-input as Command-Line Argument", s: "closed", d: "2022-02-14" },
+    12508: { t: "Auto save settings", s: "closed", d: "2022-02-16" },
+    12647: { t: "Does not restart on correct monitor", s: "closed", d: "2022-03-09" },
+    12750: { t: "Prompt before throwing away a user's hotkey changes.", s: "closed", d: "2022-03-24" },
+    12756: { t: "Feature Request: Vertical Tabs", s: "closed", d: "2022-03-25" },
+    12925: { t: "Enable sending input to terminal instance by wt.exe", s: "closed", d: "2022-04-18" },
+    13281: { t: "Add the ability to reorder the Terminal profiles", s: "closed", d: "2022-06-12" },
+    14326: { t: "Don't exit when last tab is closed", s: "closed", d: "2022-11-03" },
+    14488: { t: "Why it does not remember window size position?", s: "closed", d: "2022-12-03" },
+    14532: { t: "Ctrl+F4 has to be bound manually", s: "closed", d: "2022-12-12" },
+    14627: { t: "\"<ctrl> + 'mouse middle button scroll' to scale font-size\" configurable", s: "closed", d: "2023-01-04" },
+    14709: { t: "CTRL+F4 is not closing current tab", s: "closed", d: "2023-01-19" },
+    14886: { t: "Some icons are not displayed", s: "closed", d: "2023-02-20" },
+    15415: { t: "Something wrong with colors", s: "closed", d: "2023-05-24" },
+    16242: { t: "A hidden profile is included in the default profile choice list in Settings", s: "closed", d: "2023-10-30" },
+    16416: { t: "reorder confings by drag", s: "closed", d: "2023-12-03" },
+    16452: { t: "\"persistedWindowLayout\" bug when starting with arguments", s: "closed", d: "2023-12-10" },
+    16464: { t: "New Feature Request: Be able to sort the Profiles list", s: "closed", d: "2023-12-13" },
+    16527: { t: "save all console tabs and splits to text file so when re-run the app it will load all the content from previous session", s: "closed", d: "2024-01-04" },
+    16569: { t: "Terminal session history", s: "closed", d: "2024-01-18" },
+    16890: { t: "Windows Terminal not displaying ubuntu (from WSL) icon when right clicked in taskbar.", s: "closed", d: "2024-03-18" },
+    17456: { t: "allow tabs on any side and allow users to change the sharpness", s: "closed", d: "2024-06-20" },
+    17612: { t: "Clickable filepaths", s: "closed", d: "2024-07-25" },
+    17662: { t: "url for file", s: "closed", d: "2024-08-04" },
+    17746: { t: "Don't close Terminal upon closing the last tab", s: "closed", d: "2024-08-20" },
+    18153: { t: "Last window position not remembered if I close the last TAB not the window's X button", s: "closed", d: "2024-11-05" },
+    18236: { t: "Ability to Automatically Switch Terminal Pane Color Scheme Based on Terminal Theme Setting", s: "closed", d: "2024-11-22" },
+    18391: { t: "Enable Clickable Directory Paths in Windows Terminal to Seamlessly Open in File Explorer - Just Like URLs", s: "closed", d: "2025-01-04" },
+    18512: { t: "[feat]: option to open url in incognito/InPrivate mode.", s: "closed", d: "2025-02-05" },
+    18617: { t: "Poor contrast of progress bars when `Automatically adjust lightness of indistinguishable text` is enabled", s: "closed", d: "2025-02-23" },
+    18758: { t: "Windows Terminal mess up colors in a command line when use \"One Half Light\" color scheme", s: "closed", d: "2025-04-02" },
+    18837: { t: "[Feature] Vertical tab", s: "closed", d: "2025-04-25" },
+    18939: { t: "Settings -> Configuration File: Drag-and-Drop Sort", s: "closed", d: "2025-05-22" },
+    19168: { t: "Reordering profiles in settings UI", s: "closed", d: "2025-07-24" },
+    19433: { t: "Windows Powershell is Unreadable in High-Contrast Light Modes (And Any Other Modes)", s: "closed", d: "2025-10-10" },
+    19447: { t: "WT Displays wrong shortcut for closing tabs", s: "closed", d: "2025-10-14" },
+    20178: { t: "Vertical Tab Switcher", s: "closed", d: "2026-05-04" },
+    20280: { t: "Add an option to preserve last used window size and position", s: "closed", d: "2026-06-01" },
+    20364: { t: "Option for multiple rows of tab headings", s: "closed", d: "2026-06-26" },
+    20414: { t: "[Feature Request]: Add an option to match system theme automatically (On terminal Windows, not only decorations", s: "closed", d: "2026-07-13" },
+    20482: { t: "Ability to re-order new-tab entries for inbuild/extensions in UI", s: "closed", d: "2026-07-29" },
+    20547: { t: "Vertical Tabs", s: "closed", d: "2026-08-13" },
+    20708: { t: "Would it be possible to add an option to place the tabs on the left side, similar to Microsoft Edge, for a more visually appealing layout?", s: "closed", d: "2026-09-22" }
+  };
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -212,6 +306,36 @@
   }
   function title(r) { var f = byId[r.f]; return f ? f.title : r.f; }
   function url(r) { return GH + (r.pr ? "pull/" : "issues/") + r.n; }
+
+  // A row and its related issues are one group. The oldest number leads it:
+  // it is what the # column shows and sorts by, and its date is when the ask
+  // was first made. The row's own issue, where it is not the oldest, is listed
+  // with the rest under the +N badge.
+  function group(r) { return [r.n].concat(r.rel || []); }
+  function primary(r) { return Math.min.apply(null, group(r)); }
+  function opened(r) { var p = primary(r); return p === r.n ? r.d : RELATED[p].d; }
+  function issueUrl(n) { return GH + "issues/" + n; }
+  function relList(r) {
+    var p = primary(r), items = "";
+    group(r).sort(function (a, b) { return a - b; }).forEach(function (n) {
+      if (n === p) { return; }
+      var own = n === r.n;
+      var i = own ? { t: r.t, s: r.c ? "closed" : "open", d: r.d } : RELATED[n];
+      items += '<li><a href="' + (own ? url(r) : issueUrl(n)) + '">#' + n + "</a>" +
+        '<span class="rel-t">' + esc(i.t) + "</span>" +
+        '<span class="rel-meta">' + (i.s === "open" ? "Open" : "Closed") + " &middot; opened " + i.d +
+        (own ? " &middot; tracking issue" : "") + "</span></li>";
+    });
+    return '<div class="desc"><p class="rel-head">Also asked as</p><ul class="rel-list">' + items + "</ul></div>";
+  }
+  function idCell(r) {
+    var p = primary(r), more = group(r).length - 1;
+    return '<td class="id-cell"><a href="' + (p === r.n ? url(r) : issueUrl(p)) + '">#' + p + "</a>" +
+      (more ? '<button type="button" class="rel-badge has-desc" aria-label="' + more + " related issue" + (more === 1 ? "" : "s") + '">+' + more + "</button>" + relList(r) : "") +
+      "</td>";
+  }
+  // #issue-<n> for any number in a group finds that group's row.
+  var ALIAS = {};
   // When Mullion got it: the row's own date when a fix landed apart from its
   // feature (s), otherwise the feature's. A bug is fixed; anything else added.
   function shipped(r) { var f = byId[r.f]; return r.s || (f && f.dateAdded) || ""; }
@@ -237,8 +361,7 @@
   // Covered first for coverage, bugs first for type); a second click reverses.
   function columns(itemLabel) {
     return [
-      { key: "n", label: "#", cmp: function (a, b) { return a.n - b.n; },
-        cell: function (r) { return '<td class="id-cell"><a href="' + url(r) + '">#' + r.n + "</a></td>"; } },
+      { key: "n", label: "#", cmp: function (a, b) { return primary(a) - primary(b); }, cell: idCell },
       { key: "t", label: itemLabel, cmp: function (a, b) { return a.t.localeCompare(b.t); },
         cell: function (r) {
           return '<td class="title-cell"><a class="has-desc" href="' + url(r) + '">' + esc(r.t) + "</a>" +
@@ -246,9 +369,9 @@
         } },
       { key: "k", label: "Type", cmp: function (a, b) { return TYPE_ORDER.indexOf(a.k) - TYPE_ORDER.indexOf(b.k); },
         cell: function (r) { return '<td class="nowrap">' + typeTag(r.k) + "</td>"; } },
-      { key: "d", label: "Opened", cmp: function (a, b) { return byDate(a.d, b.d); },
+      { key: "d", label: "Opened", cmp: function (a, b) { return byDate(opened(a), opened(b)); },
         cell: function (r) {
-          return '<td class="age-cell"><span class="age-label">Opened </span>' + ago(r.d) +
+          return '<td class="age-cell"><span class="age-label">Opened </span>' + ago(opened(r)) +
             (r.c && picker.shown("c") ? '<span class="closed-on">closed ' + ago(r.c) + "</span>" : "") + "</td>";
         } },
       { key: "f", label: "In Mullion", cmp: function (a, b) { return title(a).localeCompare(title(b)); },
@@ -270,7 +393,7 @@
   // Filters: the text box, then one type and one coverage at a time.
   var filter = { q: "", k: "all", cov: "all" };
   function haystack(r) {
-    return ("#" + r.n + " " + r.t + " " + r.note.replace(/<[^>]+>/g, " ") + " " + title(r) + " " + (TYPES[r.k] || {}).label).toLowerCase();
+    return ("#" + group(r).join(" #") + " " + r.t + " " + r.note.replace(/<[^>]+>/g, " ") + " " + title(r) + " " + (TYPES[r.k] || {}).label).toLowerCase();
   }
   function passes(r, skip) {
     if (filter.q && haystack(r).indexOf(filter.q) === -1) { return false; }
@@ -297,6 +420,7 @@
     });
   });
   var ALL = OPEN.concat(PRS, CLOSED);
+  ALL.forEach(function (r) { group(r).forEach(function (n) { if (!(n in ALIAS)) { ALIAS[n] = r.n; } }); });
 
   function count(group, test) {
     return function (id) {
@@ -356,7 +480,7 @@
   // #issue-<n> opens the tab that row is on and brings the row into view,
   // highlighted, keeping the hash so the link stays shareable.
   var linked = /^#issue-(\d+)$/.exec(window.location.hash);
-  var target = linked && document.getElementById("issue-" + linked[1]);
+  var target = linked && document.getElementById("issue-" + (ALIAS[linked[1]] || linked[1]));
   if (target) {
     var panel = target.closest('[role="tabpanel"]');
     var owner = tabs.filter(function (t) { return panel && t.getAttribute("aria-controls") === panel.id; })[0];

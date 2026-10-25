@@ -12,11 +12,41 @@ window.FEATURES = [
     desc: "A quake or docked window gets square corners on Windows 11, so no wedges of desktop show where it meets the screen edge, and gets them back when it stops being docked. When the taskbar or another app bar changes the work area, a docked window re-fits to it without being shown, raised or focused; a minimized one catches up when it is next restored, and a height you dragged it to is kept. Two long-open upstream issues, #10534 and #16067.",
   },
   {
+    // A hub: a page that lists other entries rather than a change of its own.
+    // It has no commits or stats, and the catalogue lists its entries, not it.
     id: "early-upstream-fixes", title: "Upstream bugs, fixed without waiting",
     cat: "ui", catLabel: "UI & theming", kind: "fix",
     dateAdded: "2026-10-22",
-    commits: ["adc4a35a4","f010d2488","6587b0cd1","16fb60ef7","df25419b9"], files: 7, ins: 226, del: 4,
-    desc: "Upstream bugs fixed here instead of waiting in their queue: a reviewed pull request cherry-picked with its authorship, or a small fix written here for an issue nobody has picked up. Clear Buffer, clear and cls clear the scroll marks too (#20086, PR #20105), and split-pane -D runs the command typed after it (#17481). The tab close button names the key bound to closeTab instead of an unbound Ctrl+F4 (#10109), and closing the pane that failed closes the termination-behavior infobar with it (#11607).",
+    hub: ["close-tab-tooltip", "infobar-follows-pane", "split-pane-duplicate-command", "scroll-marks-after-clear"],
+    desc: "Upstream bugs fixed here instead of waiting in their queue: a reviewed pull request cherry-picked with its authorship, or a small fix written here for an issue nobody has picked up. Each one has its own page.",
+  },
+  {
+    id: "close-tab-tooltip", title: "The tab close button names the key that closes a tab",
+    cat: "ui", catLabel: "UI & theming", kind: "fix",
+    dateAdded: "2026-10-24",
+    commits: ["16fb60ef7"], files: 2, ins: 86, del: 0,
+    desc: "Hovering a tab's close button said <em>Close Tab (Ctrl+F4)</em>, a key nothing in the default keymap binds. It now names the key bound to closeTab, or just <em>Close tab</em> when there is none (#10109).",
+  },
+  {
+    id: "infobar-follows-pane", title: "Closing the pane that failed closes its infobar",
+    cat: "ui", catLabel: "UI & theming", kind: "fix",
+    dateAdded: "2026-10-24",
+    commits: ["df25419b9"], files: 2, ins: 111, del: 3,
+    desc: "When a shell exits with an error, a bar suggests changing the profile's closeOnExit. It stayed after the pane it was about had been closed; now it closes with that pane (#11607).",
+  },
+  {
+    id: "split-pane-duplicate-command", title: "split-pane -D runs the command you gave it",
+    cat: "automation", catLabel: "Automation", kind: "fix",
+    dateAdded: "2026-10-24",
+    commits: ["6587b0cd1"], files: 2, ins: 19, del: 1,
+    desc: "<code>wt split-pane -D pwsh -c foo</code> duplicated the focused pane and silently dropped <code>pwsh -c foo</code>. A command and a <code>-d</code> directory given with <code>-D</code> now win, as they do on a manual split (#17481).",
+  },
+  {
+    id: "scroll-marks-after-clear", title: "Clearing the buffer clears its scroll marks",
+    cat: "ui", catLabel: "UI & theming", kind: "fix",
+    dateAdded: "2026-10-22",
+    commits: ["adc4a35a4","f010d2488"], files: 2, ins: 10, del: 0,
+    desc: "Clear Buffer, <code>clear</code> and <code>cls</code> remove the scroll marks in the rows they erase, so the scrollbar stops marking prompts that are gone (#20086). Upstream's own fix, PR #20105, taken before it merges.",
   },
   {
     id: "settings-accessibility", title: "Settings a screen reader can find its way around",

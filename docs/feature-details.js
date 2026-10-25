@@ -51,29 +51,78 @@ window.FEATURE_DETAILS = {
     problem:
       "Some upstream bugs have a fix that is written, tested and reviewed, and then waits in the queue for months. Others are small, labelled Help Wanted, and have sat open for years with nobody on them. Running a fork means neither has to wait.",
     how:
-      "A fix from upstream is cherry-picked with <code>git cherry-pick -x</code>, which keeps the original author and records the upstream commit each one came from, including any changes a maintainer asked for in review; when upstream merges it, the next merge brings in the same change and git reconciles the two. A fix written here is kept small and names the issue in its commit and in the code, so the next upstream merge conflicts as little as possible." +
-      "<br><br><b>Scroll marks after clear</b> (<a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>). Clear Buffer, and <code>clear</code> or <code>cls</code> (which erase the screen with <code>ESC[2J</code> rather than going through Clear Buffer), now remove the scroll marks in the rows they erase, so the scrollbar no longer shows marks for prompts that are gone." +
-      "<br><br><b><code>split-pane -D</code> with a command</b> (#17481). A duplicate copies the focused pane's profile and working directory, and used to drop whatever followed it: <code>wt split-pane -D pwsh -c foo</code> opened a plain copy of the pane. A command line (respecting <code>appendCommandLine</code>) and a <code>-d</code> directory given with <code>-D</code> now win, as they do on a manual split. Elevation still comes from the copied profile." +
-      "<br><br><b>The tab close button's tooltip</b> (#10109). WinUI's TabView gives the close button a fixed <em>Close Tab (Ctrl+F4)</em>. Ctrl+F4 is a TabView accelerator that only works while focus is in the tab strip, and nothing in the default keymap binds it. When each tab is loaded, and whenever the key bindings change, the tooltip is replaced with <em>Close tab</em>, followed by the key bound to <code>closeTab</code> when there is one. A <code>closeTab</code> that names a tab index is not counted, since it closes some other tab." +
-      "<br><br><b>The termination-behavior infobar</b> (#11607). When a shell exits with an error, a bar across the window suggests changing the profile's <code>closeOnExit</code>. It stayed after the pane it was about had been closed. The page now remembers which panes the bar is showing for and closes it once none of them is left. Switching tabs, zooming a pane and splitting one all unload a terminal that is still in use, so a pane only counts as closed once no tab in the window holds it.",
-    steps: [
-      "Scroll marks: turn on <code>autoMarkPrompts</code> and <code>showMarksOnScrollbar</code>, run a few commands, then run <code>clear</code>. The marks go with the text.",
-      "<code>-D</code>: in a Mullion pane, run <code>wt -w 0 split-pane -D cmd /k echo duplicated</code>. The new pane uses the focused pane's profile and directory and runs the echo.",
-      "Close button: bind <code>closeTab</code> to a key (Settings, Actions), then hover a tab's close button. The tooltip names that key, or just <em>Close tab</em> when nothing is bound.",
-      "Infobar: in a split tab, run <code>exit 1</code> in one pane so the bar appears, then close that pane with Ctrl+Shift+W. The bar closes with it.",
-    ],
-    media: [
-      { kind: "compare", aligned: true, before: "early-fixes-marks-before", after: "early-fixes-marks-after", caption: "The scrollbar after clear: upstream still shows marks for the erased prompts; Mullion clears them." },
-      { kind: "compare", before: "early-fixes-dup-before", after: "early-fixes-dup-after", caption: "<code>split-pane -V -D -d C:\\Temp\\demo cmd /k echo …</code>: look at the right-hand pane, a plain copy of Command Prompt upstream and the typed command in Mullion." },
-      { kind: "compare", before: "early-fixes-infobar-before", after: "early-fixes-infobar-after", caption: "After closing the pane whose shell exited with code 1: upstream keeps the termination-behavior bar over the pane that is left; Mullion closes it." },
-      { kind: "compare", before: "early-fixes-close-tooltip-before", after: "early-fixes-close-tooltip-after", caption: "Hovering the tab close button with <code>closeTab</code> bound to Ctrl+W: upstream still names Ctrl+F4; Mullion names the binding." },
-    ],
+      "A fix from upstream is cherry-picked with <code>git cherry-pick -x</code>, which keeps the original author and records the upstream commit each one came from, including any changes a maintainer asked for in review; when upstream merges it, the next merge brings in the same change and git reconciles the two. A fix written here is kept small and names the issue in its commit and in the code, so the next upstream merge conflicts as little as possible.",
     notes: [
       "Only fixes whose review has settled are taken from upstream. A pull request still being argued over is left to finish.",
       "A fix written here goes no further: Mullion opens nothing against microsoft/terminal.",
     ],
+  },
+
+  "close-tab-tooltip": {
+    problem:
+      "Hovering a tab's close button says <em>Close Tab (Ctrl+F4)</em>. Ctrl+F4 is a TabView accelerator that only works while focus is in the tab strip, and nothing in the default keymap binds it, so the hint names a key that does nothing while you are typing in a pane.",
+    how:
+      "WinUI's TabView gives the close button a fixed tooltip when the template is applied. When each tab is loaded, and whenever the key bindings change, the tooltip is replaced with <em>Close tab</em>, followed by the key bound to <code>closeTab</code> when there is one. <code>closeTab</code> ships unbound and has no <code>Terminal.*</code> id, so the binding is found by action rather than by id, and one that names a tab index is not counted, since it closes some other tab.",
+    steps: [
+      "Hover a tab's close button: the tooltip says <em>Close tab</em>.",
+      "Bind <code>closeTab</code> to a key (Settings, Actions) and hover it again. The tooltip names that key.",
+    ],
+    media: [
+      { kind: "compare", before: "early-fixes-close-tooltip-before", after: "early-fixes-close-tooltip-after", caption: "Hovering the tab close button with <code>closeTab</code> bound to Ctrl+W: upstream still names Ctrl+F4; Mullion names the binding." },
+    ],
     upstream:
-      "#20086 is open; its fix, PR #20105, is approved in substance and not yet merged. A maintainer asked for the <code>clear</code>/<code>cls</code> path to be covered too, and the author added it; both commits are here. #17481, #10109 and #11607 are open with no pull request. #10109 is marked as blocked on WinUI (microsoft-ui-xaml#4930), and for #11607 a maintainer sketched the approach (tag the bar with its pane) without anyone building it.",
+      "Open since 2021 as #10109, with four reports closed as its duplicates, and no pull request. Upstream tied it to a WinUI change (microsoft-ui-xaml#4930); this replaces the tooltip from the Terminal side instead.",
+  },
+
+  "infobar-follows-pane": {
+    problem:
+      "When a shell exits with an error, a bar across the window suggests changing the profile's <code>closeOnExit</code>. It stayed after the pane it was about had been closed, over a pane it had nothing to do with, until it was dismissed by hand.",
+    how:
+      "The connection-state event carries only the control's core, so there was no way back from it to a pane. The subscription now hands the handler the control as well, and the page remembers which panes the bar is showing for. Each one's Unloaded triggers a check, and a pane only counts as closed once no tab in the window holds it, because switching tabs, zooming a pane and splitting one all unload a terminal that is still in use. When none is left, the bar closes. Closing it by hand, and <em>Don't show again</em>, are unchanged.",
+    steps: [
+      "In a split tab, run <code>exit 1</code> in one pane so the bar appears.",
+      "Close that pane with Ctrl+Shift+W. The bar closes with it.",
+    ],
+    media: [
+      { kind: "compare", before: "early-fixes-infobar-before", after: "early-fixes-infobar-after", caption: "After closing the pane whose shell exited with code 1: upstream keeps the termination-behavior bar over the pane that is left; Mullion closes it." },
+    ],
+    upstream:
+      "Open since 2021 as #11607, with no pull request. A maintainer sketched the approach (tag the bar with its pane) without anyone building it.",
+  },
+
+  "split-pane-duplicate-command": {
+    problem:
+      "<code>wt split-pane -D pwsh -c foo</code> duplicated the focused pane and dropped <code>pwsh -c foo</code> without a word. Moving <code>-D</code> after the command only seemed to work because it then became an argument to pwsh.",
+    how:
+      "A duplicate copies the focused pane's profile and working directory, and the duplicate path never looked at the command line it was given. A command line (respecting <code>appendCommandLine</code>) and a <code>-d</code> directory given with <code>-D</code> now win, as they do on a manual split. Elevation still comes from the copied profile.",
+    steps: [
+      "In a Mullion pane, run <code>wt -w 0 split-pane -D cmd /k echo duplicated</code>.",
+      "The new pane uses the focused pane's profile and directory and runs the echo.",
+    ],
+    media: [
+      { kind: "compare", before: "early-fixes-dup-before", after: "early-fixes-dup-after", caption: "<code>split-pane -V -D -d C:\\Temp\\demo cmd /k echo …</code>: look at the right-hand pane, a plain copy of Command Prompt upstream and the typed command in Mullion." },
+    ],
+    upstream: "Open since 2024 as #17481, with no pull request.",
+  },
+
+  "scroll-marks-after-clear": {
+    problem:
+      "With scroll marks on, the scrollbar marks each prompt. Clear Buffer, <code>clear</code> and <code>cls</code> erased the text but left its marks, so the scrollbar kept pointing at prompts that were gone.",
+    how:
+      "Upstream's own fix, <a href='https://github.com/microsoft/terminal/pull/20105'>PR #20105</a>, cherry-picked with its authorship. Clear Buffer removes the marks in the rows it erases, and so do <code>clear</code> and <code>cls</code>, which erase the screen with <code>ESC[2J</code> rather than going through Clear Buffer.",
+    steps: [
+      "Turn on <code>showMarksOnScrollbar</code> (<code>autoMarkPrompts</code> is on by default) and run a few commands.",
+      "Run <code>clear</code>. The marks go with the text.",
+    ],
+    settings: [
+      { key: "autoMarkPrompts", def: "true", note: "Marks each prompt, which is where the scroll marks come from." },
+      { key: "showMarksOnScrollbar", def: "false", note: "Shows those marks on the scrollbar." },
+    ],
+    media: [
+      { kind: "compare", aligned: true, before: "early-fixes-marks-before", after: "early-fixes-marks-after", caption: "The scrollbar after clear: upstream still shows marks for the erased prompts; Mullion clears them." },
+    ],
+    upstream:
+      "#20086 is open; its fix, PR #20105, is approved in substance and not yet merged. A maintainer asked for the <code>clear</code>/<code>cls</code> path to be covered too, and the author added it; both commits are here.",
   },
 
   "settings-accessibility": {

@@ -482,6 +482,13 @@ button, input, select { font: inherit; color: inherit; }
 @media (max-width: 560px) {
   .recent a { grid-template-columns: 1fr; padding: 14px 16px; }
 }
+/* A hub page's list: each row's description shows on hover (site.js's
+ * popover), inline on touch screens, which have no hover. */
+.hub-list { margin-top: 12px; }
+.hub-list .desc { display: none; }
+@media (hover: none) {
+  .hub-list .desc { display: block; padding: 0 20px 14px; margin-top: -8px; font-size: 0.9rem; color: var(--muted); }
+}
 
 /* Principles / build. */
 .pair { display: grid; gap: 16px; }
@@ -655,7 +662,7 @@ table.feature-table td.nowrap { white-space: nowrap; color: var(--muted); }
 [role="tabpanel"]:focus-visible { outline-offset: 4px; }
 table.upstream-table { min-width: 0; width: 100%; }
 table.upstream-table { table-layout: fixed; }
-table.upstream-table th[data-key="n"] { width: 5.5rem; }
+table.upstream-table th[data-key="n"] { width: 7.5rem; }
 table.upstream-table th[data-key="k"] { width: 7rem; }
 table.upstream-table th[data-key="d"] { width: 8.5rem; }
 table.upstream-table th[data-key="f"] { width: 22%; }
@@ -688,6 +695,22 @@ table.upstream-table td.id-cell { position: relative; white-space: nowrap; font-
 table.upstream-table td.id-cell a { font-weight: 600; color: var(--accent-text); }
 table.upstream-table td.id-cell a::after { content: ""; position: absolute; inset: 0; }
 table.upstream-table td.id-cell:hover { background: var(--control-hover); }
+/* +N: the same ask filed again upstream. Above the cell-wide link, so it can
+ * be hovered, focused and tapped; its list opens in the description popover. */
+.rel-badge {
+  position: relative; z-index: 1; margin-left: 6px; padding: 0 6px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--control); color: var(--muted);
+  font: inherit; font-size: 0.75rem; font-weight: 600; line-height: 1.5; cursor: pointer; vertical-align: 1px;
+}
+.rel-badge:hover, .rel-badge[aria-describedby] { color: var(--accent-text); border-color: var(--accent-border); background: var(--accent-soft); }
+td.id-cell .desc { display: none; }
+.desc-pop .rel-head { margin: 0 0 4px; font-size: 0.75rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.desc-pop .rel-list { list-style: none; margin: 0; padding: 0; max-height: min(22rem, 60vh); overflow-y: auto; }
+.desc-pop .rel-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px; padding: 3px 0; }
+.desc-pop .rel-list li + li { border-top: 1px solid var(--stroke-subtle); }
+.desc-pop .rel-list a { font-weight: 600; font-variant-numeric: tabular-nums; }
+.desc-pop .rel-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.desc-pop .rel-meta { grid-column: 2; font-size: 0.78rem; color: var(--text-tertiary); }
 table.upstream-table td.title-cell .desc code { font-size: 0.8rem; }
 table.upstream-table td.age-cell { color: var(--muted); white-space: nowrap; }
 table.upstream-table td.age-cell time { cursor: help; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 0.2em; }

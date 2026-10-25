@@ -7,8 +7,8 @@
 <meta name="description" content="What this feature does, why it exists, and how to try it in your own build." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-24e" />
-<script src="site.js?v=2026-10-24e"></script>
+<link rel="stylesheet" href="site.css?v=2026-10-25a" />
+<script src="site.js?v=2026-10-25a"></script>
 </head>
 <body>
 
@@ -47,9 +47,9 @@
   </div>
 </footer>
 
-<script src="features.js?v=2026-10-24e"></script>
-<script src="feature-details.js?v=2026-10-24e"></script>
-<script src="compare.js?v=2026-10-24e"></script>
+<script src="features.js?v=2026-10-25a"></script>
+<script src="feature-details.js?v=2026-10-25a"></script>
+<script src="compare.js?v=2026-10-25a"></script>
 <script>
 (function () {
   function esc(s) {
@@ -83,9 +83,17 @@
     return '<section data-section="' + key + '" aria-labelledby="h-' + key + '"><h2 id="h-' + key + '">' + title + "</h2>" + body + "</section>";
   }
 
+  function href(f) { return "feature.html?id=" + encodeURIComponent(f.id); }
+  // A hub (features.js) lists entries that have pages of their own; an entry
+  // in one is reached through it in the breadcrumb.
+  var hub = all.filter(function (f) { return f.hub && f.hub.indexOf(feature.id) !== -1; })[0];
+  var members = (feature.hub || []).map(function (m) { return all.filter(function (f) { return f.id === m; })[0]; })
+    .filter(Boolean);
+
   html += '<nav class="crumbs" aria-label="Breadcrumb">' +
     '<a href="features.html">Features</a><span class="sep" aria-hidden="true">/</span>' +
-    '<a href="features.html?cat=' + encodeURIComponent(feature.cat) + '">' + esc(feature.catLabel) + "</a>" +
+    (hub ? '<a href="' + href(hub) + '">' + esc(hub.title) + "</a>"
+      : '<a href="features.html?cat=' + encodeURIComponent(feature.cat) + '">' + esc(feature.catLabel) + "</a>") +
     "</nav>";
   html += '<div class="meta">' +
     '<span class="tag tag-accent">' + esc(feature.catLabel) + "</span>" +
@@ -94,6 +102,29 @@
     "</div>";
   html += "<h1>" + esc(feature.title) + "</h1>";
   html += '<p class="lede">' + feature.desc + "</p>";
+
+  if (feature.hub) {
+    // A hub has no change of its own: its page is the list of what it links,
+    // newest first, each row's description on hover or focus.
+    var rows = "";
+    members.sort(function (a, b) { return b.dateAdded.localeCompare(a.dateAdded) || a.title.localeCompare(b.title); });
+    for (var h = 0; h < members.length; h++) {
+      var mf = members[h];
+      rows += '<li><a class="has-desc" href="' + href(mf) + '">' +
+        '<span class="recent-title">' + esc(mf.title) + "</span>" +
+        '<span class="recent-meta">' + esc(mf.catLabel) + " &middot; " + (mf.kind === "fix" ? "Fixed " : "Added ") + Mullion.timeTag(mf.dateAdded) + "</span>" +
+        '</a><div class="desc">' + mf.desc + "</div></li>";
+    }
+    html += '<section aria-labelledby="h-hub"><h2 id="h-hub">The fixes</h2><ul class="recent hub-list">' + rows + "</ul></section>";
+    if (d && d.problem) { html += section("problem", "Why it exists", "<p>" + d.problem + "</p>"); }
+    if (d && d.how) { html += section("how", "How it works", "<p>" + d.how + "</p>"); }
+    if (d && d.notes && d.notes.length) {
+      html += section("notes", "Worth knowing", '<ul class="notes"><li>' + d.notes.join("</li><li>") + "</li></ul>");
+    }
+    host.innerHTML = html;
+    Mullion.formatDates(host);
+    return;
+  }
 
   html += '<div class="stats" data-section="stats" role="group" aria-label="Change size">' +
     '<div class="stat"><div class="n stat-add">+' + feature.ins.toLocaleString() + '</div><div class="l">lines added</div></div>' +
@@ -175,7 +206,7 @@
 
   // Previous / next in the catalogue's default order (newest first), so the
   // pages can be read straight through.
-  var ordered = all.slice().sort(function (a, b) { return b.dateAdded.localeCompare(a.dateAdded) || a.title.localeCompare(b.title); });
+  var ordered = Mullion.catalogue().sort(function (a, b) { return b.dateAdded.localeCompare(a.dateAdded) || a.title.localeCompare(b.title); });
   var at = ordered.indexOf(feature);
   var prev = ordered[at - 1], next = ordered[at + 1];
   if (prev || next) {

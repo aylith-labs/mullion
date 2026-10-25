@@ -15,6 +15,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { meanLuma } from "./png-luma.mjs";
+
+// Theme check thresholds, from the site's own captures: every real dark shot
+// measures under 0.40 and every light one at least 0.15 above its dark twin.
+const DARK_MAX = 0.5;
+const LIGHT_OVER_DARK = 0.15;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DOCS = join(ROOT, "docs");
@@ -65,6 +71,19 @@ for (const f of FEATURES) {
   for (const key of ["title", "cat", "catLabel", "dateAdded", "desc"]) if (!f[key]) err(id, `features.js is missing ${key}`);
   if (!["feature", "improvement", "fix"].includes(f.kind)) err(id, `kind "${f.kind}" is not feature, improvement or fix`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(f.dateAdded ?? "")) err(id, `dateAdded "${f.dateAdded}" is not YYYY-MM-DD`);
+  // A hub's page lists other entries, each with commits, media and upstream
+  // rows of its own; it carries none of those itself.
+  if (f.hub) {
+    if (!Array.isArray(f.hub) || f.hub.length === 0) err(id, "hub lists no entries");
+    for (const m of f.hub) {
+      const member = FEATURES.find((x) => x.id === m);
+      if (!member) err(id, `hub lists unknown entry "${m}"`);
+      else if (member.hub) err(id, `hub lists another hub, "${m}"`);
+    }
+    for (const key of ["commits", "files", "ins", "del"]) if (key in f) err(id, `a hub has no ${key}; its entries carry them`);
+    if (DETAILS[id]?.media) err(id, "a hub has no media; its entries carry them");
+    continue;
+  }
   if (!Array.isArray(f.commits) || f.commits.length === 0) err(id, "no commits");
   else {
     let ok = true;
@@ -117,14 +136,49 @@ for (const f of FEATURES) {
   }
 }
 
-// upstream.html rows point at real features.
+// upstream.html rows point at real features, never at a hub (a row belongs
+// on the page of the entry that answers it), and every related issue a row
+// lists (rel) has its title and date in RELATED.
 const up = readFileSync(join(DOCS, "upstream.html"), "utf8");
+const relStart = up.indexOf("var RELATED = {");
+const RELATED = relStart < 0 ? {} : eval(`(${up.slice(up.indexOf("{", relStart), up.indexOf("\n  };", relStart) + 4)})`);
+const hubs = new Set(FEATURES.filter((f) => f.hub).map((f) => f.id));
 for (const name of ["OPEN", "PRS", "CLOSED"]) {
   const start = up.indexOf(`var ${name} = [`);
   if (start < 0) { err("upstream.html", `no ${name} list`); continue; }
   const open = up.indexOf("[", start);
   const rows = eval(up.slice(open, up.indexOf("\n  ];", open) + 4));
-  for (const r of rows) if (!ids.has(r.f)) err("upstream.html", `#${r.n} points at unknown feature "${r.f}"`);
+  for (const r of rows) {
+    if (!ids.has(r.f)) err("upstream.html", `#${r.n} points at unknown feature "${r.f}"`);
+    else if (hubs.has(r.f)) err("upstream.html", `#${r.n} points at the hub "${r.f}"; point it at the entry that answers it`);
+    for (const n of r.rel ?? []) {
+      const i = RELATED[n];
+      if (!i?.t || !/^(open|closed)$/.test(i.s ?? "") || !/^\d{4}-\d{2}-\d{2}$/.test(i.d ?? "")) err("upstream.html", `#${r.n} lists related #${n} with no title, state and date in RELATED`);
+    }
+  }
+}
+
+// A capture must look like the theme its name says. One Canary shot whose
+// theme had not switched once shipped as a "-dark" image with light pixels.
+// A dark capture is mostly dark, and its light twin is clearly lighter; a
+// pair whose two files are byte-identical is theme-neutral and passes.
+{
+  const dir = join(DOCS, "media");
+  for (const file of readdirSync(dir).filter((f) => f.endsWith("-dark.png"))) {
+    const base = file.slice(0, -"-dark.png".length);
+    const lightFile = `${base}-light.png`;
+    const dark = readFileSync(join(dir, file));
+    if (existsSync(join(dir, lightFile)) && dark.equals(readFileSync(join(dir, lightFile)))) continue;
+    const d = meanLuma(join(dir, file));
+    if (d != null && d > DARK_MAX) {
+      err(`media/${file}`, `mean luminance ${d.toFixed(2)} is a light image named dark (dark captures are below ${DARK_MAX}); retake it with the Terminal's theme set to dark`);
+      continue;
+    }
+    if (!existsSync(join(dir, lightFile))) continue;
+    const l = meanLuma(join(dir, lightFile));
+    if (d != null && l != null && l - d < LIGHT_OVER_DARK)
+      err(`media/${lightFile}`, `mean luminance ${l.toFixed(2)} is not clearly lighter than its dark twin's ${d.toFixed(2)}; retake it with the Terminal's theme set to light`);
+  }
 }
 
 // Documentation: mullion.aylith.com/docs and the Settings UI's Documentation
