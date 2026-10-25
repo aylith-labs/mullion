@@ -116,6 +116,10 @@
       if (open) { refresh(); }
       pop.hidden = !open;
       trigger.setAttribute("aria-expanded", String(open));
+      // It opens under the trigger's right edge; when the trigger sits at the
+      // left of a narrow screen that would run off it, so it opens rightwards.
+      pop.style.left = pop.style.right = "";
+      if (open && pop.getBoundingClientRect().left < 8) { pop.style.left = "0"; pop.style.right = "auto"; }
     }
     function save() { try { localStorage.setItem(opts.storageKey, JSON.stringify(shown)); } catch (e) { /* not kept */ } }
     trigger.addEventListener("click", function () { setOpen(pop.hidden); });
