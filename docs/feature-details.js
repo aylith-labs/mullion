@@ -506,6 +506,7 @@ window.FEATURE_DETAILS = {
       "In a pane, run <code>echo 'Deployed ACME-8209 to staging'</code> and hover the key. It is hoverable, and the card's far edge says <em>Matched by</em> and the rule's name. Click the name and Settings opens on that rule.",
       "Hover an ordinary URL. The same line says <em>No rule matched</em> — the answer to \"why is this link not previewed the way I set it up\".",
       "Back in the rule, open <code>Overrides</code>, tick <code>Show delay</code> and set it to 0. Only links this rule matches now show their card at once.",
+      "Add a <em>Link</em> rule with <code>md</code> under extensions. Under <code>Built-in buttons</code>, tick <code>Override the default buttons for this rule</code> and leave only <code>Copy link</code> checked. Hover the path of a Markdown file: the card shows Copy link and a <code>⋯</code> button, and the ⋯ menu holds Open, Show in Explorer and Show in pane.",
     ],
     settings: [
       { key: "hyperlink.tooltipRules", def: "[]", note: "The rules, in precedence order. Per rule: <code>match</code> (<code>link</code> or <code>text</code>), <code>schemes</code>, <code>pattern</code>, <code>fileTypeGroup</code>, <code>extensions</code>, <code>showDelay</code>, <code>hideDelay</code>, <code>maxWidth</code>, <code>buttons</code>, <code>showInPane</code>, <code>primaryAction</code>, <code>alternativeAction</code>, <code>actions</code>, <code>integration</code>, <code>preview</code>." },
@@ -520,6 +521,8 @@ window.FEATURE_DETAILS = {
       "The automatic group order is GitHub, Unblocked Code, Jira, Slack, Stith, shefrd, git, files, then anything else. Unblocked sits above Jira on purpose: a specific <code>UNB-123</code> task id has to be tried before Jira's broad <code>PROJECT-number</code> pattern would claim it.",
       "A preset is a starting point written into your rule, not a live link. A preset counts as already added if a rule carries its name, even after its pattern has been edited by hand — the dedup asks \"is this preset in my list\", not \"is this regex\".",
       "Opening a rule used to write its displayed default delays and width back into it, ticking the overrides on by themselves. The setters now refuse a write while the override is off; rules created before that may carry values that arrived that way.",
+      "Unticking a built-in button tidies the card without taking the action away: whatever is off and could act on the hovered link goes in a <code>⋯</code> menu at the end of the row, and the row is just the ⋯ when every button is off. A button that cannot act on the link is left out of both, such as Copy path on a URL. With <code>hyperlink.tooltipActions</code> off there are no buttons and no menu.",
+      "For a path, <em>Copy link</em> copies it as it is written in the terminal, a POSIX path included, and <em>Copy path</em> copies the Windows path it opens, such as <code>\\\\wsl.localhost\\Ubuntu\\home\\…</code>. Neither copies a <code>file://</code> URI. When the two would copy the same text, as for <code>C:\\src</code>, the card shows one button for both: Copy link when Copy path is not in the button list, Copy path otherwise.",
     ],
     upstream:
       "Configurable patterns for turning text into links, with custom handlers, is microsoft/terminal#8849, open since January 2021. A maintainer's spec draft that covered it (#15700, \"Triggers and Custom Clickable Links\") was closed without landing.",
@@ -618,6 +621,7 @@ window.FEATURE_DETAILS = {
       "Print the path of a Markdown file and hover it. Switch between <code>Formatted</code> and <code>Raw</code>.",
       "Hover the path of a PDF or an image and press <code>Show in pane</code>. Use <code>Fit</code> and the zoom buttons, and the page picker for a PDF.",
       "In a WSL pane, run <code>realpath ~/.bashrc</code> and hover the result. The file inside the distro previews the same way.",
+      "Hover a folder's path, such as <code>C:\\Windows\\Web</code>. The card counts its folders and files and lists them, folders first.",
     ],
     media: [
       { kind: "compare", aligned: true, before: "file-previews-markdown-upstream", after: "file-previews-markdown", caption: "A Markdown file's path under the pointer: upstream does not detect the path, so nothing appears; Mullion renders the file, with its frontmatter as metadata and the Formatted / Raw switch." },
@@ -930,6 +934,7 @@ window.FEATURE_DETAILS = {
       "The auto-save switch is editor chrome, kept in state.json as <code>settingsAutoSave</code> (off by default) rather than in settings.json — otherwise turning it on would itself count as an unsaved change.",
       "Switching pages does not mark pending edits as clean; the baseline is taken only when the editor's copy is genuinely new — on open, after Save, after Discard and after a reload.",
       "Changes are listed in the tooltip but not yet marked on the pages themselves.",
+      "Every settings reload used to lay the window's tab strip out again, which takes the tab content out of the window and puts it back. A Settings tab came back scrolled to the top with nothing focused, so with auto-save on, ticking a box halfway down a page threw you back to its first row. The layout is now redone only when the tab position or <code>showTabsInTitlebar</code> changes.",
     ],
     upstream:
       "Disabling Save and Discard until something changes is microsoft/terminal#12424, still open. Warning before closing Settings with unsaved changes was asked for in #12750, closed as a duplicate of #10627, which is still open.",

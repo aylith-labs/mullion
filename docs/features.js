@@ -187,8 +187,8 @@ window.FEATURES = [
     id: "link-rules", title: "Rules that change the card per link",
     cat: "links", catLabel: "Links", kind: "feature",
     dateAdded: "2026-09-03",
-    commits: ["be91d1954","2bb85f22d","23626ce8b","7579df1e4","c7625a534","26da80423","b2d9e400e","22ae6477c","39353c867","253456006","6c246b9d2","03f088314","4bd4307b8","96e140599","21983571e","0cc816137","b537e07e7","7960cc0b0","2eacf4bff"], files: 63, ins: 5131, del: 831,
-    desc: "A list of rules on the Link Tooltip settings page decides, link by link, how the hover card behaves: match by scheme, regular expression or file type, then change its delays, width, buttons and click actions, add buttons of your own, or turn plain text such as an issue key into something hoverable. Presets fill in GitHub, Jira, Slack, Stith, git hashes and common file types.",
+    commits: ["be91d1954","2bb85f22d","23626ce8b","7579df1e4","c7625a534","26da80423","b2d9e400e","22ae6477c","39353c867","253456006","6c246b9d2","03f088314","4bd4307b8","96e140599","21983571e","0cc816137","b537e07e7","7960cc0b0","2eacf4bff","de734ad18"], files: 66, ins: 5455, del: 867,
+    desc: "A list of rules on the Link Tooltip settings page decides, link by link, how the hover card behaves: match by scheme, regular expression or file type, then change its delays, width, buttons and click actions, add buttons of your own, or turn plain text such as an issue key into something hoverable. A button a rule leaves off is still one click away in the card's ⋯ menu. Presets fill in GitHub, Jira, Slack, Stith, git hashes and common file types.",
   },
   {
     id: "click-chords", title: "Choose what a click on a link does",
@@ -216,8 +216,8 @@ window.FEATURES = [
     id: "file-previews", title: "Preview local files on hover",
     cat: "links", catLabel: "Links", kind: "feature",
     dateAdded: "2026-09-10",
-    commits: ["4af7de077","096cfaefd","7907f1392","b2c1233f2","0153330ae","fba94e74f","41ea80fe6","866c64c76","fe9df1b39","d34cb8ecf","37aa9437a","f372dbd4c","cfee4dd78"], files: 114, ins: 3401, del: 1260,
-    desc: "Hovering a path to a local file — Windows, UNC or inside WSL — previews it with no rule or integration: text with syntax colouring, Markdown rendered, an image, the first page of a PDF, or the text of a Word, Excel or PowerPoint file, read locally without Office. Show in pane adds line numbers, zoom, and page and sheet pickers.",
+    commits: ["4af7de077","096cfaefd","7907f1392","b2c1233f2","0153330ae","fba94e74f","41ea80fe6","866c64c76","fe9df1b39","d34cb8ecf","37aa9437a","f372dbd4c","cfee4dd78","de734ad18"], files: 115, ins: 3725, del: 1296,
+    desc: "Hovering a path to a local file — Windows, UNC or inside WSL — previews it with no rule or integration: text with syntax colouring, Markdown rendered, an image, the first page of a PDF, or the text of a Word, Excel or PowerPoint file, read locally without Office. A folder lists what is in it. Show in pane adds line numbers, zoom, and page and sheet pickers.",
   },
   {
     id: "preview-pane", title: "A preview pane that follows the pointer",
@@ -302,8 +302,8 @@ window.FEATURES = [
     id: "settings-save", title: "A Save button that knows what changed",
     cat: "settings", catLabel: "Settings UI", kind: "improvement",
     dateAdded: "2026-09-12",
-    commits: ["5b10a4419","4d1e52491","ff1b92c5f","30fd21eb6","ac99961b6","a9f899e0d"], files: 23, ins: 1149, del: 37,
-    desc: "Save and Discard stay disabled until a save would actually write something different, and hovering either lists what would change. An auto-save switch writes each change as you make it, and closing Settings with unsaved changes asks once before throwing them away.",
+    commits: ["5b10a4419","4d1e52491","ff1b92c5f","30fd21eb6","ac99961b6","a9f899e0d","de734ad18"], files: 30, ins: 1473, del: 73,
+    desc: "Save and Discard stay disabled until a save would actually write something different, and hovering either lists what would change. An auto-save switch writes each change as you make it without moving the page under you, and closing Settings with unsaved changes asks once before throwing them away.",
   },
   {
     id: "fork-marks", title: "Marks for what Mullion added",
