@@ -418,6 +418,12 @@ void AppHost::_revokeWindowCallbacks()
 void AppHost::_AppTitleChanged(const winrt::Windows::Foundation::IInspectable& /*sender*/, const winrt::Windows::Foundation::IInspectable& /*args*/)
 {
     _window->UpdateTitle(_windowLogic.Title());
+
+    // The taskbar badge (showTabIconOnTaskbar, GH#1871) changes on the same
+    // occasions the title does: a tab switch, a settings reload, and the
+    // focused tab's icon changing, which the page reports as a title change.
+    // The window remembers what it last drew, so a title-only change is cheap.
+    _window->SetTaskbarOverlayIcon(_windowLogic.TaskbarOverlayIconPath());
 }
 
 // The terminal page is responsible for persisting its own state, but it does

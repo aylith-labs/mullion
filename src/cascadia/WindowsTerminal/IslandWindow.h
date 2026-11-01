@@ -70,6 +70,7 @@ public:
 
     void FlashTaskbar();
     void SetTaskbarProgress(const size_t state, const size_t progress);
+    void SetTaskbarOverlayIcon(std::wstring_view iconPath);
 
     void SummonWindow(winrt::TerminalApp::SummonWindowBehavior args);
 
@@ -116,6 +117,13 @@ protected:
     winrt::Windows::UI::Xaml::Hosting::DesktopWindowXamlSource _source; // nulled in ctor
     winrt::Windows::UI::Xaml::Controls::Grid _rootGrid; // nulled in ctor
     wil::com_ptr<ITaskbarList3> _taskbar;
+    // The taskbar badge (showTabIconOnTaskbar): the path it was loaded from, the
+    // icon itself, and whether the taskbar has accepted it yet. It refuses until
+    // the taskbar button exists, so a refused one is retried on the next call
+    // without loading the file again.
+    std::wstring _taskbarOverlayPath;
+    wil::unique_hicon _taskbarOverlayIcon;
+    bool _taskbarOverlayApplied{ true };
 
     std::function<void(const HWND, const til::rect&)> _pfnCreateCallback;
     std::function<float(bool, float)> _pfnSnapDimensionCallback;

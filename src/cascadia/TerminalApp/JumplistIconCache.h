@@ -31,7 +31,10 @@ namespace TerminalApp
     class JumplistIconCache
     {
     public:
-        JumplistIconCache();
+        // `folder` is the directory beside settings.json the files go in. The
+        // taskbar badge (TerminalPage::TaskbarOverlayIconPath) uses its own, so
+        // the jump list's PruneUnused never deletes a badge it did not hand out.
+        explicit JumplistIconCache(std::wstring_view folder = L"JumplistIcons");
 
         // Returns the path to an .ico rendering `glyph`, or nullopt if it could
         // not be produced. Never throws: a missing icon is worth degrading over,

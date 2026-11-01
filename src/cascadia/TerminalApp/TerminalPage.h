@@ -18,6 +18,7 @@
 #include "WindowListEntry.g.h"
 #include "WindowListRequest.g.h"
 #include "Toast.h"
+#include "JumplistIconCache.h"
 
 #include "WindowsPackageManagerFactory.h"
 
@@ -244,6 +245,7 @@ namespace winrt::TerminalApp::implementation
         void DialogPresenter(winrt::TerminalApp::IDialogPresenter dialogPresenter);
 
         winrt::TerminalApp::TaskbarState TaskbarState() const;
+        hstring TaskbarOverlayIconPath();
 
         void IdentifyWindow();
         void ActionSaved(winrt::hstring input, winrt::hstring name, winrt::hstring keyChord);
@@ -317,6 +319,15 @@ namespace winrt::TerminalApp::implementation
     private:
         friend struct TerminalPageT<TerminalPage>; // for Xaml to bind events
         std::optional<HWND> _hostingHwnd;
+
+        // The taskbar badge (showTabIconOnTaskbar). TaskbarOverlayIconPath is
+        // asked on every title change, so the last answer is kept and only
+        // recomputed when the focused tab's icon is different. The cache is
+        // created on first use and dropped on a settings reload, because the
+        // colour it tints glyphs in follows the theme.
+        std::optional<::TerminalApp::JumplistIconCache> _taskbarIconCache;
+        winrt::hstring _taskbarIconSource;
+        winrt::hstring _taskbarIconPath;
 
         // If you add controls here, but forget to null them either here or in
         // the ctor, you're going to have a bad time. It'll mysteriously fail to

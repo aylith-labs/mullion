@@ -274,6 +274,7 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_SETTING(Boolean, DetectURLs);
         INHERITABLE_SETTING(Boolean, MinimizeToNotificationArea);
         INHERITABLE_SETTING(Boolean, ShowAdminShield);
+        INHERITABLE_SETTING(Boolean, ShowTabIconOnTaskbar);
         INHERITABLE_SETTING(IVector<NewTabMenuEntry>, NewTabMenu);
         INHERITABLE_SETTING(Boolean, EnableShellCompletionMenu);
         INHERITABLE_SETTING(Boolean, EnableUnfocusedAcrylic);

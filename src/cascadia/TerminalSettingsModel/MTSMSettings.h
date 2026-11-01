@@ -129,6 +129,7 @@ Author(s):
     X(bool, MinimizeToNotificationArea, "minimizeToNotificationArea", false)                                                                                                                          \
     X(winrt::Windows::Foundation::Collections::IVector<winrt::hstring>, SafeUriSchemes, "safeUriSchemes", winrt::single_threaded_vector<winrt::hstring>({ L"stith" }))                                \
     X(bool, ShowAdminShield, "showAdminShield", true)                                                                                                                                                 \
+    X(bool, ShowTabIconOnTaskbar, "showTabIconOnTaskbar", false)                                                                                                                                      \
     X(bool, TrimPaste, "trimPaste", true)                                                                                                                                                             \
     X(bool, EnableShellCompletionMenu, "experimental.enableShellCompletionMenu", false)                                                                                                               \
     X(bool, EnableUnfocusedAcrylic, "compatibility.enableUnfocusedAcrylic", true)                                                                                                                     \

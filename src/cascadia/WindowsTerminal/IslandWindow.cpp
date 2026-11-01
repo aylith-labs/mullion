@@ -9,6 +9,11 @@
 #include <dwmapi.h>
 #include <TerminalThemeHelpers.h>
 #include <CoreWindow.h>
+#include <Shlwapi.h>
+#include <wincodec.h>
+
+#pragma comment(lib, "shlwapi.lib")
+#pragma comment(lib, "windowscodecs.lib")
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -995,6 +1000,220 @@ void IslandWindow::SetTaskbarProgress(const size_t state, const size_t progress)
         default:
             break;
         }
+    }
+}
+
+// Turning a tab's icon path into an HICON for the taskbar badge (GH#1871). The
+// paths are the ones a tab draws: a file, an ms-appx:/// or file:/// URI, or an
+// exe/dll/lnk with an optional ",index", any of them with %VARIABLES% in it.
+// Glyph and emoji icons arrive already rasterized to an .ico by TerminalPage.
+// A web URL, or anything that does not load, gives no icon: no badge.
+namespace
+{
+    bool equalsInsensitive(std::wstring_view a, std::wstring_view b) noexcept
+    {
+        return a.size() == b.size() &&
+               CompareStringOrdinal(a.data(), gsl::narrow_cast<int>(a.size()), b.data(), gsl::narrow_cast<int>(b.size()), TRUE) == CSTR_EQUAL;
+    }
+
+    bool startsWithInsensitive(std::wstring_view str, std::wstring_view prefix) noexcept
+    {
+        return str.size() >= prefix.size() && equalsInsensitive(str.substr(0, prefix.size()), prefix);
+    }
+
+    bool endsWithInsensitive(std::wstring_view str, std::wstring_view suffix) noexcept
+    {
+        return str.size() >= suffix.size() && equalsInsensitive(str.substr(str.size() - suffix.size()), suffix);
+    }
+
+    // ms-appx:/// is the package root, which is the folder our exe is in. MRT
+    // maps "pwsh.png" onto "pwsh.scale-200.png" and its siblings at runtime,
+    // and on disk only the qualified names exist, so try those when the plain
+    // name is missing. Biggest first: the result is scaled down anyway.
+    std::wstring resolvePackagePath(std::wstring_view relative)
+    {
+        std::wstring rel{ relative };
+        std::replace(rel.begin(), rel.end(), L'/', L'\\');
+        const auto exe{ wil::GetModuleFileNameW<std::wstring>(nullptr) };
+        const auto path{ std::filesystem::path{ exe }.parent_path() / std::filesystem::path{ rel } };
+
+        std::error_code ec;
+        if (std::filesystem::exists(path, ec))
+        {
+            return path.wstring();
+        }
+        for (const auto scale : { L"400", L"200", L"150", L"125", L"100" })
+        {
+            auto candidate{ path };
+            candidate.replace_filename(path.stem().wstring() + L".scale-" + scale + path.extension().wstring());
+            if (std::filesystem::exists(candidate, ec))
+            {
+                return candidate.wstring();
+            }
+        }
+        return path.wstring();
+    }
+
+    // Any image WIC can decode (PNG, JPEG, BMP, GIF...), fitted inside a
+    // size x size square with its aspect ratio kept, as a 32-bit alpha icon.
+    wil::unique_hicon iconFromImageFile(const wchar_t* path, const int size)
+    {
+        wil::com_ptr<IWICImagingFactory> wic;
+        THROW_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.put())));
+
+        wil::com_ptr<IWICBitmapDecoder> decoder;
+        THROW_IF_FAILED(wic->CreateDecoderFromFilename(path, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.put()));
+        wil::com_ptr<IWICBitmapFrameDecode> frame;
+        THROW_IF_FAILED(decoder->GetFrame(0, frame.put()));
+
+        UINT width{};
+        UINT height{};
+        THROW_IF_FAILED(frame->GetSize(&width, &height));
+        THROW_HR_IF(E_UNEXPECTED, width == 0 || height == 0);
+
+        const auto fit = std::min(static_cast<double>(size) / width, static_cast<double>(size) / height);
+        const auto w = std::clamp(static_cast<int>(std::lround(width * fit)), 1, size);
+        const auto h = std::clamp(static_cast<int>(std::lround(height * fit)), 1, size);
+
+        wil::com_ptr<IWICBitmapScaler> scaler;
+        THROW_IF_FAILED(wic->CreateBitmapScaler(scaler.put()));
+        THROW_IF_FAILED(scaler->Initialize(frame.get(), gsl::narrow_cast<UINT>(w), gsl::narrow_cast<UINT>(h), WICBitmapInterpolationModeFant));
+
+        // Straight (not premultiplied) alpha: that is what an icon's colour
+        // bitmap holds.
+        wil::com_ptr<IWICFormatConverter> converter;
+        THROW_IF_FAILED(wic->CreateFormatConverter(converter.put()));
+        THROW_IF_FAILED(converter->Initialize(scaler.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0.0, WICBitmapPaletteTypeCustom));
+
+        std::vector<BYTE> pixels(gsl::narrow_cast<size_t>(w) * h * 4);
+        THROW_IF_FAILED(converter->CopyPixels(nullptr, gsl::narrow_cast<UINT>(w * 4), gsl::narrow_cast<UINT>(pixels.size()), pixels.data()));
+
+        BITMAPINFO info{};
+        info.bmiHeader.biSize = sizeof(info.bmiHeader);
+        info.bmiHeader.biWidth = size;
+        info.bmiHeader.biHeight = -size; // top-down, like the WIC rows
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = BI_RGB;
+
+        void* bits{};
+        wil::unique_hbitmap color{ CreateDIBSection(nullptr, &info, DIB_RGB_COLORS, &bits, nullptr, 0) };
+        THROW_LAST_ERROR_IF(!color || !bits);
+
+        // Centre the image in the square; the rest stays transparent.
+        const auto dest = static_cast<BYTE*>(bits);
+        std::fill_n(dest, gsl::narrow_cast<size_t>(size) * size * 4, BYTE{ 0 });
+        const auto left = (size - w) / 2;
+        const auto top = (size - h) / 2;
+        for (auto row = 0; row < h; ++row)
+        {
+            std::copy_n(pixels.data() + gsl::narrow_cast<size_t>(row) * w * 4,
+                        gsl::narrow_cast<size_t>(w) * 4,
+                        dest + (gsl::narrow_cast<size_t>(top + row) * size + left) * 4);
+        }
+
+        // With a 32-bit colour bitmap the alpha channel decides what shows, and
+        // an all-zero AND mask stays out of its way.
+        const auto maskStride = ((size + 15) / 16) * 2;
+        const std::vector<BYTE> maskBits(gsl::narrow_cast<size_t>(maskStride) * size, BYTE{ 0 });
+        wil::unique_hbitmap mask{ CreateBitmap(size, size, 1, 1, maskBits.data()) };
+        THROW_LAST_ERROR_IF(!mask);
+
+        ICONINFO iconInfo{};
+        iconInfo.fIcon = TRUE;
+        iconInfo.hbmMask = mask.get();
+        iconInfo.hbmColor = color.get();
+        wil::unique_hicon icon{ CreateIconIndirect(&iconInfo) };
+        THROW_LAST_ERROR_IF(!icon);
+        return icon;
+    }
+
+    wil::unique_hicon loadOverlayIcon(std::wstring_view iconPath, const int size)
+    try
+    {
+        auto path{ wil::ExpandEnvironmentStringsW<std::wstring>(std::wstring{ iconPath }.c_str()) };
+
+        if (startsWithInsensitive(path, L"ms-appx:///"))
+        {
+            path = resolvePackagePath(std::wstring_view{ path }.substr(11));
+        }
+        else if (startsWithInsensitive(path, L"file:///"))
+        {
+            std::wstring local(MAX_PATH * 4, L'\0');
+            auto length = gsl::narrow_cast<DWORD>(local.size());
+            THROW_IF_FAILED(PathCreateFromUrlW(path.c_str(), local.data(), &length, 0));
+            local.resize(wcsnlen(local.c_str(), local.size()));
+            path = std::move(local);
+        }
+        else if (path.find(L"://") != std::wstring::npos)
+        {
+            // A web image, or ms-appdata: nothing on disk we can point at.
+            return {};
+        }
+
+        // An exe, dll or lnk carries its icons inside, picked by ",index" (a
+        // negative index is a resource id). Same rules as IconPathConverter.
+        const std::wstring_view view{ path };
+        const auto comma = view.rfind(L',');
+        const auto file = view.substr(0, comma);
+        if (endsWithInsensitive(file, L".exe") || endsWithInsensitive(file, L".dll") || endsWithInsensitive(file, L".lnk"))
+        {
+            auto index = 0;
+            if (comma != std::wstring_view::npos)
+            {
+                index = til::parse_signed<int>(view.substr(comma + 1)).value_or(0);
+            }
+            const std::wstring fileName{ file };
+            wil::unique_hicon icon;
+            if (SHDefExtractIconW(fileName.c_str(), index, 0, icon.put(), nullptr, gsl::narrow_cast<UINT>(size)) != S_OK)
+            {
+                return {};
+            }
+            return icon;
+        }
+
+        if (endsWithInsensitive(path, L".ico"))
+        {
+            return wil::unique_hicon{ static_cast<HICON>(LoadImageW(nullptr, path.c_str(), IMAGE_ICON, size, size, LR_LOADFROMFILE)) };
+        }
+
+        return iconFromImageFile(path.c_str(), size);
+    }
+    catch (...)
+    {
+        // A profile icon pointing at a file that has gone is ordinary. Degrade
+        // to no badge rather than complain.
+        return {};
+    }
+}
+
+// Method Description:
+// - Puts the given icon on the taskbar button as an overlay badge, or clears
+//   the badge when the path is empty or does not load. Called on every title
+//   change, so the icon is only loaded again when the path is different.
+void IslandWindow::SetTaskbarOverlayIcon(std::wstring_view iconPath)
+{
+    if (!_taskbar)
+    {
+        return;
+    }
+
+    if (iconPath != _taskbarOverlayPath)
+    {
+        _taskbarOverlayPath = iconPath;
+        _taskbarOverlayIcon.reset();
+        if (!iconPath.empty())
+        {
+            const auto size = GetSystemMetricsForDpi(SM_CXSMICON, GetDpiForWindow(_window.get()));
+            _taskbarOverlayIcon = loadOverlayIcon(iconPath, size);
+        }
+        _taskbarOverlayApplied = false;
+    }
+
+    if (!_taskbarOverlayApplied)
+    {
+        // The taskbar takes its own copy of the icon. A null icon clears it.
+        _taskbarOverlayApplied = SUCCEEDED(_taskbar->SetOverlayIcon(_window.get(), _taskbarOverlayIcon.get(), L""));
     }
 }
 

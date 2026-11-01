@@ -104,6 +104,7 @@ namespace TerminalApp
         void WindowVisibilityChanged(Boolean showOrHide);
 
         TaskbarState TaskbarState{ get; };
+        String TaskbarOverlayIconPath { get; };
         Windows.UI.Xaml.Media.Brush TitlebarBrush { get; };
         Windows.UI.Xaml.Media.Brush FrameBrush { get; };
         Microsoft.Terminal.Settings.Model.Theme Theme { get; };

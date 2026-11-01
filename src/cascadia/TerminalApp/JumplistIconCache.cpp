@@ -188,13 +188,13 @@ namespace
 
 namespace TerminalApp
 {
-    JumplistIconCache::JumplistIconCache()
+    JumplistIconCache::JumplistIconCache(std::wstring_view folder)
     try
     {
         // Beside settings.json rather than somewhere invented, so the cache
         // follows the slot: each package identity has its own settings folder,
         // and Dev and Test must not share rasterized icons.
-        _dir = std::filesystem::path{ std::wstring_view{ CascadiaSettings::SettingsDirectory() } } / L"JumplistIcons";
+        _dir = std::filesystem::path{ std::wstring_view{ CascadiaSettings::SettingsDirectory() } } / std::filesystem::path{ folder };
 
         // The jump list follows the system theme, and UISettings reports the
         // foreground the system expects text to be drawn in -- which is exactly

@@ -3260,6 +3260,12 @@ namespace winrt::TerminalApp::implementation
                 {
                     page->_UpdateTitle(*tab);
                 }
+                else if (propertyName == L"Icon")
+                {
+                    // The taskbar badge follows the focused tab's icon, and the
+                    // window refreshes it along with the title (GH#1871).
+                    page->_UpdateTitle(*tab);
+                }
                 else if (propertyName == L"Content")
                 {
                     if (*tab == page->_GetFocusedTab())
@@ -4213,6 +4219,46 @@ namespace winrt::TerminalApp::implementation
             }
         }
         return { L"Terminal" };
+    }
+
+    // Method Description:
+    // - The icon the taskbar button should carry as a badge: the focused tab's,
+    //   when showTabIconOnTaskbar is on (GH#1871). Empty when the setting is off
+    //   or there is no tab to take it from, which tells the window to clear it.
+    // - A glyph or emoji icon (the default profile icon is one) is not a file
+    //   anything can load, so it is rasterized to an .ico the way the jump list
+    //   does it. The window turns whatever path this returns into an HICON.
+    hstring TerminalPage::TaskbarOverlayIconPath()
+    {
+        if (!_settings || !_currentWindowSettings().ShowTabIconOnTaskbar())
+        {
+            return {};
+        }
+
+        const auto tab{ _GetFocusedTabImpl() };
+        if (!tab)
+        {
+            return {};
+        }
+
+        const auto& source{ tab->IconPath() };
+        if (source == _taskbarIconSource)
+        {
+            return _taskbarIconPath;
+        }
+
+        _taskbarIconSource = source;
+        _taskbarIconPath = source;
+        if (::Microsoft::Console::Utils::IsLikelyToBeEmojiOrSymbolIcon(source))
+        {
+            if (!_taskbarIconCache)
+            {
+                _taskbarIconCache.emplace(L"TaskbarIcons");
+            }
+            const auto rasterized{ _taskbarIconCache->Ensure(source) };
+            _taskbarIconPath = rasterized ? hstring{ *rasterized } : hstring{};
+        }
+        return _taskbarIconPath;
     }
 
     // Method Description:
@@ -5724,6 +5770,12 @@ namespace winrt::TerminalApp::implementation
         _updateThemeColors();
 
         _updateAllTabCloseButtons();
+
+        // A reload may be a theme flip, and a rasterized glyph badge is tinted
+        // for the theme it was drawn in. Forget it so the next ask redraws it.
+        _taskbarIconCache.reset();
+        _taskbarIconSource = {};
+        _taskbarIconPath = {};
 
         // The user may have changed the "show title in titlebar" setting.
         TitleChanged.raise(*this, nullptr);

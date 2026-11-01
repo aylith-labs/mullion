@@ -2753,6 +2753,14 @@
     <value>Pane animations</value>
     <comment>Header for a control to toggle animations on panes. "Enabled" value enables the animations.</comment>
   </data>
+  <data name="Globals_ShowTabIconOnTaskbar.Header" xml:space="preserve">
+    <value>Show the tab's icon on the taskbar button</value>
+    <comment>Header for a control to toggle whether the taskbar button carries the focused tab's icon as a small badge.</comment>
+  </data>
+  <data name="Globals_ShowTabIconOnTaskbar.Description" xml:space="preserve">
+    <value>A small badge that tells windows apart at a glance.</value>
+    <comment>A description for what the "show the tab's icon on the taskbar button" setting does. Presented near "Globals_ShowTabIconOnTaskbar.Header".</comment>
+  </data>
   <data name="Globals_AlwaysShowNotificationIcon.Header" xml:space="preserve">
     <value>Always display an icon in the notification area</value>
     <comment>Header for a control to toggle whether the notification icon should always be shown.</comment>

@@ -43,6 +43,9 @@ namespace winrt::TerminalApp::implementation
 
         void ToggleSplitOrientation();
         void UpdateIcon(const winrt::hstring& iconPath, const winrt::Microsoft::Terminal::Settings::Model::IconStyle iconStyle);
+        // The icon the active pane asked for, whether or not the tab is drawing
+        // it right now (a progress ring or iconStyle "hidden" blanks Icon()).
+        const winrt::hstring& IconPath() const noexcept { return _lastIconPath; }
         void HideIcon(const bool hide);
 
         void ShowBellIndicator(const bool show);

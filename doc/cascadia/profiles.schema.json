@@ -3000,6 +3000,11 @@
           "description": "When set to true, the Terminal's tab row will display a shield icon when the Terminal is running with administrator privileges",
           "type": "boolean"
         },
+        "showTabIconOnTaskbar": {
+          "default": false,
+          "description": "When set to true, the taskbar button carries the focused tab's icon as a small badge, so each window can be told apart on the taskbar.",
+          "type": "boolean"
+        },
         "showTabsFullscreen": {
           "default": false,
           "description": "When set to true, tabs remain visible in fullscreen mode. When set to false, tabs will be hidden when entering fullscreen mode.",

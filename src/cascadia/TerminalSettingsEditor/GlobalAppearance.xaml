@@ -418,6 +418,14 @@
                         </local:SettingsCard>
                     </local:SettingsExpander.Items>
                 </local:SettingsExpander>
+
+                <!--  The focused tab's icon as a badge on the taskbar button (GH#1871)  -->
+                <local:SettingsCard x:Name="ShowTabIconOnTaskbar"
+                                    x:Uid="Globals_ShowTabIconOnTaskbar"
+                                    IsForkFeature="True">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTabIconOnTaskbar, Mode=TwoWay}"
+                                  Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+                </local:SettingsCard>
             </StackPanel>
         </StackPanel>
     </StackPanel>

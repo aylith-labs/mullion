@@ -1039,6 +1039,15 @@ namespace winrt::TerminalApp::implementation
         return {};
     }
 
+    hstring TerminalWindow::TaskbarOverlayIconPath()
+    {
+        if (_root)
+        {
+            return _root->TaskbarOverlayIconPath();
+        }
+        return {};
+    }
+
     winrt::Windows::UI::Xaml::Media::Brush TerminalWindow::TitlebarBrush()
     {
         return _root ? _root->TitlebarBrush() : nullptr;
