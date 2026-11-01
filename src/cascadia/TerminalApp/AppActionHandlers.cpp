@@ -345,6 +345,23 @@ namespace winrt::TerminalApp::implementation
         args.Handled(true);
     }
 
+    void TerminalPage::_HandleEqualizePanes(const IInspectable& sender,
+                                            const ActionEventArgs& args)
+    {
+        // GH#4456: after a run of splits, give every pane in the tab the same
+        // width as its neighbours across and the same height as those above
+        // and below it. A tab with one pane has nothing to share out.
+        if (const auto activeTab{ _senderOrFocusedTab(sender) })
+        {
+            if (activeTab->GetLeafPaneCount() > 1)
+            {
+                activeTab->EqualizePanes();
+            }
+        }
+
+        args.Handled(true);
+    }
+
     void TerminalPage::_HandleTogglePaneReadOnly(const IInspectable& sender,
                                                  const ActionEventArgs& args)
     {

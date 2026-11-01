@@ -761,6 +761,10 @@
     <value>Focus next tab with a bell</value>
     <comment>A command that selects the next tab, in tab order, whose bell indicator is showing.</comment>
   </data>
+  <data name="EqualizePanesCommandKey" xml:space="preserve">
+    <value>Resize all panes equally</value>
+    <comment>A command that resizes every pane in the current tab so they share the space equally.</comment>
+  </data>
   <data name="CloseTab" xml:space="preserve">
     <value>Close tab</value>
   </data>

@@ -363,6 +363,60 @@ bool Pane::ResizePane(const ResizeDirection& direction, const float amount)
 }
 
 // Method Description:
+// - Moves every separator in this subtree so that the leaves share the space
+//   equally along each axis (GH#4456). Not 50/50 at every node: in a vertical
+//   split whose left child holds two side-by-side panes and whose right child
+//   holds one, the left child gets two thirds, so all three columns come out
+//   the same width.
+// - Each child's share is the number of leaves it lines up along this split's
+//   axis. A child split the other way contributes its widest run rather than
+//   its total, because its two halves sit on top of one another.
+// - Positions still go through _ClampSplitPosition, so a pane never ends up
+//   below its minimum size. A pane that is not laid out yet (a zoomed tab, say)
+//   has no size to clamp against, and keeps the exact ratio.
+void Pane::EqualizeSplits()
+{
+    if (_IsLeaf())
+    {
+        return;
+    }
+
+    const auto vertical = _splitState == SplitState::Vertical;
+    const auto first = static_cast<float>(_firstChild->_CountLeavesAcross(vertical));
+    const auto second = static_cast<float>(_secondChild->_CountLeavesAcross(vertical));
+    auto position = first / (first + second);
+
+    const auto totalSize = gsl::narrow_cast<float>(vertical ? _root.ActualWidth() : _root.ActualHeight());
+    if (totalSize > 0.0f)
+    {
+        position = _ClampSplitPosition(vertical, position, totalSize);
+    }
+
+    _desiredSplitPosition = position;
+    _CreateRowColDefinitions();
+
+    _firstChild->EqualizeSplits();
+    _secondChild->EqualizeSplits();
+}
+
+// Method Description:
+// - How many leaves of this subtree sit side by side along one axis.
+// Arguments:
+// - vertical: true to count across (columns), false to count down (rows).
+uint32_t Pane::_CountLeavesAcross(const bool vertical) const noexcept
+{
+    if (_IsLeaf())
+    {
+        return 1;
+    }
+
+    const auto first = _firstChild->_CountLeavesAcross(vertical);
+    const auto second = _secondChild->_CountLeavesAcross(vertical);
+    const auto splitsAlongAxis = (_splitState == SplitState::Vertical) == vertical;
+    return splitsAlongAxis ? first + second : std::max(first, second);
+}
+
+// Method Description:
 // - Attempt to navigate from the sourcePane according to direction.
 //   - If the direction is NextInOrder or PreviousInOrder, the next or previous
 //     leaf in the tree, respectively, will be returned.

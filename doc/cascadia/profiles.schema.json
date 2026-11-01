@@ -497,6 +497,7 @@
         "toggleSplitOrientation",
         "workspaces",
         "focusBellTab",
+        "equalizePanes",
         "wt",
         "unbound"
       ],

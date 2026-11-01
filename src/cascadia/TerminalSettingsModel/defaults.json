@@ -622,6 +622,7 @@
         { "command": "toggleBroadcastInput", "id": "Terminal.ToggleBroadcastInput" },
         { "command": "togglePaneZoom", "id": "Terminal.TogglePaneZoom" },
         { "command": "toggleSplitOrientation", "id": "Terminal.ToggleSplitOrientation" },
+        { "command": "equalizePanes", "id": "Terminal.EqualizePanes" },
         { "command": "toggleReadOnlyMode", "id": "Terminal.ToggleReadOnlyMode" },
         { "command": "enableReadOnlyMode", "id": "Terminal.EnableReadOnlyMode" },
         { "command": "disableReadOnlyMode", "id": "Terminal.DisableReadOnlyMode" },

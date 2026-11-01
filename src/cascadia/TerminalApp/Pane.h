@@ -113,6 +113,7 @@ public:
     void UpdateSettings(const winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings& settings,
                         const winrt::Microsoft::Terminal::Settings::Model::WindowSettings& windowSettings);
     bool ResizePane(const winrt::Microsoft::Terminal::Settings::Model::ResizeDirection& direction, const float amount);
+    void EqualizeSplits();
     std::shared_ptr<Pane> NavigateDirection(const std::shared_ptr<Pane> sourcePane,
                                             const winrt::Microsoft::Terminal::Settings::Model::FocusDirection& direction,
                                             const std::vector<uint32_t>& mruPanes);
@@ -359,6 +360,7 @@ private:
     void _EndDividerResize(const bool cancel, const winrt::Windows::UI::Xaml::Input::Pointer& pointer);
 
     bool _Resize(const winrt::Microsoft::Terminal::Settings::Model::ResizeDirection& direction, const float amount);
+    uint32_t _CountLeavesAcross(const bool vertical) const noexcept;
 
     std::shared_ptr<Pane> _FindParentOfPane(const std::shared_ptr<Pane> pane);
     std::pair<PanePoint, PanePoint> _GetOffsetsForPane(const PanePoint parentOffset) const;

@@ -106,6 +106,7 @@ static constexpr std::string_view QuickFixKey{ "quickFix" };
 static constexpr std::string_view OpenCWDKey{ "openCWD" };
 static constexpr std::string_view WorkspacesKey{ "workspaces" };
 static constexpr std::string_view FocusBellTabKey{ "focusBellTab" };
+static constexpr std::string_view EqualizePanesKey{ "equalizePanes" };
 
 static constexpr std::string_view ActionKey{ "action" };
 

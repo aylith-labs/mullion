@@ -1015,6 +1015,16 @@ namespace winrt::TerminalApp::implementation
     }
 
     // Method Description:
+    // - Give every pane in this tab an equal share of the space along each
+    //   axis. See Pane::EqualizeSplits.
+    void Tab::EqualizePanes()
+    {
+        ASSERT_UI_THREAD();
+
+        _rootPane->EqualizeSplits();
+    }
+
+    // Method Description:
     // - Attempt to move focus between panes, as to focus the child on
     //   the other side of the separator. See Pane::NavigateFocus for details.
     // Arguments:
