@@ -225,6 +225,20 @@ LRESULT NonClientIslandWindow::_InputSinkMessageHandler(UINT const message,
             LOG_IF_WIN32_BOOL_FALSE(TrackMouseEvent(&ev));
             _trackingMouse = true;
         }
+
+        // GH#12882: don't let DefWindowProc see a move over Close or Minimize.
+        // Because we return HTCLOSE from WM_NCHITTEST (which is what lets the
+        // drag bar cover the buttons at all, GH#9443), DefWindowProc treats
+        // the hover as being over a system caption button and pops the
+        // system's own "Close" tooltip on top of the XAML one the
+        // MinMaxCloseControl already shows. Minimize gets the same treatment
+        // so the three buttons cannot drift apart. Maximize still goes
+        // through: the Snap Layouts flyout hangs off the system seeing the
+        // hover there, and the system draws no tooltip for it.
+        if (wparam == HTCLOSE || wparam == HTMINBUTTON)
+        {
+            return 0;
+        }
         break;
 
     case WM_NCMOUSELEAVE:
