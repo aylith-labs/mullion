@@ -491,6 +491,7 @@ private:
     til::CoordType _ScrollToPoints(const til::point coordStart, const til::point coordEnd);
 
     void _NotifyScrollEvent();
+    void _NotifyScrollbarChanged();
     bool _inAltBuffer() const noexcept;
     TextBuffer& _activeBuffer() const noexcept;
     void _updateUrlDetection();

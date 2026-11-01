@@ -272,8 +272,8 @@ void Terminal::UpdateColorScheme(const ICoreScheme& scheme)
 
     // Tell the control that the scrollbar has somehow changed. Used as a
     // workaround to force the control to redraw any scrollbar marks whose color
-    // may have changed.
-    _NotifyScrollEvent();
+    // may have changed. Nothing moved, so the link locations stay.
+    _NotifyScrollbarChanged();
 }
 
 void Terminal::SetHighContrastMode(bool hc) noexcept
@@ -1257,6 +1257,18 @@ void Terminal::_NotifyScrollEvent()
     // See UserScrollViewport().
     _clearPatternTree();
 
+    _NotifyScrollbarChanged();
+}
+
+// Tells the control to redraw the scrollbar -- its marks, or their colours -- when the
+// viewport has not moved. Unlike _NotifyScrollEvent this keeps the pattern tree: its
+// intervals are all still right, and nothing would rebuild it. Only output, a resize or
+// a user scroll schedule the rescan (ControlCore's outputIdle), so clearing it here left
+// every link and path already on screen without a hover card -- after any settings
+// reload, any focus change with an unfocused appearance, a colour scheme preview -- until
+// the shell happened to print something.
+void Terminal::_NotifyScrollbarChanged()
+{
     if (_pfnScrollPositionChanged)
     {
         const auto visible = _GetVisibleViewport();
@@ -1619,7 +1631,7 @@ void Terminal::AddMarkFromUI(ScrollbarData mark,
 
     // Tell the control that the scrollbar has somehow changed. Used as a
     // workaround to force the control to redraw any scrollbar marks
-    _NotifyScrollEvent();
+    _NotifyScrollbarChanged();
 }
 
 void Terminal::ClearMark()
@@ -1640,14 +1652,14 @@ void Terminal::ClearMark()
 
     // Tell the control that the scrollbar has somehow changed. Used as a
     // workaround to force the control to redraw any scrollbar marks
-    _NotifyScrollEvent();
+    _NotifyScrollbarChanged();
 }
 void Terminal::ClearAllMarks()
 {
     _activeBuffer().ClearAllMarks();
     // Tell the control that the scrollbar has somehow changed. Used as a
     // workaround to force the control to redraw any scrollbar marks
-    _NotifyScrollEvent();
+    _NotifyScrollbarChanged();
 }
 
 std::vector<ScrollMark> Terminal::GetMarkRows() const

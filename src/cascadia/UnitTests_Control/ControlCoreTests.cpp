@@ -48,6 +48,8 @@ namespace ControlUnitTests
 
         TEST_METHOD(TestSimpleClickSelection);
 
+        TEST_METHOD(TestLinksSurviveAppearanceChanges);
+
         TEST_CLASS_SETUP(ModuleSetup)
         {
             winrt::init_apartment(winrt::apartment_type::single_threaded);
@@ -809,5 +811,48 @@ namespace ControlUnitTests
             VERIFY_ARE_EQUAL(expectedEnd, end);
         }
         VERIFY_IS_TRUE(gotSelectionUpdate);
+    }
+
+    // A settings reload, a focus change with an unfocused appearance, an OS theme flip:
+    // each re-applies the colour scheme, and that used to clear the detected links
+    // without scheduling the rescan that rebuilds them, which only output, a resize or
+    // a user scroll does. Every link already on screen lost its hover card until the
+    // shell next printed something.
+    void ControlCoreTests::TestLinksSurviveAppearanceChanges()
+    {
+        auto [settings, conn] = _createSettingsAndConnection();
+        auto core = createCore(*settings, *conn);
+        VERIFY_IS_NOT_NULL(core);
+        _standardInit(core);
+        VERIFY_IS_TRUE(settings->DetectURLs());
+
+        conn->WriteInput(winrt_wstring_to_array_view(L"\r\nhttps://example.com/\r\n"));
+        {
+            // Nothing throttled runs in a unit test; this is what outputIdle would do.
+            const auto lock = core->_terminal->LockForWriting();
+            core->_terminal->UpdatePatternsUnderLock();
+        }
+        const Core::Point onTheLink{ 5, 1 };
+        VERIFY_ARE_EQUAL(L"https://example.com/", core->GetHyperlink(onTheLink));
+
+        Log::Comment(L"Unfocused, then focused again");
+        core->ApplyAppearance(false);
+        VERIFY_ARE_EQUAL(L"https://example.com/", core->GetHyperlink(onTheLink));
+        core->ApplyAppearance(true);
+        VERIFY_ARE_EQUAL(L"https://example.com/", core->GetHyperlink(onTheLink));
+
+        Log::Comment(L"A settings reload, which re-applies the appearance after it");
+        core->UpdateSettings(*settings, nullptr);
+        core->ApplyAppearance(true);
+        VERIFY_ARE_EQUAL(L"https://example.com/", core->GetHyperlink(onTheLink));
+
+        Log::Comment(L"A scrollbar mark added and cleared");
+        {
+            const auto lock = core->_terminal->LockForWriting();
+            ::ScrollbarData mark{};
+            core->_terminal->AddMarkFromUI(mark, 0);
+            core->_terminal->ClearAllMarks();
+        }
+        VERIFY_ARE_EQUAL(L"https://example.com/", core->GetHyperlink(onTheLink));
     }
 }

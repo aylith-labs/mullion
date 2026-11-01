@@ -17,6 +17,7 @@
 #endif
 #include "../TerminalApp/FilePreviewReader.h"
 #include "../TerminalApp/RemoteFileRead.h"
+#include "../TerminalApp/LinkTargets.h"
 #include <filesystem>
 #include "../UIMarkdown/SyntaxHighlight.h"
 #include "../UIMarkdown/MarkdownBlocks.h"
@@ -94,6 +95,7 @@ namespace ControlUnitTests
         TEST_METHOD(SharedPathResolution);
         TEST_METHOD(PreviewFieldPresentation);
         TEST_METHOD(RemoteReadReplies);
+        TEST_METHOD(LinkTargets);
 #ifndef FILE_PREVIEW_STANDALONE
         TEST_METHOD(YamlFrontmatter);
 #endif
@@ -336,6 +338,60 @@ void ControlUnitTests::FilePreviewTests::RemoteReadReplies()
     VERIFY_IS_TRUE(parse(R"({"ok":true,"kind":"file","size":3,"truncated":false,"bytes":3})").status == Status::Unavailable);
 }
 
+// /etc/os-release is a symlink in most distributions, and Windows cannot follow one seen
+// through \\wsl.localhost, so the card used to call it "not a file or a folder".
+void ControlUnitTests::FilePreviewTests::LinkTargets()
+{
+    const auto split = SplitWslUncPath(LR"(\\wsl.localhost\Ubuntu\etc\os-release)");
+    VERIFY_IS_TRUE(split.has_value());
+    VERIFY_ARE_EQUAL(std::wstring{ L"Ubuntu" }, split->distro);
+    VERIFY_ARE_EQUAL(std::wstring{ L"/etc/os-release" }, split->posixPath);
+    VERIFY_ARE_EQUAL(std::wstring{ L"/usr/lib" }, SplitWslUncPath(LR"(\\WSL$\Debian\usr\lib)")->posixPath);
+    VERIFY_ARE_EQUAL(std::wstring{ L"/home/x" }, SplitWslUncPath(L"//wsl.localhost/Ubuntu/home/x")->posixPath);
+    VERIFY_ARE_EQUAL(std::wstring{ L"/" }, SplitWslUncPath(LR"(\\wsl.localhost\Ubuntu)")->posixPath);
+    VERIFY_IS_FALSE(SplitWslUncPath(LR"(\\wsl.localhost\)").has_value());
+    VERIFY_IS_FALSE(SplitWslUncPath(LR"(\\server\share\file.txt)").has_value());
+    VERIFY_IS_FALSE(SplitWslUncPath(LR"(C:\Windows\notepad.exe)").has_value());
+
+    const auto found = ParseWslLinkReply("found\n/usr/lib/os-release\n");
+    VERIFY_IS_TRUE(found && found->status == WslLinkStatus::Found);
+    VERIFY_ARE_EQUAL(std::wstring{ L"/usr/lib/os-release" }, found->path);
+    const auto broken = ParseWslLinkReply("broken\n../caf\xC3\xA9\n");
+    VERIFY_IS_TRUE(broken && broken->status == WslLinkStatus::Broken);
+    VERIFY_ARE_EQUAL(std::wstring{ L"../caf\u00E9" }, broken->path);
+    VERIFY_IS_TRUE(ParseWslLinkReply("absent\n")->status == WslLinkStatus::Absent);
+    // wsl.exe's own complaints are UTF-16 and never one of the three words.
+    VERIFY_IS_FALSE(ParseWslLinkReply("").has_value());
+    VERIFY_IS_FALSE(ParseWslLinkReply(std::string{ "T\0h\0e\0r\0e\0\r\0\n\0", 14 }).has_value());
+    VERIFY_IS_FALSE(ParseWslLinkReply("found\nrelative/path\n").has_value());
+
+    VERIFY_ARE_EQUAL(std::wstring{ L"This link points to /nowhere, which does not exist." }, BrokenLinkMessage(L"/nowhere"));
+
+    // A path that is simply not there involves no link, and must not cost a wsl.exe.
+    wchar_t temp[MAX_PATH]{};
+    VERIFY_IS_TRUE(GetTempPathW(MAX_PATH, temp) != 0);
+    const auto directory = std::filesystem::path{ temp } / L"mullion-link-targets-test";
+    std::error_code error;
+    std::filesystem::remove_all(directory, error);
+    std::filesystem::create_directories(directory);
+    auto asked = 0;
+    const auto runWsl = [&](const std::wstring&, const std::wstring&) { ++asked; return std::string{}; };
+    VERIFY_IS_FALSE(ResolveLinkedPath(directory / L"missing.txt", runWsl).has_value());
+    VERIFY_ARE_EQUAL(0, asked);
+
+    // A Windows symbolic link to nothing says what it points to. Creating one needs
+    // Developer Mode or elevation, so a machine with neither skips this part.
+    const auto dangling = directory / L"dangling.txt";
+    if (CreateSymbolicLinkW(dangling.c_str(), L"nothing-here.txt", SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE))
+    {
+        const auto linked = ResolveLinkedPath(dangling, runWsl);
+        VERIFY_IS_TRUE(linked.has_value());
+        VERIFY_ARE_EQUAL(std::wstring{ L"This link points to nothing-here.txt, which does not exist." }, linked->broken);
+        VERIFY_ARE_EQUAL(0, asked);
+    }
+    std::filesystem::remove_all(directory, error);
+}
+
 void ControlUnitTests::FilePreviewTests::SharedPathResolution()
 {
     const auto windows = Lintel::PathCandidates(LR"(Z:\home\stevenp\x.png)", true, L"Ubuntu", { L"Debian" });
@@ -390,7 +446,8 @@ int main()
         tests.SharedPathResolution();
         tests.PreviewFieldPresentation();
         tests.RemoteReadReplies();
-        std::cout << "All 13 native file preview tests passed.\n";
+        tests.LinkTargets();
+        std::cout << "All 14 native file preview tests passed.\n";
         return 0;
     }
     catch (const winrt::hresult_error& error)

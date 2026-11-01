@@ -7,6 +7,7 @@
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include "FilePreviewReader.h"
 #include "RemoteFileRead.h"
+#include "LinkTargets.h"
 #include "../../inc/ProcessCaptureImpl.h"
 #include "../../inc/LintelPaths.h"
 #include "../../inc/LintelHomes.h"
@@ -262,6 +263,10 @@ namespace winrt::TerminalApp::implementation
         preview.FileKind(L"folder");
     }
 
+    // wsl.exe answering from a distribution that is already running -- reading the path
+    // over \\wsl.localhost has started it -- takes about a tenth of this.
+    static constexpr unsigned long LinkResolveTimeoutMs = 3000;
+
     Windows::Foundation::IAsyncOperation<Control::HyperlinkPreview> HyperlinkPreviewService::GetFilePreviewAsync(hstring resolvedFilePath)
     {
         const auto cancellation = co_await get_cancellation_token();
@@ -289,8 +294,10 @@ namespace winrt::TerminalApp::implementation
                 for (const auto& candidate : candidates)
                 {
                     if (cancellation()) throw hresult_canceled();
+                    // GetFileAttributesW does not follow a link, so a WSL symlink, which
+                    // Windows cannot follow, still counts as being there. It is resolved below.
                     std::error_code error;
-                    exists.push_back(std::filesystem::exists(candidate.path, error));
+                    exists.push_back(std::filesystem::exists(candidate.path, error) || GetFileAttributesW(candidate.path.c_str()) != INVALID_FILE_ATTRIBUTES);
                 }
                 const auto selected = Lintel::SelectPathCandidate(candidates, exists);
                 if (!selected)
@@ -302,14 +309,40 @@ namespace winrt::TerminalApp::implementation
                 resolvedFilePath = selected->path;
                 preview.FilePath(resolvedFilePath);
             }
-            const std::filesystem::path path{ resolvedFilePath.c_str() };
-            if (std::error_code kindError; std::filesystem::is_directory(path, kindError))
+            std::filesystem::path path{ resolvedFilePath.c_str() };
+            std::error_code kindError;
+            auto kind = std::filesystem::status(path, kindError).type();
+            if (kind != std::filesystem::file_type::directory && kind != std::filesystem::file_type::regular)
+            {
+                // Most likely a link Windows cannot follow: a WSL symlink, or a Windows one
+                // to something that is gone. LinkTargets.h explains why the distribution
+                // has to be asked about the first kind.
+                const auto linked = ResolveLinkedPath(path, [&](const std::wstring& distro, const std::wstring& posixPath) {
+                    std::wstring commandLine{ L"wsl.exe -d " + ::Microsoft::Console::Utils::QuoteCommandLineArgument(distro) };
+                    for (const auto& argument : { std::wstring{ L"--exec" }, std::wstring{ L"sh" }, std::wstring{ L"-c" }, std::wstring{ WslLinkScript }, std::wstring{ L"sh" }, posixPath })
+                    {
+                        commandLine += L' ' + ::Microsoft::Console::Utils::QuoteCommandLineArgument(argument);
+                    }
+                    return ::TerminalUtils::CaptureProcessEx(std::move(commandLine), {}, LinkResolveTimeoutMs, 64 * 1024).Output;
+                });
+                if (cancellation()) throw hresult_canceled();
+                if (linked && !linked->broken.empty()) throw hresult_error(E_FAIL, linked->broken);
+                if (linked)
+                {
+                    // Open, Copy path and the card's arrow line all mean the target: the link
+                    // itself is something Windows cannot open.
+                    path = linked->target;
+                    preview.FilePath(path.wstring());
+                    kind = std::filesystem::status(path, kindError).type();
+                }
+            }
+            if (kind == std::filesystem::file_type::directory)
             {
                 FillFolderPreview(preview, path, [&] { return cancellation(); });
                 if (cancellation()) throw hresult_canceled();
                 co_return preview;
             }
-            if (!std::filesystem::is_regular_file(path)) throw hresult_error(E_FAIL, L"This path is not a file or a folder that can be read.");
+            if (kind != std::filesystem::file_type::regular) throw hresult_error(E_FAIL, L"This path is not a file or a folder that can be read.");
             const auto size = std::filesystem::file_size(path);
             auto fields = single_threaded_vector<Control::HyperlinkPreviewField>();
             Control::HyperlinkPreviewField title;
