@@ -151,8 +151,8 @@ window.FEATURES = [
     id: "link-card", title: "A link card that actually fits",
     cat: "links", catLabel: "Links", kind: "improvement",
     dateAdded: "2026-08-31",
-    commits: ["afd9f2b03","cf9ce0111","db520fed5","bb45059e6","7d4de07c1","69ae29d2c","eaf6605e3"], files: 23, ins: 871, del: 297,
-    desc: "The plain hover tooltip became a richer card — configurable delay, a \"how to open\" hint, room for an action button — that flips to whichever side has room and never renders past the pane's edge, on either axis.",
+    commits: ["afd9f2b03","cf9ce0111","db520fed5","bb45059e6","7d4de07c1","69ae29d2c","eaf6605e3","e15c13c7e"], files: 29, ins: 1265, del: 307,
+    desc: "The plain hover tooltip became a richer card — configurable delay, a \"how to open\" hint, room for an action button — that flips to whichever side has room and never renders past the pane's edge, on either axis. Links already on screen keep their card after a settings reload or a theme switch.",
   },
   {
     id: "icons", title: "Profile icon caching & jump-list glyphs",
@@ -216,8 +216,8 @@ window.FEATURES = [
     id: "file-previews", title: "Preview local files on hover",
     cat: "links", catLabel: "Links", kind: "feature",
     dateAdded: "2026-09-10",
-    commits: ["4af7de077","096cfaefd","7907f1392","b2c1233f2","0153330ae","fba94e74f","41ea80fe6","866c64c76","fe9df1b39","d34cb8ecf","37aa9437a","f372dbd4c","cfee4dd78","de734ad18"], files: 115, ins: 3725, del: 1296,
-    desc: "Hovering a path to a local file — Windows, UNC or inside WSL — previews it with no rule or integration: text with syntax colouring, Markdown rendered, an image, the first page of a PDF, or the text of a Word, Excel or PowerPoint file, read locally without Office. A folder lists what is in it. Show in pane adds line numbers, zoom, and page and sheet pickers.",
+    commits: ["4af7de077","096cfaefd","7907f1392","b2c1233f2","0153330ae","fba94e74f","41ea80fe6","866c64c76","fe9df1b39","d34cb8ecf","37aa9437a","f372dbd4c","cfee4dd78","de734ad18","e15c13c7e"], files: 117, ins: 4119, del: 1306,
+    desc: "Hovering a path to a local file — Windows, UNC or inside WSL — previews it with no rule or integration: text with syntax colouring, Markdown rendered, an image, the first page of a PDF, or the text of a Word, Excel or PowerPoint file, read locally without Office. A folder lists what is in it, and a link — a WSL symlink such as /etc/os-release included — previews what it points to. Show in pane adds line numbers, zoom, and page and sheet pickers.",
   },
   {
     id: "preview-pane", title: "A preview pane that follows the pointer",

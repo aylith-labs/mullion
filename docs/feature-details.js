@@ -299,6 +299,9 @@ window.FEATURE_DETAILS = {
     media: [
       { kind: "compare", aligned: true, before: "link-card-hover-upstream", after: "link-card-hover", caption: "Hovering an OSC 8 link to a file in WSL: upstream's tooltip shows the raw file:/// URI and asks for Ctrl+Click; Mullion's card shows the path it will really open, previews the file, and carries the actions that were previously buried in a right-click menu." },
     ],
+    notes: [
+      "Links already on screen keep their card after a settings reload: a theme switch, a save from the Settings tab, an edit to settings.json, or focus moving to a pane with an unfocused appearance. Each of these re-applies the colour scheme, which also asked the scrollbar to redraw its marks. That request threw away every link found on screen, and only new output, a resize or a scroll found them again. Upstream has the same code, so there an on-screen URL loses its underline and Ctrl+Click the same way.",
+    ],
   },
 
   "wsl-links": {
@@ -516,6 +519,7 @@ window.FEATURE_DETAILS = {
     media: [
       { base: "link-rules-editor", caption: "A rule open in the editor. The Rule Preview card shows what the pattern finds in a line of output, and the named capture it reads back." },
       { base: "link-rules-matched", caption: "With Show which rule matched on, the card names the rule that produced it." },
+      { base: "link-rules-more", caption: "A rule that keeps only Copy link on Markdown files: the buttons it left off are in the ⋯ menu." },
     ],
     notes: [
       "The automatic group order is GitHub, Unblocked Code, Jira, Slack, Stith, shefrd, git, files, then anything else. Unblocked sits above Jira on purpose: a specific <code>UNB-123</code> task id has to be tried before Jira's broad <code>PROJECT-number</code> pattern would claim it.",
@@ -622,12 +626,15 @@ window.FEATURE_DETAILS = {
       "Hover the path of a PDF or an image and press <code>Show in pane</code>. Use <code>Fit</code> and the zoom buttons, and the page picker for a PDF.",
       "In a WSL pane, run <code>realpath ~/.bashrc</code> and hover the result. The file inside the distro previews the same way.",
       "Hover a folder's path, such as <code>C:\\Windows\\Web</code>. The card counts its folders and files and lists them, folders first.",
+      "In an Ubuntu pane, run <code>echo /etc/os-release</code> and hover it. It is a symlink to <code>/usr/lib/os-release</code>: the card previews that file, and its arrow line names it.",
     ],
     media: [
       { kind: "compare", aligned: true, before: "file-previews-markdown-upstream", after: "file-previews-markdown", caption: "A Markdown file's path under the pointer: upstream does not detect the path, so nothing appears; Mullion renders the file, with its frontmatter as metadata and the Formatted / Raw switch." },
+      { base: "file-previews-folder", caption: "A folder's path: the card counts what is in it and lists it, folders first." },
       { base: "file-previews-pane", caption: "A PDF in the pane: page picker, Fit and fixed zoom levels." },
     ],
     notes: [
+      "A link previews what it points to. Windows follows its own symbolic links and junctions. It cannot follow a Linux symlink seen through <code>\\\\wsl.localhost</code>, or a path that passes through one, such as <code>/lib/os-release</code> where <code>/lib</code> links to <code>usr/lib</code>. For those the distribution is asked once, with <code>readlink -f</code>, and only after Windows has failed on a path that has a link in it. A link into <code>/mnt/c</code> previews the Windows file. A link to nothing says so: <em>This link points to /nowhere, which does not exist.</em>",
       "A rule's own preview switches still apply: a rule with <code>Show preview</code> off, or naming an integration, decides for the files it matches.",
       "A bare POSIX path printed in a non-WSL pane is looked for in each registered distribution, off the UI thread, and accepted only when exactly one has it. Otherwise the card says it was not found, or that it exists in several and the path should name the distribution.",
       "The presets menu has Text files, PDF files and Office documents rules for when a file type should behave differently from the defaults.",
