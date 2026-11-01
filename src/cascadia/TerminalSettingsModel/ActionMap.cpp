@@ -165,6 +165,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
                 { ShortcutAction::ToggleShaderEffects, USES_RESOURCE(L"ToggleShaderEffectsCommandKey") },
                 { ShortcutAction::ToggleSplitOrientation, USES_RESOURCE(L"ToggleSplitOrientationCommandKey") },
                 { ShortcutAction::Workspaces, USES_RESOURCE(L"WorkspacesCommandKey") },
+                { ShortcutAction::FocusBellTab, USES_RESOURCE(L"FocusBellTabCommandKey") },
             };
         }();
 

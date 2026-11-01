@@ -757,6 +757,10 @@
   <data name="WorkspacesCommandKey" xml:space="preserve">
     <value>Workspaces...</value>
   </data>
+  <data name="FocusBellTabCommandKey" xml:space="preserve">
+    <value>Focus next tab with a bell</value>
+    <comment>A command that selects the next tab, in tab order, whose bell indicator is showing.</comment>
+  </data>
   <data name="CloseTab" xml:space="preserve">
     <value>Close tab</value>
   </data>

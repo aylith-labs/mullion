@@ -174,6 +174,34 @@ namespace winrt::TerminalApp::implementation
         }
     }
 
+    void TerminalPage::_HandleFocusBellTab(const IInspectable& /*sender*/,
+                                           const ActionEventArgs& args)
+    {
+        // GH#19788: select the next tab to the right, wrapping around, whose
+        // bell indicator is showing. The current tab is never a candidate, so
+        // this always moves or does nothing.
+        //
+        // Selecting a tab is what clears its bell (Tab::Focus), so pressing this
+        // repeatedly visits each ringing tab once and then stops. With no other
+        // tab ringing it is a quiet no-op: no wraparound, no sound, no toast.
+        const auto tabCount = _tabs.Size();
+        if (tabCount > 1)
+        {
+            const auto current = _GetFocusedTabIndex().value_or(0);
+            for (uint32_t offset = 1; offset < tabCount; ++offset)
+            {
+                const auto index = (current + offset) % tabCount;
+                const auto status = _tabs.GetAt(index).TabStatus();
+                if (status && status.BellIndicator())
+                {
+                    _SelectTab(index);
+                    break;
+                }
+            }
+        }
+        args.Handled(true);
+    }
+
     void TerminalPage::_HandleSendInput(const IInspectable& sender,
                                         const ActionEventArgs& args)
     {

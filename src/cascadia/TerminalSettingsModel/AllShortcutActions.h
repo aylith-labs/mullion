@@ -116,7 +116,8 @@
     ON_ALL_ACTIONS(QuickFix)                \
     ON_ALL_ACTIONS(OpenCWD)                 \
     ON_ALL_ACTIONS(OpenWorkspace)           \
-    ON_ALL_ACTIONS(Workspaces)
+    ON_ALL_ACTIONS(Workspaces)              \
+    ON_ALL_ACTIONS(FocusBellTab)
 
 #define ALL_SHORTCUT_ACTIONS_WITH_ARGS             \
     ON_ALL_ACTIONS_WITH_ARGS(AdjustFontSize)       \
