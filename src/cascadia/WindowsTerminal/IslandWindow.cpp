@@ -402,6 +402,13 @@ void IslandWindow::Initialize()
         if (SUCCEEDED(taskbar->HrInit()))
         {
             _taskbar = std::move(taskbar);
+
+            // An elevated window does not receive TaskbarButtonCreated from
+            // Explorer unless it lets the message through.
+            if (const auto created = _TaskbarButtonCreatedMessage())
+            {
+                LOG_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(_window.get(), created, MSGFLT_ALLOW, nullptr));
+            }
         }
     }
 
@@ -487,6 +494,16 @@ void IslandWindow::_OnGetMinMaxInfo(const WPARAM /*wParam*/, const LPARAM lParam
     if (IsCursorHidden())
     {
         ShowCursorMaybe(message);
+    }
+
+    // The taskbar button is created after the window first shows, and again
+    // whenever Explorer restarts, and a new button carries no overlay. Setting
+    // one before the button exists succeeds and does nothing, so the badge
+    // (showTabIconOnTaskbar) is put back each time the button is created.
+    if (message == _TaskbarButtonCreatedMessage() && message != 0)
+    {
+        _taskbarOverlayApplied = false;
+        SetTaskbarOverlayIcon(_taskbarOverlayPath);
     }
 
     switch (message)
@@ -1185,6 +1202,12 @@ namespace
         // to no badge rather than complain.
         return {};
     }
+}
+
+UINT IslandWindow::_TaskbarButtonCreatedMessage() noexcept
+{
+    static const auto message = RegisterWindowMessageW(L"TaskbarButtonCreated");
+    return message;
 }
 
 // Method Description:

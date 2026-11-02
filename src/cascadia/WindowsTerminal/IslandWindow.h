@@ -124,6 +124,7 @@ protected:
     std::wstring _taskbarOverlayPath;
     wil::unique_hicon _taskbarOverlayIcon;
     bool _taskbarOverlayApplied{ true };
+    static UINT _TaskbarButtonCreatedMessage() noexcept;
 
     std::function<void(const HWND, const til::rect&)> _pfnCreateCallback;
     std::function<float(bool, float)> _pfnSnapDimensionCallback;
