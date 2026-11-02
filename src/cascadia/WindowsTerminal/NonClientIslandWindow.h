@@ -68,6 +68,9 @@ private:
 
     bool _isMaximized;
     bool _trackingMouse{ false };
+    // Close and Minimize answer WM_NCHITTEST as client area (GH#12882), so
+    // leaving them is tracked separately from leaving the non-client area.
+    bool _trackingClientMouse{ false };
 
     [[nodiscard]] static LRESULT __stdcall _StaticInputSinkWndProc(HWND const window, UINT const message, WPARAM const wparam, LPARAM const lparam) noexcept;
     [[nodiscard]] LRESULT _InputSinkMessageHandler(UINT const message, WPARAM const wparam, LPARAM const lparam) noexcept;

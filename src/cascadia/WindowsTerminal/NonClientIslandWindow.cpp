@@ -171,9 +171,71 @@ LRESULT NonClientIslandWindow::_InputSinkMessageHandler(UINT const message,
     {
         // Try to determine what part of the window is being hovered here. This
         // is absolutely critical to making sure Snap Layouts (GH#9443) works!
-        return _dragBarNcHitTest({ GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) });
+        const auto hit = _dragBarNcHitTest({ GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) });
+
+        // GH#12882: but only Maximize needs to be a caption button to Windows.
+        // Answering HTCLOSE is enough on its own for Windows to draw its own
+        // "Close" tooltip on top of the XAML one - whatever the window
+        // procedure then does with the messages, and however the pointer
+        // arrived. So Close and Minimize are client area to Windows, and their
+        // input comes back as client messages (below), mapped to the button.
+        if (hit == HTCLOSE || hit == HTMINBUTTON)
+        {
+            return HTCLIENT;
+        }
+        return hit;
     }
     break;
+
+    // GH#12882: the client-area side of Close and Minimize. Each message is
+    // mapped back to the button under the pointer and handled exactly as its
+    // non-client twin below handles Maximize.
+    case WM_MOUSEMOVE:
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONDBLCLK:
+    case WM_LBUTTONUP:
+    {
+        POINT screen{ GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+        ClientToScreen(_dragBarWindow.get(), &screen);
+        const auto hit = _dragBarNcHitTest(til::point{ screen });
+        const auto onButton = hit == HTCLOSE || hit == HTMINBUTTON;
+        const auto button = static_cast<winrt::TerminalApp::CaptionButton>(hit);
+
+        if (message == WM_MOUSEMOVE)
+        {
+            if (!onButton)
+            {
+                _titlebar.ReleaseButtons();
+                return 0;
+            }
+            _titlebar.HoverButton(button);
+            if (!_trackingClientMouse)
+            {
+                // Plain TME_LEAVE: TME_NONCLIENT here would report a leave at
+                // once, since to Windows the pointer is in the client area.
+                TRACKMOUSEEVENT ev{};
+                ev.cbSize = sizeof(TRACKMOUSEEVENT);
+                ev.dwFlags = TME_LEAVE;
+                ev.hwndTrack = _dragBarWindow.get();
+                ev.dwHoverTime = HOVER_DEFAULT;
+                LOG_IF_WIN32_BOOL_FALSE(TrackMouseEvent(&ev));
+                _trackingClientMouse = true;
+            }
+        }
+        else if (message == WM_LBUTTONUP)
+        {
+            if (onButton)
+            {
+                _titlebar.ReleaseButtons();
+                _titlebar.ClickButton(button);
+            }
+        }
+        else if (onButton)
+        {
+            _titlebar.PressButton(button);
+        }
+        return 0;
+    }
 
     case WM_NCMOUSEMOVE:
         // When we get this message, it's because the mouse moved when it was
@@ -225,28 +287,37 @@ LRESULT NonClientIslandWindow::_InputSinkMessageHandler(UINT const message,
             LOG_IF_WIN32_BOOL_FALSE(TrackMouseEvent(&ev));
             _trackingMouse = true;
         }
-
-        // GH#12882: don't let DefWindowProc see a move over Close or Minimize.
-        // Because we return HTCLOSE from WM_NCHITTEST (which is what lets the
-        // drag bar cover the buttons at all, GH#9443), DefWindowProc treats
-        // the hover as being over a system caption button and pops the
-        // system's own "Close" tooltip on top of the XAML one the
-        // MinMaxCloseControl already shows. Minimize gets the same treatment
-        // so the three buttons cannot drift apart. Maximize still goes
-        // through: the Snap Layouts flyout hangs off the system seeing the
-        // hover there, and the system draws no tooltip for it.
-        if (wparam == HTCLOSE || wparam == HTMINBUTTON)
-        {
-            return 0;
-        }
         break;
 
     case WM_NCMOUSELEAVE:
     case WM_MOUSELEAVE:
+    {
         // When the mouse leaves the drag rect, make sure to dismiss any hover.
+        if (message == WM_MOUSELEAVE)
+        {
+            _trackingClientMouse = false;
+        }
+        else
+        {
+            _trackingMouse = false;
+        }
+
+        // GH#12882: Maximize is non-client to Windows and Close and Minimize
+        // are client, so moving between them leaves one area for the other.
+        // The move that follows hovers the new button; only let go here when
+        // the pointer has left the buttons altogether.
+        POINT cursor{};
+        if (GetCursorPos(&cursor) && WindowFromPoint(cursor) == _dragBarWindow.get())
+        {
+            const auto hit = _dragBarNcHitTest(til::point{ cursor });
+            if (hit == HTCLOSE || hit == HTMAXBUTTON || hit == HTMINBUTTON)
+            {
+                break;
+            }
+        }
         _titlebar.ReleaseButtons();
-        _trackingMouse = false;
         break;
+    }
 
     // NB: *Shouldn't be forwarding these* when they're not over the caption
     // because they can inadvertently take action using the system's default
