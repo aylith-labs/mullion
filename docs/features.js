@@ -17,7 +17,7 @@ window.FEATURES = [
     id: "early-upstream-fixes", title: "Upstream bugs, fixed without waiting",
     cat: "ui", catLabel: "UI & theming", kind: "fix",
     dateAdded: "2026-10-22",
-    hub: ["close-tab-tooltip", "infobar-follows-pane", "split-pane-duplicate-command", "scroll-marks-after-clear"],
+    hub: ["close-tab-tooltip", "infobar-follows-pane", "split-pane-duplicate-command", "scroll-marks-after-clear", "caption-close-tooltip"],
     desc: "Upstream bugs fixed here instead of waiting in their queue: a reviewed pull request cherry-picked with its authorship, or a small fix written here for an issue nobody has picked up. Each one has its own page.",
   },
   {
@@ -26,6 +26,13 @@ window.FEATURES = [
     dateAdded: "2026-10-24",
     commits: ["16fb60ef7"], files: 2, ins: 86, del: 0,
     desc: "Hovering a tab's close button said <em>Close Tab (Ctrl+F4)</em>, a key nothing in the default keymap binds. It now names the key bound to closeTab, or just <em>Close tab</em> when there is none (#10109).",
+  },
+  {
+    id: "caption-close-tooltip", title: "One tooltip on the window's Close button",
+    cat: "ui", catLabel: "UI & theming", kind: "fix",
+    dateAdded: "2026-11-01",
+    commits: ["1d480e8bb","b15c6f1cf"], files: 2, ins: 104, del: 16,
+    desc: "Hovering the window's Close button showed two tooltips, the Terminal's own and a yellow one Windows drew on top of it. Now there is only one (#12882).",
   },
   {
     id: "infobar-follows-pane", title: "Closing the pane that failed closes its infobar",
@@ -247,6 +254,27 @@ window.FEATURES = [
     dateAdded: "2026-09-06",
     commits: ["103a8e548"], files: 21, ins: 445, del: 20,
     desc: "Pin the window to the top, bottom, left or right of the screen at a set share of it, the way quake mode already pins its window to the top. A docked window can't be dragged off its edge and resizes only from the side facing away from it.",
+  },
+  {
+    id: "focus-bell-tab", title: "Jump to the next tab that rang its bell",
+    cat: "ui", catLabel: "UI & theming", kind: "feature",
+    dateAdded: "2026-11-01",
+    commits: ["da830cd2c"], files: 7, ins: 38, del: 1,
+    desc: "A new focusBellTab action selects the next tab, wrapping round, whose bell is showing. Press it again for the next one; with no other tab ringing it does nothing. Agents and builds that ring the bell when they finish are one key away (#19788).",
+  },
+  {
+    id: "equalize-panes", title: "Resize all panes equally",
+    cat: "ui", catLabel: "UI & theming", kind: "feature",
+    dateAdded: "2026-11-01",
+    commits: ["ed98f8162"], files: 11, ins: 94, del: 1,
+    desc: "A new equalizePanes action gives every pane in the tab the same width as the panes beside it and the same height as those above and below, so three columns come out as thirds rather than a half and two quarters (#4456).",
+  },
+  {
+    id: "taskbar-tab-badge", title: "The tab's icon on the taskbar button",
+    cat: "ui", catLabel: "UI & theming", kind: "feature",
+    dateAdded: "2026-11-01",
+    commits: ["300156ca3","0ed22e871"], files: 18, ins: 365, del: 3,
+    desc: "With showTabIconOnTaskbar on, a window's taskbar button carries the focused tab's icon as a small badge, so two Terminal windows can be told apart at a glance. Profile images, exe and dll icons, and glyph or emoji icons all work (#1871).",
   },
   {
     id: "small-knobs", title: "Small knobs for tabs and panes",

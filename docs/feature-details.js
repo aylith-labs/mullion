@@ -74,6 +74,22 @@ window.FEATURE_DETAILS = {
       "Open since 2021 as #10109, with four reports closed as its duplicates, and no pull request. Upstream tied it to a WinUI change (microsoft-ui-xaml#4930); this replaces the tooltip from the Terminal side instead.",
   },
 
+  "caption-close-tooltip": {
+    problem:
+      "Hovering the window's Close button showed two tooltips that said the same thing: the Terminal's own, and a yellow one Windows drew on top of it. Minimize and Maximize showed one each.",
+    how:
+      "So that Snap Layouts work, an invisible window lies over the caption buttons and tells Windows which button the pointer is on. Telling Windows that the pointer is on Close is enough, by itself, for Windows to draw its own Close tooltip, whatever the window then does with the mouse messages. Only Maximize needs to be a caption button to Windows, for the Snap Layouts flyout, so Close and Minimize are now reported as ordinary client area. Their mouse input comes back as client messages and is mapped to the button under the pointer: hover, press and click work as before. Maximize is unchanged.",
+    steps: [
+      "Hover the window's Close button and wait a second. One tooltip appears.",
+      "Hover Maximize: the Snap Layouts flyout still opens.",
+    ],
+    media: [
+      { kind: "compare", before: "caption-close-tooltip-upstream", after: "caption-close-tooltip", caption: "Hovering the Close button: upstream shows its own tooltip and a second one from Windows; Mullion shows one." },
+    ],
+    upstream:
+      "Open since 2022 as #12882, with #13359 and #16700 closed as its duplicates, and no pull request. A maintainer traced the regression to the Snap Layouts work in #11680, which is what put the hit-testing window over the buttons.",
+  },
+
   "infobar-follows-pane": {
     problem:
       "When a shell exits with an error, a bar across the window suggests changing the profile's <code>closeOnExit</code>. It stayed after the pane it was about had been closed, over a pane it had nothing to do with, until it was dismissed by hand.",
@@ -742,6 +758,62 @@ window.FEATURE_DETAILS = {
     ],
     upstream:
       "No upstream issue asks for docking to any edge. The closest is microsoft/terminal#11162 (open), which asks for a quake window taller than half the screen. This doesn't give you one: quake mode deliberately keeps its own top-edge, half-height placement.",
+  },
+
+  "focus-bell-tab": {
+    problem:
+      "A program can ring the terminal's bell to say it has finished, and a tab that rings in the background shows a bell beside its title. With several agents or builds running in their own tabs, the only way to find the ones that rang was to scan the tab strip for the glyph and click each one.",
+    how:
+      "<code>focusBellTab</code> looks at the tabs to the right of the current one, wrapping round to the start, and selects the first whose bell is showing. Selecting a tab clears its bell, as it always has, so pressing it again moves on to the next ringing tab, and once none is left it does nothing: no wraparound to the current tab, no sound, no message. It is in the command palette as <em>Focus next tab with a bell</em> and ships unbound.",
+    steps: [
+      "Bind it in Settings, Actions, or add <code>{ \"command\": \"focusBellTab\", \"keys\": \"ctrl+alt+b\" }</code> to settings.json.",
+      "In a background tab, run <code>sleep 5; printf '\\a'</code> (bash) and switch away. The tab shows a bell when it rings.",
+      "Press the key. The ringing tab is selected and its bell clears.",
+    ],
+    media: [
+      { kind: "compare", before: "focus-bell-tab-upstream", after: "focus-bell-tab", caption: "Two background tabs have rung their bell. Searching the command palette for <em>bell</em>: upstream has no such command; Mullion offers <em>Focus next tab with a bell</em>." },
+    ],
+    notes:
+      "The profile's <code>bellStyle</code> must not be <code>none</code>, or the bell never reaches the tab and there is nothing to jump to.",
+    upstream:
+      "Asked in #19788. The one pull request, #19789, added the same action under the same name and was closed so the design could be settled in the issue first. The maintainers' sketch there is a <code>filter</code> argument on <code>nextTab</code> (bell, activity, progress states); this keeps to the issue's own proposal, a separate action, so whatever upstream lands can sit beside it. Selecting the most recently ringing tab when a hidden window is summoned (#20531, closed as a duplicate) is not covered.",
+  },
+
+  "equalize-panes": {
+    problem:
+      "A new pane always splits the pane that has focus in two. Split a tab right twice and the columns come out as a half and two quarters; build a grid and the rows and columns are all different sizes. Evening them out meant pressing the resize keys until they looked about right.",
+    how:
+      "<code>equalizePanes</code> moves every separator in the tab. At each split, each side's share is the number of panes it lines up along that split's direction: a side split the same way adds its two halves up, a side split the other way counts its larger half, since those sit on top of one another. So three side-by-side panes get a third each, and a column holding two stacked panes counts as one column. Each position still goes through the same minimum-size clamp a drag or a resize key uses, so no pane is squeezed below its minimum. It is in the command palette as <em>Resize all panes equally</em> and ships unbound.",
+    steps: [
+      "Split a pane right, then split the new pane right again. The columns are a half and two quarters.",
+      "Run <em>Resize all panes equally</em> from the command palette. All three columns are the same width.",
+    ],
+    media: [
+      { kind: "compare", before: "equalize-panes-before", after: "equalize-panes", aligned: true, caption: "Four panes after three splits, before and after <em>Resize all panes equally</em>: the half and two quarters become three equal columns, and the last column's two panes stay half each. Upstream has no such action, so its tab stays as the before shot." },
+    ],
+    upstream:
+      "Asked in #4456, marked Help Wanted in 2020, with no pull request. #6002, splitting into equal sizes as you split, is a different ask and is not covered.",
+  },
+
+  "taskbar-tab-badge": {
+    problem:
+      "Every Terminal window has the same taskbar button, so with two or three open there is no telling which is which without hovering each one. The profile icons that tell the tabs apart inside a window never reach the taskbar.",
+    how:
+      "With <code>showTabIconOnTaskbar</code> on, the window puts the focused tab's icon on its taskbar button as an overlay badge, the small icon Windows draws in the button's corner. It follows the focused tab: switching tabs, or a pane in another profile taking focus, changes it. The icon is the one the tab draws. A profile image is scaled down to badge size, an exe or dll icon is extracted, and a glyph or emoji icon, the default profile icon included, is rendered to an icon first. A web image, or a file that does not load, leaves no badge. Turning the setting off clears it. The toggle is in Settings, Appearance, under System integration.",
+    steps: [
+      "Turn on <em>Show the tab's icon on the taskbar button</em> in Settings, Appearance.",
+      "Open tabs in two profiles with different icons and switch between them. The badge on the taskbar button follows.",
+    ],
+    settings: [
+      { key: "showTabIconOnTaskbar", def: "false", note: "Badge the window's taskbar button with the focused tab's icon." },
+    ],
+    media: [
+      { kind: "compare", before: "taskbar-tab-badge-off", after: "taskbar-tab-badge", aligned: true, caption: "The same window's taskbar button with the setting off, as upstream draws it, and on, badged with the focused tab's Ubuntu icon. The taskbar follows the Windows theme, not the Terminal's, so both themes show the same capture." },
+    ],
+    notes:
+      "Windows hides overlay badges when <em>Show badges on taskbar apps</em> is off in its taskbar settings.",
+    upstream:
+      "Asked in #1871 in 2019 and kept on the backlog, with #2299 and #10792 closed as its duplicates, and no pull request. Replacing the whole taskbar icon (#6556) was closed as not planned; the #1871 thread notes a pinned app takes its icon from its shortcut, and turned to the overlay badge instead.",
   },
 
   "small-knobs": {
