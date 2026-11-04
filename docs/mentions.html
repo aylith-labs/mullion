@@ -7,7 +7,7 @@
 <meta name="description" content="Where Mullion has been announced or listed: awesome lists, directories and forum posts, each with the text exactly as it was posted." />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Crect x='2' y='3' width='22' height='20' rx='4' fill='%23005fb8'/%3E%3Crect x='12' y='3' width='2' height='20' fill='%23fff'/%3E%3Crect x='2' y='8' width='22' height='1.6' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css?v=2026-10-25c" />
+<link rel="stylesheet" href="site.css?v=2026-11-04a" />
 <script src="site.js?v=2026-10-25c"></script>
 <script defer src="https://analytics.aylith.com/script.js" data-website-id="ff54ad51-b1c8-4a4c-a2dd-b6d77c4eb13d" data-domains="mullion.aylith.com"></script>
 </head>
@@ -95,6 +95,51 @@
 <!-- The posted text of each entry, rendered by GitHub's own Markdown renderer
      and then pointed at this site's copies of the images (GitHub's signed image
      URLs expire within minutes). One template per entry, keyed by its id. -->
+<template id="post-alternativeto-listing">
+<div class="listing">
+  <div class="listing-hero">
+    <svg class="listing-icon" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="3" width="22" height="20" rx="4" fill="#005fb8"/><rect x="12" y="3" width="2" height="20" fill="#fff"/><rect x="2" y="8" width="22" height="1.6" fill="#fff"/></svg>
+    <div class="listing-hero-text">
+      <p class="listing-name">Mullion</p>
+      <p class="listing-tagline">A fork of Windows Terminal with hover previews for links and files, tabs on any edge, and sessions that come back after a restart.</p>
+      <p class="listing-chips"><span class="listing-chip listing-chip-strong">Free</span><span class="listing-chip">Open source · MIT</span><span class="listing-chip">Windows</span><span class="listing-chip">by Aylith</span></p>
+    </div>
+  </div>
+  <div class="listing-alts">
+    <span class="listing-label">Alternative to</span>
+    <span class="listing-alt">Windows Terminal</span><span class="listing-alt">Tabby</span>
+  </div>
+  <div class="listing-shots">
+    <figure><img class="shot-light" alt="Hovering a GitHub issue link shows its details in a card" src="media/integration-previews-github-light.png"><img class="shot-dark" alt="Hovering a GitHub issue link shows its details in a card" src="media/integration-previews-github-dark.png"><figcaption>Hovering a GitHub issue link shows its details in a card</figcaption></figure>
+    <figure><img class="shot-light" alt="Tabs in a vertical sidebar on the left" src="media/tab-edges-left-light.png"><img class="shot-dark" alt="Tabs in a vertical sidebar on the left" src="media/tab-edges-left-dark.png"><figcaption>Tabs in a vertical sidebar on the left</figcaption></figure>
+    <figure><img class="shot-light" alt="Hovering a Markdown file path previews it rendered" src="media/file-previews-markdown-light.png"><img class="shot-dark" alt="Hovering a Markdown file path previews it rendered" src="media/file-previews-markdown-dark.png"><figcaption>Hovering a Markdown file path previews it rendered</figcaption></figure>
+  </div>
+  <ul class="listing-features" aria-label="Features ticked">
+    <li>No registration required</li><li>Portable</li><li>Support for themes</li><li>Command line interface</li><li>Ad-free</li><li>Dark mode</li><li>Works offline</li>
+  </ul>
+  <div class="listing-desc">
+    <p>Mullion is my fork of Windows Terminal, free and MIT-licensed, with the features I wanted in my own terminal:</p>
+    <ul>
+      <li><strong>Hover previews</strong>: GitHub issues and pull requests, Jira keys, Slack links and local files (rendered Markdown, highlighted source, images, PDFs) open in a card without leaving the terminal.</li>
+      <li><strong>Paths are links</strong>: Windows, UNC, WSL and ~/ paths open in the right WSL distribution.</li>
+      <li><strong>Tabs on any edge</strong>: top, bottom, or a resizable sidebar on the left or right.</li>
+      <li><strong>Sessions come back</strong>: after a restart a pane reattaches the tmux or zellij session it was running.</li>
+      <li><strong>A Settings UI</strong> with a filter, drag-to-reorder profiles, and a Save button that lists what will change.</li>
+    </ul>
+    <p>It runs from a portable ZIP: no installer, no Developer Mode. The website shows every feature beside upstream Windows Terminal, in light and dark.</p>
+    <p>Not affiliated with or endorsed by Microsoft.</p>
+  </div>
+  <dl class="listing-facts">
+    <div><dt>Website</dt><dd><a href="https://mullion.aylith.com">mullion.aylith.com</a></dd></div>
+    <div><dt>Source</dt><dd><a href="https://github.com/aylith-labs/mullion">aylith-labs/mullion</a></dd></div>
+    <div><dt>Tags</dt><dd>terminal-emulator, console</dd></div>
+    <div><dt>Category</dt><dd>OS &amp; Utilities</dd></div>
+    <div><dt>Released</dt><dd>27 September 2026</dd></div>
+    <div><dt>Review</dt><dd>Normal queue</dd></div>
+  </dl>
+  <blockquote class="listing-note"><span class="listing-label">Note to reviewers</span>I'm the developer. Mullion is an independent, open-source fork of Windows Terminal, so it fits best as an alternative to Windows Terminal. The description lists what it adds.</blockquote>
+</div>
+</template>
 <template id="post-awesome-windows-115">
 <p>Adds Mullion to Terminal, between MTPuTTY and Putty.</p>
 <p>Mullion is my fork of Windows Terminal (MIT, free), under active development. What it adds:</p>
@@ -194,6 +239,9 @@
   // Microsoft, and no email: this is where Mullion was announced or listed.
   // p: the platform, which picks the logo. status: open, merged, live, closed.
   var ENTRIES = [
+    { id: "alternativeto-listing", d: "2026-11-04T12:05:00Z", p: "directory", venue: "alternativeto.net",
+      kind: "Directory", status: "review", title: "Mullion, suggested as an alternative to Windows Terminal",
+      url: "https://alternativeto.net/software/windows-terminal/about/", label: "Submitted listing" },
     { id: "awesome-windows-115", d: "2026-10-24T15:35:23Z", p: "github", venue: "thechampagne/awesome-windows",
       kind: "Awesome list", status: "open", title: "Add Mullion to Terminal",
       url: "https://github.com/thechampagne/awesome-windows/pull/115" },
@@ -209,10 +257,12 @@
     github: { name: "GitHub", svg: '<svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>' },
     hn: { name: "Hacker News", svg: '<svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="2" fill="#ff6600"/><path fill="#fff" d="M4.2 3.5h1.5L8 7.9l2.3-4.4h1.5L8.7 9.2v3.3H7.3V9.2z"/></svg>' },
     reddit: { name: "Reddit", svg: '<svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="#ff4500"/><ellipse cx="8" cy="9.6" rx="4.4" ry="2.9" fill="#fff"/><circle cx="6.3" cy="9.3" r=".7" fill="#ff4500"/><circle cx="9.7" cy="9.3" r=".7" fill="#ff4500"/><circle cx="11.6" cy="4.2" r=".9" fill="#fff"/><path d="M8 6.7l.8-3 2.8.5" stroke="#fff" stroke-width=".6" fill="none"/></svg>' },
+    directory: { name: "Software directory", svg: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 9h2M7 13h2M7 17h2M12 9h5M12 13h5M12 17h3"/></svg>' },
     web: { name: "Website", svg: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>' }
   };
   var STATUS = {
     open: '<span class="tag tag-accent">Open</span>',
+    review: '<span class="tag tag-accent">In review</span>',
     merged: '<span class="tag tag-success">Merged</span>',
     live: '<span class="tag tag-success">Live</span>',
     closed: '<span class="tag">Closed</span>'
@@ -237,7 +287,7 @@
 
   // --- Filters: free text (site, title, kind and the posted text itself),
   // plus one kind and one status. Both views show the same filtered set. ----
-  var STATUS_LABEL = { open: "Open", merged: "Merged", live: "Live", closed: "Closed" };
+  var STATUS_LABEL = { open: "Open", review: "In review", merged: "Merged", live: "Live", closed: "Closed" };
   var filter = { q: "", kind: "all", status: "all" };
   var text = {};
   ENTRIES.forEach(function (e) {
@@ -286,7 +336,7 @@
           '<div class="mention-head-text"><div class="mention-meta"><span class="tag">' + esc(e.kind) + "</span>" + (STATUS[e.status] || "") +
           '<span class="mention-venue">' + esc(e.venue) + '</span><span class="mention-when">' + ago(e.d) + "</span></div>" +
           '<h2 class="mention-title">' + link(e) + "</h2></div></header>" +
-        '<details data-id="' + esc(e.id) + '"' + (openIds[e.id] ? " open" : "") + "><summary>Posted text</summary>" + posted(e) + "</details>" +
+        '<details data-id="' + esc(e.id) + '"' + (openIds[e.id] ? " open" : "") + "><summary>" + esc(e.label || "Posted text") + "</summary>" + posted(e) + "</details>" +
         "</article></li>";
     });
     timeline.innerHTML = html;

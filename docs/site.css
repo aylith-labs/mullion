@@ -785,6 +785,49 @@ table.upstream-table td.title-cell .desc a { font-weight: 400; color: var(--acce
 .mention-posted code { font-size: 0.86em; padding: 1px 4px; border-radius: 4px; background: var(--bg-alt); }
 .mention-missing { color: var(--text-tertiary); font-style: italic; }
 
+/* A directory listing as submitted: hero, alternatives, shots, ticks, facts. */
+.listing { display: grid; gap: 14px; }
+.listing p, .listing ul, .listing dl, .listing figure, .listing blockquote { margin: 0; }
+.listing-hero { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: 10px; border: 1px solid var(--accent-border);
+  background: radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 70%), var(--bg-alt); }
+.listing-icon { flex: none; width: 64px; height: 64px; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18)); }
+.listing-hero-text { min-width: 0; display: grid; gap: 6px; }
+.listing-name { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text); line-height: 1.2; }
+.listing-tagline { color: var(--muted); }
+.listing-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.listing-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 0.8rem;
+  background: var(--card); border: 1px solid var(--stroke-subtle); color: var(--text); }
+.listing-chip-strong { background: var(--success-bg); border-color: transparent; color: var(--success); font-weight: 600; }
+.listing-label { font-size: 0.74rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-tertiary); }
+.listing-alts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.listing-alt { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 6px; font-weight: 600; font-size: 0.86rem;
+  background: var(--accent-soft); border: 1px solid var(--accent-border); color: var(--accent-text); }
+.listing-alt::before { content: "\21C4"; font-weight: 400; }
+.listing-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.listing-shots figure { display: grid; gap: 6px; align-content: start; }
+.listing-shots img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top left; border-radius: 8px;
+  border: 1px solid var(--stroke-subtle); box-shadow: var(--shadow-card); }
+.listing-shots figcaption { font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
+.mention-posted .listing-features { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.listing-features li { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; color: var(--text); }
+.listing-features li::before { content: "\2713"; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  font-size: 0.7rem; font-weight: 700; background: var(--success-bg); color: var(--success); }
+.listing-desc { padding: 12px 14px; border-radius: 8px; background: var(--bg-alt); }
+.listing-desc p, .listing-desc ul { margin: 0 0 8px; }
+.listing-desc > :last-child { margin-bottom: 0; }
+.listing-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border-radius: 8px; overflow: hidden;
+  background: var(--stroke-subtle); border: 1px solid var(--stroke-subtle); }
+.listing-facts > div { padding: 8px 12px; background: var(--card); min-width: 0; }
+.listing-facts dt { font-size: 0.74rem; color: var(--text-tertiary); }
+.listing-facts dd { margin: 2px 0 0; font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.listing-note { display: grid; gap: 4px; padding: 10px 14px; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--bg-alt); color: var(--muted); }
+@media (max-width: 640px) {
+  .listing-hero { align-items: flex-start; }
+  .listing-icon { width: 48px; height: 48px; }
+  .listing-shots { grid-template-columns: 1fr; }
+  .listing-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 table.mentions-table { min-width: 0; table-layout: fixed; }
 table.mentions-table th[data-key="d"] { width: 8rem; }
 table.mentions-table th[data-key="venue"] { width: 30%; }

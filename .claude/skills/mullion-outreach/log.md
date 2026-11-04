@@ -18,12 +18,13 @@ Newest last. One line per step taken, plus the lesson when there is one.
 | 2026-10-23 | awesome-wsl PR, Terminals section, WSL features first, trademark note | https://github.com/sirredbeard/awesome-wsl/pull/124 | Open | |
 | 2026-10-23 | Daily read-only digest routine for every listed venue | https://claude.ai/code/routines/trig_015tWF1J55Gv6EjG4B9RotTu | Running, 07:30 UTC | A cloud routine reaches only the repos attached as its sources. |
 | 2026-10-24 | awesome-windows PR, Terminal section, between MTPuTTY and Putty | https://github.com/thechampagne/awesome-windows/pull/115 | Open | |
+| 2026-11-04 | AlternativeTo listing (account steven_piy), alternatives Windows Terminal and Tabby, free normal queue | https://alternativeto.net/my-submissions/ | In review | The form has no "alternative to" field: alternatives are suggested after submitting, and a listing without them is flagged as incomplete. Descriptions may not contain links. Icons must be 280px or more. The queue holds thousands of apps; a $19 skip-the-queue option exists and was not used. |
 
 ## Next
 
 | Order | Step | Who | Gate |
 |---|---|---|---|
-| 1 | AlternativeTo listing, as an alternative to Windows Terminal, leading with what differs | Steven, web form | 2026-10-25 or later |
+| 1 | AlternativeTo: when approved, set the mentions entry to live and point it at the listing | watcher | approval |
 | 2 | Show HN, Steven's own words | Steven | close-pane crash fix verified and promoted (now in the 2026-10-23 portable ZIP); afterTabs vertical-strip bug fixed; Steven free to stay in the thread |
 | 3 | One subreddit (r/commandline) | Steven | a week after HN; rules read logged in |
 | 4 | The four Stack Exchange answers | Steven | each capability re-checked first |
