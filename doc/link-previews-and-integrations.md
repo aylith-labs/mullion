@@ -87,7 +87,7 @@ preview.
 | **Jira** | `https://<host>/browse/<KEY>` links, and (opt-in) issue keys like `ACME-8209` in plain text | Site host (setting) + account email and API token (credentials) | Credentials are only ever sent to the configured host — see [Host guarding](#host-guarding). Create an API token at `id.atlassian.com` → Security → API tokens. Carries the transition [action](#actions), a Development [field group](#field-groups) fed by Jira's `dev-status` API, and Description / Comments [tabs](#tabs). |
 | **Slack** | `https://<workspace>.slack.com/archives/<channel>/p<ts>` permalinks, including thread replies (`?thread_ts=`) | A bot token (credential) | The token needs the `channels:history`, `groups:history`, and `users:read` scopes, and the bot must be a member of the channel it's reading. |
 | **Stith** | `stith://session/<id>`, `stith://focus/<id>`, `stith://copy/<id>`, `https://<server>/(s\|agent\|sessions\|embed/s)/<id>` links, and a **bare session id** printed with no scheme around it | Server URL (setting) | No credentials. The fetch allows an untrusted certificate, so a self-signed `lvh.me` cert doesn't block the preview. A [`detectPatterns`](#detectpatterns) entry makes a bare `stith://…` in plain output hoverable without OSC 8. Each verb is matched separately so a `focus` link is never read as a `session` one, and `focus` carries an [`open` action](#open-actions) that raises the terminal the session runs in. |
-| **shefrd** | Multiplexer pane addresses like `w1N:p39`, and `shefrd://pane/<id>` links | Stith server URL (setting) | Reads and focuses through stith, which already holds a socket to every multiplexer server — so the same manifest works from Windows, from WSL, and from inside a pane, with no binary invoked directly. Clicking a pane id focuses that pane ([`open`](#open-actions)); the card shows its tab, space, agent and status (`hibernated` for an agent put to sleep, which the multiplexer itself still reports as idle), and offers Focus, Wake or Hibernate, and Keep awake or Allow sleep. |
+| **shefrd** | Multiplexer pane addresses like `w1N:p39`, and `shefrd://pane/<id>` links | Stith server URL (setting) | Reads and focuses through stith, which already holds a socket to every multiplexer server — so the same manifest works from Windows, from WSL, and from inside a pane, with no binary invoked directly. Clicking a pane id focuses that pane ([`open`](#open-actions)); the card shows its tab, space, agent and status (`hibernated` for an agent put to sleep, `held` for one a restore has not started yet; the multiplexer reports both as idle), and offers Focus, Wake or Hibernate, and Keep awake or Allow sleep. |
 
 Each plugin's fields (which pieces of data show on the card, and in what order) can be trimmed on
 the Integrations settings page — see below.
@@ -743,11 +743,12 @@ so a status the action changed is shown changed.
 `when` and `unless` decide whether an action applies to *this* thing, using the same test as a
 fetch step's, against the results the card was built from. "Present" means a non-empty string other
 than `false`, so a boolean a server always sends works as a switch. The shefrd manifest offers
-**Wake** only to a hibernated agent and **Hibernate** only to an awake one:
+**Wake** only to an agent that is asleep (hibernated, or held by a restore) and **Hibernate** only
+to an awake one:
 
 ```jsonc
-{ "key": "wake",      "label": "Wake",      "when": "{{pane:/hibernated}}", /* … */ },
-{ "key": "hibernate", "label": "Hibernate", "when": "{{pane:/agent}}", "unless": "{{pane:/hibernated}}", /* … */ }
+{ "key": "wake",      "label": "Wake",      "when": "{{pane:/asleep}}", /* … */ },
+{ "key": "hibernate", "label": "Hibernate", "when": "{{pane:/agent}}", "unless": "{{pane:/asleep}}", /* … */ }
 ```
 
 | Key | Type | Meaning |
