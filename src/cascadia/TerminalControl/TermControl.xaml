@@ -1428,35 +1428,50 @@
                                                     Spacing="4"
                                                     Visibility="Collapsed">
                                             <!--
+                                                One button per "button" action the integration offers
+                                                for this thing (Focus, Wake...), built per result by
+                                                _rebuildHyperlinkActions. Empty for a choice-only one.
+                                            -->
+                                            <StackPanel x:Name="HyperlinkActionButtons"
+                                                        Orientation="Horizontal"
+                                                        Spacing="4" />
+                                            <!--
+                                                The first "choice" action: a list to pick from and Apply.
+                                                Collapsed when the integration offers buttons only.
+
                                                 The dropdown opens in a popup of its own, outside the
                                                 card, so the pointer moving onto the list leaves the
                                                 card and would otherwise start the hide timer. The
                                                 two DropDown handlers are what hold the card open.
                                             -->
-                                            <TextBox x:Name="HyperlinkActionFilter"
-                                                     x:Uid="HyperlinkActionFilter"
-                                                     Width="120"
-                                                     VerticalAlignment="Center"
-                                                     IsSpellCheckEnabled="False"
-                                                     TextChanged="_HyperlinkActionFilterChanged"
-                                                     Visibility="Collapsed" />
-                                            <ComboBox x:Name="HyperlinkActionOptions"
-                                                      x:Uid="HyperlinkActionOptions"
-                                                      MinWidth="150"
-                                                      DropDownClosed="_HyperlinkActionDropDownClosed"
-                                                      DropDownOpened="_HyperlinkActionDropDownOpened"
-                                                      SelectionChanged="_HyperlinkActionOptionChanged" />
-                                            <Button x:Name="HyperlinkActionApplyButton"
-                                                    x:Uid="HyperlinkActionApplyButton"
-                                                    VerticalAlignment="Center"
-                                                    AllowFocusOnInteraction="False"
-                                                    Click="_HyperlinkActionApplyClick" />
-                                            <Button x:Name="HyperlinkActionUndoButton"
-                                                    x:Uid="HyperlinkActionUndoButton"
-                                                    VerticalAlignment="Center"
-                                                    AllowFocusOnInteraction="False"
-                                                    Click="_HyperlinkActionUndoClick"
-                                                    Visibility="Collapsed" />
+                                            <StackPanel x:Name="HyperlinkActionChoice"
+                                                        Orientation="Horizontal"
+                                                        Spacing="4">
+                                                <TextBox x:Name="HyperlinkActionFilter"
+                                                         x:Uid="HyperlinkActionFilter"
+                                                         Width="120"
+                                                         VerticalAlignment="Center"
+                                                         IsSpellCheckEnabled="False"
+                                                         TextChanged="_HyperlinkActionFilterChanged"
+                                                         Visibility="Collapsed" />
+                                                <ComboBox x:Name="HyperlinkActionOptions"
+                                                          x:Uid="HyperlinkActionOptions"
+                                                          MinWidth="150"
+                                                          DropDownClosed="_HyperlinkActionDropDownClosed"
+                                                          DropDownOpened="_HyperlinkActionDropDownOpened"
+                                                          SelectionChanged="_HyperlinkActionOptionChanged" />
+                                                <Button x:Name="HyperlinkActionApplyButton"
+                                                        x:Uid="HyperlinkActionApplyButton"
+                                                        VerticalAlignment="Center"
+                                                        AllowFocusOnInteraction="False"
+                                                        Click="_HyperlinkActionApplyClick" />
+                                                <Button x:Name="HyperlinkActionUndoButton"
+                                                        x:Uid="HyperlinkActionUndoButton"
+                                                        VerticalAlignment="Center"
+                                                        AllowFocusOnInteraction="False"
+                                                        Click="_HyperlinkActionUndoClick"
+                                                        Visibility="Collapsed" />
+                                            </StackPanel>
                                             <mux:ProgressRing x:Name="HyperlinkActionProgress"
                                                               Width="16"
                                                               Height="16"

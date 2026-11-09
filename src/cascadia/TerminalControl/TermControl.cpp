@@ -4212,6 +4212,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         HyperlinkCardTabStrip().Children().Clear();
         HyperlinkCardTabStrip().Visibility(Visibility::Collapsed);
         HyperlinkCardActionRow().Visibility(Visibility::Collapsed);
+        HyperlinkActionButtons().Children().Clear();
         HyperlinkActionOptions().Items().Clear();
         HyperlinkActionFields().Children().Clear();
         HyperlinkActionFields().Visibility(Visibility::Collapsed);
@@ -6096,32 +6097,63 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         }
     }
 
-    // Only the first action is offered. The card has room for one row, and no
-    // integration declares more than one today; a second would want the pane.
+    // Every button action gets a button of its own; of the choice actions only the
+    // first is offered, because a list plus Apply fills the row. The service hands a
+    // button over with no options and drops a choice that has none, so the option
+    // count is what tells the two apart.
     void TermControl::_rebuildHyperlinkActions(const Control::HyperlinkPreview& preview)
     {
         const auto combo = HyperlinkActionOptions();
         combo.Items().Clear();
+        HyperlinkActionButtons().Children().Clear();
         HyperlinkActionFields().Children().Clear();
         HyperlinkActionFields().Visibility(Visibility::Collapsed);
         HyperlinkActionError().Visibility(Visibility::Collapsed);
         _currentHyperlinkAction = nullptr;
 
         const auto actions = preview ? preview.Actions() : nullptr;
-        if (!actions || actions.Size() == 0)
+        if (actions)
         {
-            HyperlinkCardActionRow().Visibility(Visibility::Collapsed);
-            return;
+            for (const auto& action : actions)
+            {
+                if (!action || action.Key().empty())
+                {
+                    continue;
+                }
+                const auto options = action.Options();
+                if (options && options.Size() > 0)
+                {
+                    if (!_currentHyperlinkAction)
+                    {
+                        _currentHyperlinkAction = action;
+                    }
+                    continue;
+                }
+
+                Controls::Button button;
+                button.Content(winrt::box_value(action.Label().empty() ? action.Key() : action.Label()));
+                button.VerticalAlignment(VerticalAlignment::Center);
+                button.AllowFocusOnInteraction(false);
+                button.Click([weakThis = get_weak(), key = action.Key()](auto&&, auto&&) {
+                    if (const auto self = weakThis.get(); self && !self->_IsClosing())
+                    {
+                        self->_invokeHyperlinkAction(self->_hyperlinkPreviewGeneration, key, {});
+                    }
+                });
+                HyperlinkActionButtons().Children().Append(button);
+            }
         }
 
-        _currentHyperlinkAction = actions.GetAt(0);
-        const auto options = _currentHyperlinkAction ? _currentHyperlinkAction.Options() : nullptr;
-        if (!options || options.Size() == 0)
+        const auto hasButtons = HyperlinkActionButtons().Children().Size() > 0;
+        HyperlinkActionButtons().Visibility(hasButtons ? Visibility::Visible : Visibility::Collapsed);
+        HyperlinkActionChoice().Visibility(_currentHyperlinkAction ? Visibility::Visible : Visibility::Collapsed);
+
+        if (!_currentHyperlinkAction)
         {
-            _currentHyperlinkAction = nullptr;
-            HyperlinkCardActionRow().Visibility(Visibility::Collapsed);
+            HyperlinkCardActionRow().Visibility(hasButtons ? Visibility::Visible : Visibility::Collapsed);
             return;
         }
+        const auto options = _currentHyperlinkAction.Options();
 
         if (const auto label = _currentHyperlinkAction.Label(); !label.empty())
         {
@@ -6347,6 +6379,13 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         HyperlinkActionProgress().Visibility(busy ? Visibility::Visible : Visibility::Collapsed);
         HyperlinkActionOptions().IsEnabled(!busy);
         HyperlinkActionUndoButton().IsEnabled(!busy);
+        for (const auto& child : HyperlinkActionButtons().Children())
+        {
+            if (const auto button = child.try_as<Controls::Button>())
+            {
+                button.IsEnabled(!busy);
+            }
+        }
         // A StackPanel is not a Control, so it has no IsEnabled: block the input
         // and dim it instead, which is what IsEnabled would have looked like.
         HyperlinkActionFields().IsHitTestVisible(!busy);
@@ -6391,7 +6430,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     {
         if (const auto option = _selectedHyperlinkActionOption())
         {
-            _invokeHyperlinkAction(_hyperlinkPreviewGeneration, option.Id());
+            if (_currentHyperlinkAction)
+            {
+                _invokeHyperlinkAction(_hyperlinkPreviewGeneration, _currentHyperlinkAction.Key(), option.Id());
+            }
         }
     }
 
@@ -6410,20 +6452,26 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         HyperlinkActionFields().Children().Clear();
         HyperlinkActionFields().Visibility(Visibility::Collapsed);
 
-        _invokeHyperlinkAction(_hyperlinkPreviewGeneration, choiceId);
+        if (_currentHyperlinkAction)
+        {
+            _invokeHyperlinkAction(_hyperlinkPreviewGeneration, _currentHyperlinkAction.Key(), choiceId);
+        }
     }
 
     // Running an action is two round trips -- the change, then a refresh that shows
     // it -- so it takes the same generation guard the preview fetch does: by the time
     // either returns the pointer may be over a different link entirely.
-    safe_void_coroutine TermControl::_invokeHyperlinkAction(uint32_t generation, winrt::hstring choiceId)
+    //
+    // A choice carries the picked option's id; a button carries none, and has no
+    // form, no undo and nothing to say about one -- Focus has no way back to offer.
+    safe_void_coroutine TermControl::_invokeHyperlinkAction(uint32_t generation, winrt::hstring actionKey, winrt::hstring choiceId)
     {
         const auto weakThis{ get_weak() };
         const auto provider{ _hyperlinkPreviewProvider };
         const auto dispatcher{ Dispatcher() };
-        const auto action{ _currentHyperlinkAction };
         const auto preview{ _currentHyperlinkPreview };
-        if (!provider || !dispatcher || !action || !preview)
+        const auto isChoice = !choiceId.empty();
+        if (!provider || !dispatcher || actionKey.empty() || !preview)
         {
             co_return;
         }
@@ -6436,8 +6484,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             sourceText = _hoveredUri;
         }
         const auto integration = _currentHyperlinkTooltipSettings.integration;
-        const auto actionKey = action.Key();
-        const auto fieldValues = _collectHyperlinkActionFields();
+        const auto fieldValues = isChoice ? _collectHyperlinkActionFields() : winrt::single_threaded_map<winrt::hstring, winrt::hstring>();
 
         _setHyperlinkActionBusy(true);
         HyperlinkActionError().Visibility(Visibility::Collapsed);
@@ -6486,6 +6533,15 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (refreshed)
         {
             self->_applyHyperlinkPreview(refreshed);
+        }
+
+        if (!isChoice)
+        {
+            if (self->HyperlinkCard().Visibility() == Visibility::Visible)
+            {
+                self->_showHyperlinkCard();
+            }
+            co_return;
         }
 
         self->_hyperlinkUndoChoiceId = result.UndoChoiceId();

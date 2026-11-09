@@ -27,6 +27,7 @@ namespace SettingsModelUnitTests
 
         TEST_METHOD(ValidateProfilesExist);
         TEST_METHOD(IntegrationAccountMetadata);
+        TEST_METHOD(IntegrationActionConditions);
         TEST_METHOD(MigrateGitHubReferencePreset);
         TEST_METHOD(ValidateDefaultProfileExists);
         TEST_METHOD(ValidateDuplicateProfiles);
@@ -2347,6 +2348,33 @@ namespace SettingsModelUnitTests
         const auto manifest = implementation::IntegrationManifest::FromJson(VerifyParseSucceeded(R"({"id":"github","name":"GitHub","account":{"provider":"github"}})"), L"test", true);
         VERIFY_IS_NOT_NULL(manifest.get());
         VERIFY_ARE_EQUAL(winrt::hstring{ L"github" }, manifest->AccountProvider());
+    }
+
+    // A button action keeps its when/unless, and a manifest that offers several
+    // buttons keeps every one of them, in order -- the card shows them all.
+    void DeserializationTests::IntegrationActionConditions()
+    {
+        const auto manifest = implementation::IntegrationManifest::FromJson(VerifyParseSucceeded(R"json({
+            "id": "panes", "name": "Panes",
+            "actions": [
+                { "key": "focus", "label": "Focus", "url": "https://example.test/focus" },
+                { "key": "wake", "label": "Wake", "when": "{{pane:/hibernated}}", "url": "https://example.test/wake" },
+                { "key": "hibernate", "kind": "button", "when": "{{pane:/agent}}", "unless": "{{pane:/hibernated}}", "url": "https://example.test/hibernate" }
+            ]
+        })json"), L"test", true);
+        VERIFY_IS_NOT_NULL(manifest.get());
+        const auto actions = manifest->Actions();
+        VERIFY_ARE_EQUAL(3u, actions.Size());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"focus" }, actions.GetAt(0).Key());
+        VERIFY_IS_TRUE(actions.GetAt(0).Kind() == IntegrationActionKind::Button);
+        VERIFY_IS_TRUE(actions.GetAt(0).When().empty());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"{{pane:/hibernated}}" }, actions.GetAt(1).When());
+        VERIFY_IS_TRUE(actions.GetAt(1).Unless().empty());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"{{pane:/agent}}" }, actions.GetAt(2).When());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"{{pane:/hibernated}}" }, actions.GetAt(2).Unless());
+        // An unnamed label falls back to the key, and a button defaults to POST.
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"hibernate" }, actions.GetAt(2).Label());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"POST" }, actions.GetAt(2).Method());
     }
 
     void DeserializationTests::MigrateGitHubReferencePreset()

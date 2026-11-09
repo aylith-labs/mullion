@@ -393,9 +393,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void _fillHyperlinkFields(const Control::HyperlinkPreview& preview);
         void _fillHyperlinkComments(const Control::HyperlinkPreviewTab& tab);
 
-        // The action the card is currently offering, plus the id that would put the
-        // last applied one back. Only the first action is shown: the card is small,
-        // and no integration declares more than one today.
+        // The choice action the card is currently offering, plus the id that would put
+        // the last applied one back. Only the first choice is shown, since a list plus
+        // Apply fills the row; button actions each get a button beside it.
         Control::HyperlinkPreviewAction _currentHyperlinkAction{ nullptr };
         winrt::hstring _hyperlinkUndoChoiceId;
         // The Undo button's own localized label, kept so that relabelling it with the
@@ -410,7 +410,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         Control::HyperlinkPreviewActionOption _selectedHyperlinkActionOption();
         Windows::Foundation::Collections::IMap<winrt::hstring, winrt::hstring> _collectHyperlinkActionFields();
         void _setHyperlinkActionBusy(bool busy);
-        safe_void_coroutine _invokeHyperlinkAction(uint32_t generation, winrt::hstring choiceId);
+        safe_void_coroutine _invokeHyperlinkAction(uint32_t generation, winrt::hstring actionKey, winrt::hstring choiceId);
         void _HyperlinkActionOptionChanged(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::Controls::SelectionChangedEventArgs& e);
         // The options dropdown is a popup outside the card, so the pointer reaching
         // the list counts as leaving the card. These hold the card open across that.

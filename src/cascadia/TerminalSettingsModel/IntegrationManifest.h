@@ -136,6 +136,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         WINRT_PROPERTY(hstring, Key);
         WINRT_PROPERTY(hstring, Label);
         WINRT_PROPERTY(Model::IntegrationActionKind, Kind, Model::IntegrationActionKind::Button);
+        WINRT_PROPERTY(hstring, When);
+        WINRT_PROPERTY(hstring, Unless);
 
         WINRT_PROPERTY(hstring, OptionsPath);
         WINRT_PROPERTY(hstring, OptionIdPath);

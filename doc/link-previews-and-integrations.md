@@ -87,7 +87,7 @@ preview.
 | **Jira** | `https://<host>/browse/<KEY>` links, and (opt-in) issue keys like `ACME-8209` in plain text | Site host (setting) + account email and API token (credentials) | Credentials are only ever sent to the configured host — see [Host guarding](#host-guarding). Create an API token at `id.atlassian.com` → Security → API tokens. Carries the transition [action](#actions), a Development [field group](#field-groups) fed by Jira's `dev-status` API, and Description / Comments [tabs](#tabs). |
 | **Slack** | `https://<workspace>.slack.com/archives/<channel>/p<ts>` permalinks, including thread replies (`?thread_ts=`) | A bot token (credential) | The token needs the `channels:history`, `groups:history`, and `users:read` scopes, and the bot must be a member of the channel it's reading. |
 | **Stith** | `stith://session/<id>`, `stith://focus/<id>`, `stith://copy/<id>`, `https://<server>/(s\|agent\|sessions\|embed/s)/<id>` links, and a **bare session id** printed with no scheme around it | Server URL (setting) | No credentials. The fetch allows an untrusted certificate, so a self-signed `lvh.me` cert doesn't block the preview. A [`detectPatterns`](#detectpatterns) entry makes a bare `stith://…` in plain output hoverable without OSC 8. Each verb is matched separately so a `focus` link is never read as a `session` one, and `focus` carries an [`open` action](#open-actions) that raises the terminal the session runs in. |
-| **shefrd** | Multiplexer pane addresses like `w1N:p39`, and `shefrd://pane/<id>` links | Stith server URL (setting) | Reads and focuses through stith, which already holds a socket to every multiplexer server — so the same manifest works from Windows, from WSL, and from inside a pane, with no binary invoked directly. Clicking a pane id focuses that pane ([`open`](#open-actions)); the card shows its tab, space, agent and status. |
+| **shefrd** | Multiplexer pane addresses like `w1N:p39`, and `shefrd://pane/<id>` links | Stith server URL (setting) | Reads and focuses through stith, which already holds a socket to every multiplexer server — so the same manifest works from Windows, from WSL, and from inside a pane, with no binary invoked directly. Clicking a pane id focuses that pane ([`open`](#open-actions)); the card shows its tab, space, agent and status (`hibernated` for an agent put to sleep, which the multiplexer itself still reports as idle), and offers Focus, Wake or Hibernate, and Keep awake or Allow sleep. |
 
 Each plugin's fields (which pieces of data show on the card, and in what order) can be trimmed on
 the Integrations settings page — see below.
@@ -477,8 +477,8 @@ never consults the shell.
 | `commandLine` | template string | `command` only. |
 | `stdin` | template string | `command` only, optional. |
 | `timeoutMs` | number | Both. Defaults to `8000` when unset or ≤ 0. |
-| `when` | template string | Run this step only if the template expands to a non-empty string. |
-| `unless` | template string | Skip this step if the template expands to a non-empty string. |
+| `when` | template string | Run this step only if the template expands to something present: a non-empty string other than `false`. |
+| `unless` | template string | Skip this step if the template expands to something present. |
 | `optional` | boolean | A failing step is recorded and stepped over instead of ending the fetch. See [Optional steps](#optional-steps). |
 | `deferred` | boolean | Not run by the fetch that paints the card. Run when a tab naming this step (`"step": "<id>"`) is first opened. See [Lazily fetched tabs](#lazily-fetched-tabs). |
 
@@ -736,11 +736,27 @@ reads. Two kinds:
   request for whichever one the user picks. The chosen option's id is available to the request
   template as `{{choice}}`.
 
+Every button gets a button of its own on the card and in the pane; of the choice actions only the
+first is shown, since a list and Apply fill the row. After either kind runs, the card fetches again,
+so a status the action changed is shown changed.
+
+`when` and `unless` decide whether an action applies to *this* thing, using the same test as a
+fetch step's, against the results the card was built from. "Present" means a non-empty string other
+than `false`, so a boolean a server always sends works as a switch. The shefrd manifest offers
+**Wake** only to a hibernated agent and **Hibernate** only to an awake one:
+
+```jsonc
+{ "key": "wake",      "label": "Wake",      "when": "{{pane:/hibernated}}", /* … */ },
+{ "key": "hibernate", "label": "Hibernate", "when": "{{pane:/agent}}", "unless": "{{pane:/hibernated}}", /* … */ }
+```
+
 | Key | Type | Meaning |
 |---|---|---|
 | `key` | string | Identifies the action. |
 | `label` | string | Shown on the control. Defaults to `key`. |
 | `kind` | `"button"` (default) \| `"choice"` | |
+| `when` | template string | Offer the action only when this expands to something present. |
+| `unless` | template string | Do not offer the action when this expands to something present. |
 | `optionsPath` | JSON pointer | **Choice only.** The array of options, in a fetch step's result. |
 | `optionIdPath` | JSON pointer | Relative to one option: the value `{{choice}}` becomes. |
 | `optionLabelPath` | JSON pointer | Relative to one option: what to show in the list. |

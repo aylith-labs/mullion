@@ -80,7 +80,7 @@ namespace winrt::TerminalApp::implementation
         winrt::Windows::Foundation::IInspectable _undoDefaultContent{ nullptr };
 
         safe_void_coroutine _fetch(uint32_t generation, bool refresh);
-        safe_void_coroutine _invokeAction(uint32_t generation, winrt::hstring choiceId);
+        safe_void_coroutine _invokeAction(uint32_t generation, winrt::hstring actionKey, winrt::hstring choiceId);
 
         void _setLoading(bool loading);
         void _render(const winrt::Microsoft::Terminal::Control::HyperlinkPreview& preview);

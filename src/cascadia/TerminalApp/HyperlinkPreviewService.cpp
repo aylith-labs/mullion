@@ -143,6 +143,10 @@ namespace winrt::TerminalApp::implementation
             std::wstring Key;
             std::wstring Label;
             bool IsChoice{ false };
+            // Templates tested against the card's own results: offered only
+            // when When is present and Unless is not (see IsPresent).
+            std::wstring When;
+            std::wstring Unless;
 
             std::wstring OptionsPath;
             std::wstring OptionIdPath;
@@ -662,6 +666,19 @@ namespace
         }
 
         return lookIn(context.Groups, name);
+    }
+
+    std::wstring Expand(std::wstring_view templateText, const ExpandContext& context, Escape escape);
+
+    // The test behind every `when`/`unless`: a template counts as present when
+    // it expands to something other than nothing or "false". The second half
+    // is what lets a server that always sends a boolean drive one -- stith's
+    // pane card carries "hibernated": false for an awake agent, and without
+    // it {{pane:/hibernated}} would be present on every pane.
+    bool IsPresent(std::wstring_view templateText, const ExpandContext& context)
+    {
+        const auto value = Expand(templateText, context, Escape::None);
+        return !value.empty() && value != L"false";
     }
 
     // {{name}} substitution, and nothing else. An unknown name expands to
@@ -1253,11 +1270,11 @@ namespace
             {
                 continue;
             }
-            if (!step.When.empty() && Expand(step.When, context, Escape::None).empty())
+            if (!step.When.empty() && !IsPresent(step.When, context))
             {
                 continue;
             }
-            if (!step.Unless.empty() && !Expand(step.Unless, context, Escape::None).empty())
+            if (!step.Unless.empty() && IsPresent(step.Unless, context))
             {
                 continue;
             }
@@ -1620,12 +1637,26 @@ namespace
         return option;
     }
 
-    void BuildActions(const Snapshot::Plugin& plugin, const ResultReader& reader, const Control::HyperlinkPreview& preview)
+    // What the card is offered, in manifest order. A button arrives with no
+    // options and a choice always with at least one -- a choice with nothing to
+    // choose from is dropped here -- so the card tells the two apart by that
+    // alone. An action whose when/unless says it does not apply to this thing
+    // (Wake on an agent that is awake) is not offered at all.
+    void BuildActions(const Snapshot::Plugin& plugin, const ResultReader& reader, const ExpandContext& context, const Control::HyperlinkPreview& preview)
     {
         auto actions = winrt::single_threaded_vector<Control::HyperlinkPreviewAction>();
 
         for (const auto& action : plugin.Actions)
         {
+            if (!action.When.empty() && !IsPresent(action.When, context))
+            {
+                continue;
+            }
+            if (!action.Unless.empty() && IsPresent(action.Unless, context))
+            {
+                continue;
+            }
+
             Control::HyperlinkPreviewAction row{};
             row.Key(winrt::hstring{ action.Key });
             row.Label(winrt::hstring{ action.Label });
@@ -2206,7 +2237,7 @@ namespace
         }
 
         BuildTabs(plugin, reader, preview);
-        BuildActions(plugin, reader, preview);
+        BuildActions(plugin, reader, context, preview);
 
         // An assumed owner says so, and the card's one action row becomes the
         // way to change it: picking the wrong repository matters more than
@@ -2887,6 +2918,8 @@ namespace winrt::TerminalApp::implementation
                         entryAction.Key = std::wstring{ action.Key() };
                         entryAction.Label = std::wstring{ action.Label() };
                         entryAction.IsChoice = action.Kind() == Model::IntegrationActionKind::Choice;
+                        entryAction.When = std::wstring{ action.When() };
+                        entryAction.Unless = std::wstring{ action.Unless() };
                         entryAction.OptionsPath = std::wstring{ action.OptionsPath() };
                         entryAction.OptionIdPath = std::wstring{ action.OptionIdPath() };
                         entryAction.OptionLabelPath = std::wstring{ action.OptionLabelPath() };

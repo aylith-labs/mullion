@@ -890,32 +890,61 @@ namespace winrt::TerminalApp::implementation
         }
     }
 
-    // Only the first action is offered, matching the card: no integration declares
-    // more than one today, and a second would need a layout of its own.
+    // Matching the card: every button action gets a button, and the first choice
+    // action gets the list and Apply. A button arrives with no options and a choice
+    // always with some, which is how the two are told apart.
     void LinkPreviewPaneContent::_rebuildActions(const Control::HyperlinkPreview& preview)
     {
         const auto combo = ActionOptions();
         combo.Items().Clear();
+        ActionButtons().Children().Clear();
         ActionFields().Children().Clear();
         ActionFields().Visibility(Visibility::Collapsed);
         ActionError().Visibility(Visibility::Collapsed);
         _action = nullptr;
 
         const auto actions = preview ? preview.Actions() : nullptr;
-        if (!actions || actions.Size() == 0)
+        if (actions)
         {
-            ActionRow().Visibility(Visibility::Collapsed);
-            return;
+            for (const auto& action : actions)
+            {
+                if (!action || action.Key().empty())
+                {
+                    continue;
+                }
+                const auto actionOptions = action.Options();
+                if (actionOptions && actionOptions.Size() > 0)
+                {
+                    if (!_action)
+                    {
+                        _action = action;
+                    }
+                    continue;
+                }
+
+                Controls::Button button;
+                button.Content(winrt::box_value(action.Label().empty() ? action.Key() : action.Label()));
+                button.VerticalAlignment(VerticalAlignment::Center);
+                button.Click([weakThis = get_weak(), key = action.Key()](auto&&, auto&&) {
+                    if (const auto self = weakThis.get())
+                    {
+                        self->_invokeAction(self->_generation, key, {});
+                    }
+                });
+                ActionButtons().Children().Append(button);
+            }
         }
 
-        _action = actions.GetAt(0);
-        const auto options = _action ? _action.Options() : nullptr;
-        if (!options || options.Size() == 0)
+        const auto hasButtons = ActionButtons().Children().Size() > 0;
+        ActionButtons().Visibility(hasButtons ? Visibility::Visible : Visibility::Collapsed);
+        ActionChoice().Visibility(_action ? Visibility::Visible : Visibility::Collapsed);
+
+        if (!_action)
         {
-            _action = nullptr;
-            ActionRow().Visibility(Visibility::Collapsed);
+            ActionRow().Visibility(hasButtons ? Visibility::Visible : Visibility::Collapsed);
             return;
         }
+        const auto options = _action.Options();
 
         if (const auto label = _action.Label(); !label.empty())
         {
@@ -1128,6 +1157,13 @@ namespace winrt::TerminalApp::implementation
         ActionProgress().Visibility(busy ? Visibility::Visible : Visibility::Collapsed);
         ActionOptions().IsEnabled(!busy);
         UndoButton().IsEnabled(!busy);
+        for (const auto& child : ActionButtons().Children())
+        {
+            if (const auto button = child.try_as<Controls::Button>())
+            {
+                button.IsEnabled(!busy);
+            }
+        }
         // A StackPanel is not a Control, so it has no IsEnabled: block the input
         // and dim it instead, which is what IsEnabled would have looked like.
         ActionFields().IsHitTestVisible(!busy);
@@ -1152,7 +1188,10 @@ namespace winrt::TerminalApp::implementation
     {
         if (const auto option = _selectedOption())
         {
-            _invokeAction(_generation, option.Id());
+            if (_action)
+            {
+                _invokeAction(_generation, _action.Key(), option.Id());
+            }
         }
     }
 
@@ -1171,7 +1210,10 @@ namespace winrt::TerminalApp::implementation
         ActionFields().Children().Clear();
         ActionFields().Visibility(Visibility::Collapsed);
 
-        _invokeAction(_generation, choiceId);
+        if (_action)
+        {
+            _invokeAction(_generation, _action.Key(), choiceId);
+        }
     }
 
     void LinkPreviewPaneContent::_refreshClick(const IInspectable&, const RoutedEventArgs&)
@@ -1181,14 +1223,17 @@ namespace winrt::TerminalApp::implementation
 
     // Two round trips (the change, then a refresh that shows it) under the same
     // generation guard the fetch uses: the pane may have been retargeted meanwhile.
-    safe_void_coroutine LinkPreviewPaneContent::_invokeAction(uint32_t generation, winrt::hstring choiceId)
+    //
+    // A choice carries the picked option's id; a button carries none, and has no
+    // form and no undo to report on.
+    safe_void_coroutine LinkPreviewPaneContent::_invokeAction(uint32_t generation, winrt::hstring actionKey, winrt::hstring choiceId)
     {
         const auto weakThis{ get_weak() };
         const auto provider{ _provider };
         const auto dispatcher{ Dispatcher() };
-        const auto action{ _action };
         const auto preview{ _preview };
-        if (!provider || !dispatcher || !action || !preview)
+        const auto isChoice = !choiceId.empty();
+        if (!provider || !dispatcher || actionKey.empty() || !preview)
         {
             co_return;
         }
@@ -1199,8 +1244,7 @@ namespace winrt::TerminalApp::implementation
             sourceText = _sourceText;
         }
         const auto hint = _integrationHint;
-        const auto actionKey = action.Key();
-        const auto fieldValues = _collectFieldValues();
+        const auto fieldValues = isChoice ? _collectFieldValues() : winrt::single_threaded_map<winrt::hstring, winrt::hstring>();
 
         _setActionBusy(true);
         ActionError().Visibility(Visibility::Collapsed);
@@ -1249,6 +1293,11 @@ namespace winrt::TerminalApp::implementation
         if (refreshed)
         {
             self->_render(refreshed);
+        }
+
+        if (!isChoice)
+        {
+            co_return;
         }
 
         self->_undoChoiceId = result.UndoChoiceId();

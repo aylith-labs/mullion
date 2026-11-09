@@ -259,6 +259,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         JsonUtils::GetValueForKey(json, KeyKey, action->_Key);
         JsonUtils::GetValueForKey(json, LabelKey, action->_Label);
         JsonUtils::GetValueForKey(json, KindKey, action->_Kind);
+        JsonUtils::GetValueForKey(json, WhenKey, action->_When);
+        JsonUtils::GetValueForKey(json, UnlessKey, action->_Unless);
 
         JsonUtils::GetValueForKey(json, OptionsPathKey, action->_OptionsPath);
         JsonUtils::GetValueForKey(json, OptionIdPathKey, action->_OptionIdPath);

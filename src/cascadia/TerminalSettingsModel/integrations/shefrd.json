@@ -56,7 +56,7 @@
         {
             "key": "agentStatus",
             "label": "Status",
-            "path": "/agentStatus",
+            "path": "/status",
             "kind": "badge",
             "default": true
         },
@@ -123,9 +123,72 @@
             "key": "focus",
             "label": "Focus",
             "kind": "button",
+            "when": "{{pane:/found}}",
             "method": "POST",
             "url": "{{settings.baseUrl}}/api/herdr/focus",
             "body": "{\"kind\":\"pane\",\"id\":\"{{pane}}\"}",
+            "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
+            "allowUntrustedCertificate": true,
+            "timeoutMs": 5000
+        },
+        {
+            "key": "wake",
+            "label": "Wake",
+            "kind": "button",
+            "when": "{{pane:/hibernated}}",
+            "method": "POST",
+            "url": "{{settings.baseUrl}}/api/herdr/panes/{{pane}}/wake",
+            "body": "{}",
+            "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
+            "allowUntrustedCertificate": true,
+            "timeoutMs": 5000
+        },
+        {
+            "key": "hibernate",
+            "label": "Hibernate",
+            "kind": "button",
+            "when": "{{pane:/agent}}",
+            "unless": "{{pane:/hibernated}}",
+            "method": "POST",
+            "url": "{{settings.baseUrl}}/api/herdr/panes/{{pane}}/hibernate",
+            "body": "{}",
+            "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
+            "allowUntrustedCertificate": true,
+            "timeoutMs": 5000
+        },
+        {
+            "key": "keepAwake",
+            "label": "Keep awake",
+            "kind": "button",
+            "when": "{{pane:/agent}}",
+            "unless": "{{pane:/keepAwake}}",
+            "method": "POST",
+            "url": "{{settings.baseUrl}}/api/herdr/panes/{{pane}}/keep-awake",
+            "body": "{\"keepAwake\":true}",
+            "headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
+            "allowUntrustedCertificate": true,
+            "timeoutMs": 5000
+        },
+        {
+            "key": "allowSleep",
+            "label": "Allow sleep",
+            "kind": "button",
+            "when": "{{pane:/keepAwake}}",
+            "method": "POST",
+            "url": "{{settings.baseUrl}}/api/herdr/panes/{{pane}}/keep-awake",
+            "body": "{\"keepAwake\":false}",
             "headers": {
                 "Accept": "application/json",
                 "Content-Type": "application/json"

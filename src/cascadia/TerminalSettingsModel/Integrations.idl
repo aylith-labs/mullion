@@ -81,6 +81,12 @@ namespace Microsoft.Terminal.Settings.Model
         String Key;
         String Label;
         IntegrationActionKind Kind;
+        // Offered only when this template expands to something present, and
+        // hidden when Unless does -- the same test a fetch step's When/Unless
+        // use, evaluated against the results the card was built from, so
+        // "{{pane:/hibernated}}" offers Wake only to a sleeping agent.
+        String When;
+        String Unless;
 
         // --- Choice: where the options are and how to read one ---
         String OptionsPath;
@@ -191,9 +197,11 @@ namespace Microsoft.Terminal.Settings.Model
         String Stdin;
 
         Int32 TimeoutMs;
-        // Run only when this template expands to a non-empty string.
+        // Run only when this template expands to something present: a
+        // non-empty string other than "false", so a boolean a server always
+        // sends counts as absent while it is false.
         String When;
-        // Skip when this template expands to a non-empty string.
+        // Skip when this template expands to something present.
         String Unless;
         // A failing optional step is recorded and stepped over rather than
         // ending the fetch -- for an endpoint that may not exist on every
