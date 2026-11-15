@@ -338,22 +338,30 @@ try {
     # icons that build may no longer produce. Seen on 2026-08-30: a promoted
     # build carrying the glyph-icon fix still showed blank icons because of this.
     #
-    # -AsHashtable is required: state.json can carry a property whose name is the
-    # empty string, which ConvertFrom-Json rejects. Losing the hash costs one
-    # rebuild; losing the file would cost window positions, so leave it alone if
-    # it will not parse.
+    # The property is cut out of the text rather than round-tripped through
+    # ConvertFrom-Json. This helper runs under Windows PowerShell 5.1 (the
+    # Terminal launches it as powershell.exe), which has no -AsHashtable, and
+    # without it ConvertFrom-Json rejects the empty-string property name
+    # state.json can carry -- so from 2026-10 every promotion logged "could not
+    # parse" and skipped this. Cutting text also leaves every other byte of the
+    # file as the Terminal wrote it. Losing the hash costs one rebuild; losing the
+    # file would cost window positions, so leave it alone on any doubt.
     $stateFile = Join-Path (Split-Path -Parent $localState) 'state.json'
     if (Test-Path $stateFile) {
         try {
-            $stateObj = Get-Content $stateFile -Raw -ErrorAction Stop | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-            if ($stateObj.ContainsKey('settingsHash')) {
-                $stateObj.Remove('settingsHash')
-                Set-Content -Path $stateFile -Value ($stateObj | ConvertTo-Json -Depth 20) -Encoding UTF8
+            $stateText = [IO.File]::ReadAllText($stateFile)
+            $hash = '"settingsHash"\s*:\s*"[^"]*"'
+            $cut = [regex]::Replace($stateText, "$hash\s*,\s*", '', 1)          # followed by another property
+            if ($cut -eq $stateText) {
+                $cut = [regex]::Replace($stateText, ",\s*$hash", '', 1)        # the last property
+            }
+            if ($cut -ne $stateText) {
+                [IO.File]::WriteAllText($stateFile, $cut, (New-Object Text.UTF8Encoding $false))
                 Say 'Cleared settingsHash so the new build refreshes its jump list'
             }
         }
         catch {
-            Say ("Left state.json alone (could not parse: {0})" -f $_.Exception.Message) ([ConsoleColor]::DarkYellow)
+            Say ("Left state.json alone (could not rewrite: {0})" -f $_.Exception.Message) ([ConsoleColor]::DarkYellow)
         }
     }
 
