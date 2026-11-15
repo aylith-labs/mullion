@@ -87,7 +87,8 @@ concentrated day with Steven in the thread, not a drip.
 ## Watching for responses
 
 - **The daily digest** is the cloud routine "Mullion outreach monitor" (07:30 UTC,
-  https://claude.ai/code/routines/trig_015tWF1J55Gv6EjG4B9RotTu). Read-only: it reads
+  https://claude.ai/code/routines/trig_01SC7ZyGRTaXvmub6vTA28ef; recreated 2026-11-15 after
+  the first one and its cloud environment were found deleted). Read-only: it reads
   `docs/mentions.html` and `log.md` from `main`, checks every listed GitHub PR or issue, and
   emails steven@aylith.com (subject `[outreach] …`) when anything changed or today's step
   is due. It keeps its state in the last line of its own sent email. It never posts.
